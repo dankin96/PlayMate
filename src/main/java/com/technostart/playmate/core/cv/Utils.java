@@ -1,5 +1,6 @@
 package com.technostart.playmate.core.cv;
 
+import org.jetbrains.annotations.Nullable;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -108,6 +109,7 @@ public class Utils {
         return new Point(cx, cy);
     }
 
+    @Nullable
     public static MatOfPoint findNearestContour(MatOfPoint contour, List<MatOfPoint> contours) {
         MatOfPoint firstContour = null;
         for (MatOfPoint cnt : contours) {
@@ -143,6 +145,7 @@ public class Utils {
                 Math.abs(scalar1.val[2] - scalar2.val[2])) / 3;
     }
 
+    @Nullable
     public static MatOfPoint findSimilarByColor(MatOfPoint contour, List<MatOfPoint> contours, Mat img) {
         MatOfPoint firstContour = null;
         for (MatOfPoint cnt : contours) {

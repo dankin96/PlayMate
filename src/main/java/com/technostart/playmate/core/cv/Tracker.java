@@ -1,10 +1,6 @@
 package com.technostart.playmate.core.cv;
 
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
@@ -14,7 +10,7 @@ import java.util.List;
 
 public class Tracker {
     // Параметры по умлочанию.
-    public static final int DEFAULT_HISTORY_LENGTH = 5;
+    public static final int DEFAULT_HISTORY_LENGTH = 15;
     public static final double DEFAULT_THRESHOLD = 0;
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
@@ -84,7 +80,10 @@ public class Tracker {
         // TODO Восстановление траектории по контурам
 
         // Композиция исходного изображения с данными трекера.
-        Mat cntImg = Mat.zeros(frame.size(), frame.type());
+        if (inputFrame.type() != CvType.CV_8UC3) {
+            Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
+        }
+        Mat cntImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
         List<MatOfPoint> cnts = new ArrayList<>();
         for (List<MatOfPoint> curCnts : contoursBuffer) {
             cnts.addAll(curCnts);
