@@ -10,8 +10,8 @@ import java.util.List;
 
 public class Tracker {
     // Параметры по умлочанию.
-    public static final int DEFAULT_HISTORY_LENGTH = 15;
-    public static final double DEFAULT_THRESHOLD = 0;
+    public static final int DEFAULT_HISTORY_LENGTH = 5;
+    public static final double DEFAULT_THRESHOLD = 20;
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
 
@@ -40,7 +40,7 @@ public class Tracker {
 
         this.bgMask = new Mat();
         this.bgSubstractor =
-                Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_THRESHOLD, true);
+                Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_THRESHOLD, false);
         this.bgSubstractor.setShadowThreshold(shadow_threshold);
         // Находим тени но не отображаем их на маске.
         this.bgSubstractor.setShadowValue(0);

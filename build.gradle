@@ -6,13 +6,28 @@ apply plugin: 'maven-publish'
 
 sourceCompatibility = 1.7
 
+
+
 repositories {
     mavenCentral()
     mavenLocal()
 }
 
 dependencies {
+
+    compile files('libs/OpenCV/opencv-310.jar')
+//    compile fileTree(dir: 'libs/OpenCV/', include: '*')
     testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+tasks.withType(Test) {
+    systemProperty "java.library.path", 'libs/OpenCV/'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.technostart.playmate.gui.Player'
+    }
 }
 
 publishing {
