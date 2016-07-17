@@ -13,6 +13,7 @@ public class Player extends Application {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
+    //точка входа
     @Override
     public void start(Stage primaryStage) {
         try {
