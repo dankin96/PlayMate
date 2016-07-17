@@ -1,5 +1,6 @@
 package com.technostart.playmate.gui;
 
+import com.technostart.playmate.core.cv.BufferedFrameReader;
 import com.technostart.playmate.core.cv.CvFrameReader;
 import com.technostart.playmate.core.cv.FrameReader;
 import com.technostart.playmate.core.cv.Tracker;
@@ -19,7 +20,9 @@ import javafx.stage.FileChooser;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -89,7 +92,8 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        capture = new CvFrameReader(videoFileName);
+        CvFrameReader fReader = new CvFrameReader(videoFileName);
+        capture = new BufferedFrameReader<>(fReader, 30, 120);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
     }
@@ -122,6 +126,8 @@ public class PlayerController implements Initializable {
     }
 
     private Image mat2Image(Mat frame) {
+        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.resize(frame, frame, new Size(), 0.3, 0.3, Imgproc.INTER_LINEAR);
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
         params[1] = 30;

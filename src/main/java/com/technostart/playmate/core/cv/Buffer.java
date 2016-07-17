@@ -7,18 +7,21 @@ public class Buffer<T> {
 
     private static final float RATE = 0.5f;
     private int capacity;
+    private int interval;
     private int cursor;
     List<T> body;
 
-    public Buffer(int capacity) {
+    public Buffer(int capacity, int interval) {
         body = new ArrayList<>(capacity);
+        this.interval = interval;
+        cursor = 0;
     }
 
     public void put(T value) {
         if (body.size() + 1 > capacity) {
             body.remove(0);
-            cursor--;
         }
+        cursor--;
         body.add(value);
     }
 
