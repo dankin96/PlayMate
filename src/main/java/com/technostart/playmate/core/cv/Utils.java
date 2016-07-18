@@ -168,5 +168,10 @@ public class Utils {
         return similarContour;
     }
 
+    public static Scalar get() {
+        Scalar scalar = new Scalar;
+        return scalar;
+    }
+
 
 }
