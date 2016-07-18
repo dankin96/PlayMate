@@ -11,6 +11,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Utils {
@@ -134,7 +135,11 @@ public class Utils {
     }
 
     public static Mat getContourMask(MatOfPoint contour, Size size) {
-        return MatOfByte.zeros(size, CvType.CV_8U);
+        List<MatOfPoint> contours = new ArrayList<>();
+        contours.add(contour);
+        Mat mask =  MatOfByte.zeros(size, CvType.CV_8U);
+        Imgproc.drawContours(mask, contours, -1, new Scalar(255), -1);
+        return mask;
     }
 
     public static double scalarDiff(Scalar scalar1, Scalar scalar2) {
@@ -168,9 +173,8 @@ public class Utils {
         return similarContour;
     }
 
-    public static Scalar get() {
-        Scalar scalar = new Scalar;
-        return scalar;
+    public static Scalar getMedianColor(MatOfPoint contour, Mat img) {
+        return Core.mean(img, getContourMask(contour, img.size()));
     }
 
 
