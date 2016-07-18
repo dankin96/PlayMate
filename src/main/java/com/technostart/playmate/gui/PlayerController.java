@@ -84,6 +84,7 @@ public class PlayerController implements Initializable {
     private void showFrame(Mat frame) {
         Image imageToShow = mat2Image(frame);
         processedFrame.setImage(imageToShow);
+        currentFrame.setImage(imageToShow);
     }
 
     @FXML
@@ -126,7 +127,7 @@ public class PlayerController implements Initializable {
     }
 
     private Image mat2Image(Mat frame) {
-        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
+       // Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
         Imgproc.resize(frame, frame, new Size(), 0.3, 0.3, Imgproc.INTER_LINEAR);
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
