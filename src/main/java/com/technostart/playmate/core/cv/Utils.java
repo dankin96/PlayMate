@@ -1,13 +1,6 @@
 package com.technostart.playmate.core.cv;
 
-import org.opencv.core.Core;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
@@ -137,7 +130,7 @@ public class Utils {
     public static Mat getContourMask(MatOfPoint contour, Size size) {
         List<MatOfPoint> contours = new ArrayList<>();
         contours.add(contour);
-        Mat mask =  MatOfByte.zeros(size, CvType.CV_8U);
+        Mat mask = MatOfByte.zeros(size, CvType.CV_8U);
         Imgproc.drawContours(mask, contours, -1, new Scalar(255), -1);
         return mask;
     }
@@ -177,5 +170,19 @@ public class Utils {
         return Core.mean(img, getContourMask(contour, img.size()));
     }
 
+    public static Scalar scalarMean(List<Scalar> scalars) {
+        double[] val = new double[scalars.get(0).val.length];
+        Scalar mean = new Scalar(val);
+        for (Scalar s : scalars) {
+            for (int i = 0; i < s.val.length; i++) {
+                mean.val[i] += s.val[i];
+            }
+        }
+
+        for (int i = 0; i < mean.val.length; i++) {
+            mean.val[i] /= scalars.size();
+        }
+        return mean;
+    }
 
 }

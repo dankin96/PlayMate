@@ -54,10 +54,27 @@ public class Tracker {
     }
 
     public class Group {
+        private static final int COLOR_NUMBER = 3;
         private Scalar medianColor;
         private Point lastCoord;
 
-        public Group(MatOfPoint contour) {
+        private List<Scalar> colors;
+
+        public Group(Scalar medianColor, Point lastCoord) {
+            this.medianColor = medianColor;
+            this.lastCoord = lastCoord;
+        }
+
+        public Group(MatOfPoint contour, Mat img) {
+            add(contour, img);
+        }
+
+        public void add(MatOfPoint contour, Mat img) {
+            if (colors.size() + 1 >= COLOR_NUMBER) {
+                colors.remove(0);
+            }
+            medianColor = Utils.getMedianColor(contour, img);
+            lastCoord = Utils.getCentroid(contour);
         }
     }
 
