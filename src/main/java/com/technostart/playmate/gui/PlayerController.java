@@ -57,9 +57,9 @@ public class PlayerController implements Initializable {
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         currentFrame.setImage(imageToShow);
-        processedFrame.setImage(imageToShow);
+//        processedFrame.setImage(imageToShow);
 
-        tracker = new Tracker();
+        tracker = new Tracker(5, 5, 0.5f);
 
         // Инициализация слайдера.
         slider.valueProperty().addListener(new ChangeListener<Number>() {
@@ -81,9 +81,9 @@ public class PlayerController implements Initializable {
 
     }
 
-    private void showFrame(Mat frame) {
+    private void showFrame(Mat inputFame) {
+        Mat frame = processFrame(inputFame);
         Image imageToShow = mat2Image(frame);
-        processedFrame.setImage(imageToShow);
         currentFrame.setImage(imageToShow);
     }
 
@@ -93,8 +93,9 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        CvFrameReader fReader = new CvFrameReader(videoFileName);
-        capture = new BufferedFrameReader<>(fReader, 30, 120);
+        capture = new CvFrameReader(videoFileName);
+//        CvFrameReader fReader = new CvFrameReader(videoFileName);
+//        capture = new BufferedFrameReader<>(fReader, 30, 120);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
     }
@@ -126,12 +127,16 @@ public class PlayerController implements Initializable {
         showFrame(capture.get(currentFrameNumber));
     }
 
+    private Mat processFrame(Mat frame) {
+//        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
+        return tracker.getFrame(frame);
+    }
+
     private Image mat2Image(Mat frame) {
-       // Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.resize(frame, frame, new Size(), 0.3, 0.3, Imgproc.INTER_LINEAR);
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
-        params[1] = 30;
+        params[1] = 70;
         MatOfInt matOfParams = new MatOfInt();
         matOfParams.fromArray(params);
         MatOfByte buffer = new MatOfByte();

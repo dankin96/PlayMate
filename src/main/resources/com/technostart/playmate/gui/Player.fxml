@@ -9,9 +9,9 @@
       onKeyPressed="#changeFrame"
       fx:controller="com.technostart.playmate.gui.PlayerController">
     <children>
-        <ImageView fx:id="currentFrame" fitHeight="270.0" fitWidth="495.0" layoutX="53.0" layoutY="14.0"
+        <ImageView fx:id="currentFrame" fitHeight="-Infinity" fitWidth="-Infinity" layoutX="53.0" layoutY="14.0"
                    pickOnBounds="true" preserveRatio="true"/>
-        <ImageView fx:id="processedFrame" fitHeight="270.0" fitWidth="495.0" layoutX="53.0" layoutY="296.0"
+        <ImageView fx:id="processedFrame" fitHeight="-Infinity" fitWidth="-Infinity" layoutX="53.0" layoutY="296.0"
                    pickOnBounds="true" preserveRatio="true"/>
         <Button fx:id="openVideoButton" layoutX="111.0" layoutY="582.0" mnemonicParsing="false" onAction="#openFile"
                 text="Open Video"/>

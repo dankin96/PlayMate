@@ -1,6 +1,5 @@
 package com.technostart.playmate.core.cv;
 
-import com.sun.istack.internal.Nullable;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -19,8 +18,8 @@ public class Utils {
     public static final int DEFAULT_KERNEL_RATE = 250;
 
     // Resize
-    private static int resizeHeight = 200;
-    private static int resizeWidth = 300;
+    private static int resizeHeight = 480;
+    private static int resizeWidth = 640;
     private static int perimeterHalf = resizeHeight + resizeWidth;
     public static int resizeInterpolation = Imgproc.INTER_LINEAR;
 
@@ -109,7 +108,6 @@ public class Utils {
         return new Point(cx, cy);
     }
 
-    @Nullable
     public static MatOfPoint findNearestContour(MatOfPoint contour, List<MatOfPoint> contours) {
         MatOfPoint firstContour = null;
         for (MatOfPoint cnt : contours) {
@@ -145,7 +143,6 @@ public class Utils {
                 Math.abs(scalar1.val[2] - scalar2.val[2])) / 3;
     }
 
-    @Nullable
     public static MatOfPoint findSimilarByColor(MatOfPoint contour, List<MatOfPoint> contours, Mat img) {
         MatOfPoint firstContour = null;
         for (MatOfPoint cnt : contours) {
