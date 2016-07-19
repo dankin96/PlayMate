@@ -19,7 +19,7 @@ public class Player extends Application {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("Player.fxml"));
             Pane rootElement = (Pane) loader.load();
-            Scene scene = new Scene(rootElement, 600, 700);
+            Scene scene = new Scene(rootElement, 900, 680);
             scene.setFill(Color.BLACK);
             primaryStage.setWidth(1400);
             primaryStage.setHeight(1400);

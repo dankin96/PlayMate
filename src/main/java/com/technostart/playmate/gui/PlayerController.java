@@ -10,6 +10,8 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -42,6 +44,12 @@ public class PlayerController implements Initializable {
     @FXML
     Slider slider;
     @FXML
+    Slider threshold;
+    @FXML
+    CheckBox canny;
+    @FXML
+    Label position;
+    @FXML
     ImageView currentFrame;
     @FXML
     ImageView processedFrame;
@@ -57,10 +65,9 @@ public class PlayerController implements Initializable {
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         currentFrame.setImage(imageToShow);
-//        processedFrame.setImage(imageToShow);
+        processedFrame.setImage(imageToShow);
 
         tracker = new Tracker(5, 5, 0.5f);
-
         // Инициализация слайдера.
         slider.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
@@ -69,7 +76,7 @@ public class PlayerController implements Initializable {
                 if (capture != null) {
                     System.out.print("\nFrame\n");
                     int frameNumber = capture.getFrameNumber();
-                    double pos = slider.getValue() * frameNumber / 100;
+                    double pos = slider.getValue() * frameNumber / 1000;
                     pos = pos < 0 ? 0 : pos;
                     pos = frameNumber <= pos ? frameNumber - 2 : pos;
                     currentFrameNumber = (int) pos;
@@ -79,12 +86,29 @@ public class PlayerController implements Initializable {
             }
         });
 
+        // Инициализация порога для canny.
+        threshold.valueProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observable,
+                                Number oldValue, Number newValue) {
+                    double pos = threshold.getValue();
+                    pos = pos < 0 ? 0 : pos;
+                    pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
+                    System.out.print(pos + "\n");
+                    System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
+                }
+
+        });
+
     }
 
-    private void showFrame(Mat inputFame) {
-        Mat frame = processFrame(inputFame);
-        Image imageToShow = mat2Image(frame);
+    private void showFrame(Mat inputFrame) {
+        position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
+        Image imageToShow = mat2Image(inputFrame);
         currentFrame.setImage(imageToShow);
+        Mat frame = processFrame(inputFrame);
+        imageToShow = mat2Image(inputFrame);
+        processedFrame.setImage(imageToShow);
     }
 
     @FXML
@@ -98,6 +122,18 @@ public class PlayerController implements Initializable {
 //        capture = new BufferedFrameReader<>(fReader, 30, 120);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
+        position.textProperty().setValue("1");
+        System.out.print("FrameNumber - " + capture.getFrameNumber() + "\n");
+    }
+
+    @FXML
+    protected void cannySelected(ActionEvent event) {
+        if (this.canny.isSelected()){
+            Mat frame = capture.get(currentFrameNumber);
+          //  frame = tracker.getTable(frame, 50);// (int) this.threshold.getValue());
+            Image imageToShow = mat2Image(frame);
+            processedFrame.setImage(imageToShow);
+        }
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -129,11 +165,14 @@ public class PlayerController implements Initializable {
 
     private Mat processFrame(Mat frame) {
 //        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
+       // Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
         return tracker.getFrame(frame);
+       // return tracker.getTable(frame, (int) threshold.getValue());
     }
 
     private Image mat2Image(Mat frame) {
+        //        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
         params[1] = 70;
