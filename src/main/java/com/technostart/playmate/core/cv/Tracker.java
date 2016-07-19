@@ -6,7 +6,9 @@ import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Tracker {
     // Параметры по умлочанию.
@@ -28,7 +30,7 @@ public class Tracker {
     private List<List<MatOfPoint>> contoursBuffer;
 
     //
-    private List<Point> track;
+    Map<Group, List<Point>> groupList;
 
     public Tracker() {
         this(DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
@@ -48,9 +50,33 @@ public class Tracker {
 
         this.contoursBuffer = new ArrayList<>(bufferLength);
 
-        this.track = new ArrayList<>();
+        groupList = new HashMap<>();
     }
 
+    public class Group {
+        private static final int COLOR_NUMBER = 3;
+        private Scalar medianColor;
+        private Point lastCoord;
+
+        private List<Scalar> colors;
+
+        public Group(Scalar medianColor, Point lastCoord) {
+            this.medianColor = medianColor;
+            this.lastCoord = lastCoord;
+        }
+
+        public Group(MatOfPoint contour, Mat img) {
+            add(contour, img);
+        }
+
+        public void add(MatOfPoint contour, Mat img) {
+            if (colors.size() + 1 >= COLOR_NUMBER) {
+                colors.remove(0);
+            }
+            medianColor = Utils.getMedianColor(contour, img);
+            lastCoord = Utils.getCentroid(contour);
+        }
+    }
 
     public Mat getFrame(Mat inputFrame) {
         // Resize.
