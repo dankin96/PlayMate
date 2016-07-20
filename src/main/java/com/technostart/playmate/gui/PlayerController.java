@@ -1,9 +1,6 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.BufferedFrameReader;
-import com.technostart.playmate.core.cv.CvFrameReader;
-import com.technostart.playmate.core.cv.FrameReader;
-import com.technostart.playmate.core.cv.Tracker;
+import com.technostart.playmate.core.cv.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
@@ -32,7 +29,6 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class PlayerController implements Initializable {
-
     @FXML
     Button openVideoButton;
     @FXML
@@ -50,6 +46,8 @@ public class PlayerController implements Initializable {
     @FXML
     Label position;
     @FXML
+    Label thresholdLabel;
+    @FXML
     ImageView currentFrame;
     @FXML
     ImageView processedFrame;
@@ -59,6 +57,7 @@ public class PlayerController implements Initializable {
     private int currentFrameNumber;
 
     private Tracker tracker;
+    private FindTable table;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -68,6 +67,8 @@ public class PlayerController implements Initializable {
         processedFrame.setImage(imageToShow);
 
         tracker = new Tracker(5, 5, 0.5f);
+        table = new FindTable();
+
         // Инициализация слайдера.
         slider.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
@@ -91,12 +92,13 @@ public class PlayerController implements Initializable {
             @Override
             public void changed(ObservableValue<? extends Number> observable,
                                 Number oldValue, Number newValue) {
-                    double pos = threshold.getValue();
-                    pos = pos < 0 ? 0 : pos;
-                    pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
-                    System.out.print(pos + "\n");
-                    System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
-                }
+                double pos = threshold.getValue();
+                pos = pos < 0 ? 0 : pos;
+                pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
+                thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
+                System.out.print(pos + "\n");
+                System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
+            }
 
         });
 
@@ -104,10 +106,12 @@ public class PlayerController implements Initializable {
 
     private void showFrame(Mat inputFrame) {
         position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
-        Image imageToShow = mat2Image(inputFrame);
+        Image imageToShow = Utils.mat2Image(inputFrame);
         currentFrame.setImage(imageToShow);
-        Mat frame = processFrame(inputFrame);
-        imageToShow = mat2Image(inputFrame);
+        if (this.canny.isSelected()) {
+            inputFrame = processFrame(inputFrame);
+        }
+        imageToShow = Utils.mat2Image(inputFrame);
         processedFrame.setImage(imageToShow);
     }
 
@@ -118,8 +122,6 @@ public class PlayerController implements Initializable {
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
         capture = new CvFrameReader(videoFileName);
-//        CvFrameReader fReader = new CvFrameReader(videoFileName);
-//        capture = new BufferedFrameReader<>(fReader, 30, 120);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -128,10 +130,10 @@ public class PlayerController implements Initializable {
 
     @FXML
     protected void cannySelected(ActionEvent event) {
-        if (this.canny.isSelected()){
-            Mat frame = capture.get(currentFrameNumber);
-          //  frame = tracker.getTable(frame, 50);// (int) this.threshold.getValue());
-            Image imageToShow = mat2Image(frame);
+        if (this.canny.isSelected()) {
+            Mat frame = capture.get(capture.getCurrentFrameNumber());
+            frame = table.getTable(frame, (int) this.threshold.getValue());
+            Image imageToShow = Utils.mat2Image(frame);
             processedFrame.setImage(imageToShow);
         }
     }
@@ -164,22 +166,6 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-//        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
-       // Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
-        return tracker.getFrame(frame);
-       // return tracker.getTable(frame, (int) threshold.getValue());
-    }
-
-    private Image mat2Image(Mat frame) {
-        //        Imgproc.cvtColor(frame, frame, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
-        int[] params = new int[2];
-        params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
-        params[1] = 70;
-        MatOfInt matOfParams = new MatOfInt();
-        matOfParams.fromArray(params);
-        MatOfByte buffer = new MatOfByte();
-        Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
-        return new Image(new ByteArrayInputStream(buffer.toArray()));
+        return tracker.getFrame(table.getTable(frame, (int) this.threshold.getValue()));
     }
 }

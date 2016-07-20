@@ -8,6 +8,8 @@ import org.opencv.video.Video;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.technostart.playmate.core.cv.Utils.kernelShape;
+
 public class Tracker {
     // Параметры по умлочанию.
     public static final int DEFAULT_HISTORY_LENGTH = 5;
@@ -73,7 +75,6 @@ public class Tracker {
             contoursBuffer.remove(0);
         }
         contoursBuffer.add(contours);
-
         // TODO Поиск ближайших контуров
         // TODO Поиск контуров похожих по цвету
 
@@ -106,6 +107,4 @@ public class Tracker {
             }
         }
     }
-
-
 }
