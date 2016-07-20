@@ -1,6 +1,5 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.BufferedFrameReader;
 import com.technostart.playmate.core.cv.CvFrameReader;
 import com.technostart.playmate.core.cv.FrameReader;
 import com.technostart.playmate.core.cv.Tracker;
@@ -56,7 +55,7 @@ public class PlayerController implements Initializable {
 
     private FrameReader<Mat> capture;
     private String videoFileName;
-    private int currentFrameNumber;
+    private int frameNumberToShow;
 
     private Tracker tracker;
 
@@ -79,7 +78,7 @@ public class PlayerController implements Initializable {
                     double pos = slider.getValue() * frameNumber / 1000;
                     pos = pos < 0 ? 0 : pos;
                     pos = frameNumber <= pos ? frameNumber - 2 : pos;
-                    currentFrameNumber = (int) pos;
+                    frameNumberToShow = (int) pos;
                     System.out.print(pos + "\n");
                     System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
                 }
@@ -129,7 +128,7 @@ public class PlayerController implements Initializable {
     @FXML
     protected void cannySelected(ActionEvent event) {
         if (this.canny.isSelected()){
-            Mat frame = capture.get(currentFrameNumber);
+            Mat frame = capture.get(frameNumberToShow);
           //  frame = tracker.getTable(frame, 50);// (int) this.threshold.getValue());
             Image imageToShow = mat2Image(frame);
             processedFrame.setImage(imageToShow);
@@ -160,7 +159,7 @@ public class PlayerController implements Initializable {
 
     @FXML
     public void showCurrentFrame() {
-        showFrame(capture.get(currentFrameNumber));
+        showFrame(capture.get(frameNumberToShow));
     }
 
     private Mat processFrame(Mat frame) {
