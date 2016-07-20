@@ -1,9 +1,12 @@
 package com.technostart.playmate.core.cv;
 
+import javafx.scene.image.Image;
 import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -185,4 +188,16 @@ public class Utils {
         return mean;
     }
 
+
+    static public Image mat2Image(Mat frame) {
+        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
+        int[] params = new int[2];
+        params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
+        params[1] = 70;
+        MatOfInt matOfParams = new MatOfInt();
+        matOfParams.fromArray(params);
+        MatOfByte buffer = new MatOfByte();
+        Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
+        return new Image(new ByteArrayInputStream(buffer.toArray()));
+    }
 }

@@ -15,13 +15,13 @@
                     <children>
                         <VBox minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                             <children>
-                                <ImageView fx:id="currentFrame" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
+                                <ImageView fx:id="currentFrameView" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
                                            preserveRatio="true">
                                     <VBox.margin>
                                         <Insets left="60.0" top="20.0"/>
                                     </VBox.margin>
                                 </ImageView>
-                                <ImageView fx:id="processedFrame" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
+                                <ImageView fx:id="processedFrameView" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
                                            preserveRatio="true">
                                     <VBox.margin>
                                         <Insets left="60.0" top="5.0"/>
@@ -47,7 +47,7 @@
                                                 <Insets left="52.0" top="15.0"/>
                                             </HBox.margin>
                                         </Button>
-                                        <Slider fx:id="slider" blockIncrement="5.0" max="1000.0"
+                                        <Slider fx:id="sliderFrame" blockIncrement="5.0" max="1000.0"
                                                 onMouseReleased="#showCurrentFrame" prefWidth="160.0">
                                             <HBox.margin>
                                                 <Insets left="40.0" top="20.0"/>
@@ -83,7 +83,7 @@
                     <children>
                         <VBox minHeight="0" minWidth="0" SplitPane.resizableWithParent="true">
                             <children>
-                                <CheckBox fx:id="canny" mnemonicParsing="false" onAction="#cannySelected"
+                                <CheckBox fx:id="checkBoxCanny" mnemonicParsing="false" onAction="#cannySelected"
                                           text="Edge Detection">
                                     <padding>
                                         <Insets top="5.0"/>
