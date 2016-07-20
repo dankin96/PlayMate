@@ -17,13 +17,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -38,46 +32,46 @@ public class PlayerController implements Initializable {
     @FXML
     Button previousFrame;
     @FXML
-    Slider slider;
+    Slider sliderFrame;
     @FXML
     Slider threshold;
     @FXML
-    CheckBox canny;
+    CheckBox checkBoxCanny;
     @FXML
     Label position;
     @FXML
     Label thresholdLabel;
     @FXML
-    ImageView currentFrame;
+    ImageView currentFrameView;
     @FXML
-    ImageView processedFrame;
+    ImageView processedFrameView;
 
     private FrameReader<Mat> capture;
     private String videoFileName;
     private int currentFrameNumber;
 
     private Tracker tracker;
-    private FindTable table;
+    private TableDetector table;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
-        currentFrame.setImage(imageToShow);
-        processedFrame.setImage(imageToShow);
+        currentFrameView.setImage(imageToShow);
+        processedFrameView.setImage(imageToShow);
 
         tracker = new Tracker(5, 5, 0.5f);
-        table = new FindTable();
+        table = new TableDetector();
 
         // Инициализация слайдера.
-        slider.valueProperty().addListener(new ChangeListener<Number>() {
+        sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observable,
                                 Number oldValue, Number newValue) {
                 if (capture != null) {
                     System.out.print("\nFrame\n");
                     int frameNumber = capture.getFrameNumber();
-                    double pos = slider.getValue() * frameNumber / 1000;
+                    double pos = sliderFrame.getValue() * frameNumber / 1000;
                     pos = pos < 0 ? 0 : pos;
                     pos = frameNumber <= pos ? frameNumber - 2 : pos;
                     currentFrameNumber = (int) pos;
@@ -87,7 +81,7 @@ public class PlayerController implements Initializable {
             }
         });
 
-        // Инициализация порога для canny.
+        // Инициализация порога для checkBoxCanny.
         threshold.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observable,
@@ -107,12 +101,12 @@ public class PlayerController implements Initializable {
     private void showFrame(Mat inputFrame) {
         position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
         Image imageToShow = Utils.mat2Image(inputFrame);
-        currentFrame.setImage(imageToShow);
-        if (this.canny.isSelected()) {
+        currentFrameView.setImage(imageToShow);
+        if (this.checkBoxCanny.isSelected()) {
             inputFrame = processFrame(inputFrame);
         }
         imageToShow = Utils.mat2Image(inputFrame);
-        processedFrame.setImage(imageToShow);
+        processedFrameView.setImage(imageToShow);
     }
 
     @FXML
@@ -130,11 +124,11 @@ public class PlayerController implements Initializable {
 
     @FXML
     protected void cannySelected(ActionEvent event) {
-        if (this.canny.isSelected()) {
+        if (this.checkBoxCanny.isSelected()) {
             Mat frame = capture.get(capture.getCurrentFrameNumber());
             frame = table.getTable(frame, (int) this.threshold.getValue());
             Image imageToShow = Utils.mat2Image(frame);
-            processedFrame.setImage(imageToShow);
+            processedFrameView.setImage(imageToShow);
         }
     }
 
