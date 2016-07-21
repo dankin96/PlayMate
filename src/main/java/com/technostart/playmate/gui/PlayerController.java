@@ -167,6 +167,6 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return tracker.getFrame(table.getTable(frame, (int) this.threshold.getValue()));
+        return tracker.getFrame(frame);
     }
 }

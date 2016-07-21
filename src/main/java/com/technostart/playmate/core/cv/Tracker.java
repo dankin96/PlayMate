@@ -6,9 +6,7 @@ import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Tracker {
     // Параметры по умлочанию.
@@ -16,6 +14,7 @@ public class Tracker {
     public static final double DEFAULT_THRESHOLD = 20;
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
+    private static final double DIST_THRESHOLD = 10;
 
     // Параметры выделения фона.
     private Mat bgMask;
@@ -30,7 +29,8 @@ public class Tracker {
     private List<List<MatOfPoint>> contoursBuffer;
 
     //
-    Map<Group, List<Point>> groupList;
+//    Map<Group, List<Point>> groupList;
+    ArrayList<Group> groups;
 
     public Tracker() {
         this(DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
@@ -50,7 +50,7 @@ public class Tracker {
 
         this.contoursBuffer = new ArrayList<>(bufferLength);
 
-        groupList = new HashMap<>();
+        groups = new ArrayList<>();
     }
 
     public class Group {
@@ -59,22 +59,42 @@ public class Tracker {
         private Point lastCoord;
 
         private List<Scalar> colors;
+        private List<Scalar> contours;
+        private List<Point> track;
+
+        //
 
         public Group(Scalar medianColor, Point lastCoord) {
+            init();
             this.medianColor = medianColor;
             this.lastCoord = lastCoord;
         }
 
-        public Group(MatOfPoint contour, Mat img) {
-            add(contour, img);
+        public Group(MatOfPoint contour) {
+            init();
+            add(contour);
         }
 
-        public void add(MatOfPoint contour, Mat img) {
-            if (colors.size() + 1 >= COLOR_NUMBER) {
-                colors.remove(0);
-            }
-            medianColor = Utils.getMedianColor(contour, img);
-            lastCoord = Utils.getCentroid(contour);
+        private void init() {
+            track = new ArrayList<>();
+            contours = new ArrayList<>();
+        }
+
+        public void add(MatOfPoint contour) {
+            // Координаты.
+            Point centroid = Utils.getCentroid(contour);
+            lastCoord = centroid;
+            track.add(centroid);
+        }
+
+        public MatOfPoint getTrackContour() {
+            MatOfPoint contour = new MatOfPoint();
+            contour.fromList(track);
+            return contour;
+        }
+
+        public List<Point> getTrack() {
+            return track;
         }
     }
 
@@ -100,7 +120,11 @@ public class Tracker {
         }
         contoursBuffer.add(contours);
 
+        // TODO Чистка групп.
         // TODO Поиск ближайших контуров
+        for (MatOfPoint contour : contours) {
+            // findGroup(contour);
+        }
         // TODO Поиск контуров похожих по цвету
 
         // TODO Восстановление траектории по контурам
@@ -109,14 +133,15 @@ public class Tracker {
         if (inputFrame.type() != CvType.CV_8UC3) {
             Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
         }
-        Mat cntImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
+        Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
         List<MatOfPoint> cnts = new ArrayList<>();
         for (List<MatOfPoint> curCnts : contoursBuffer) {
             cnts.addAll(curCnts);
         }
-        Imgproc.drawContours(cntImg, cnts, -1, new Scalar(0, 255, 0), 1);
-        Imgproc.resize(cntImg, cntImg, inputFrame.size());
-        Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
+        Imgproc.drawContours(dataImg, cnts, -1, new Scalar(0, 255, 0), 1);
+        // TODO Рисуем треки.
+        Imgproc.resize(dataImg, dataImg, inputFrame.size());
+        Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0, inputFrame);
         return inputFrame;
     }
 
@@ -130,6 +155,38 @@ public class Tracker {
                 Point p2 = Utils.getCentroid(curCnt);
                 Imgproc.line(inputFrame, p1, p2, new Scalar(0, 0, 255));
             }
+        }
+    }
+
+    private void findGroup(MatOfPoint contour) {
+        Point center = Utils.getCentroid(contour);
+        int groupId = 0;
+        boolean isInit = false;
+        double minDist = DIST_THRESHOLD;
+
+        for (int i = 0; i < groups.size(); i++) {
+            Group group = groups.get(i);
+            double curDist = Utils.getDistance(center, group.lastCoord);
+            if (curDist >= DIST_THRESHOLD) continue;
+            if (!isInit) {
+                minDist = curDist;
+                isInit = true;
+            }
+
+            if (curDist < minDist) {
+                minDist = curDist;
+                groupId = i;
+            }
+        }
+
+        if (isInit) {
+            // Добавляем контур в группу.
+            Group updatedGroup = groups.get(groupId);
+            updatedGroup.add(contour);
+            groups.set(groupId, updatedGroup);
+        } else {
+            Group newGroup = new Group(contour);
+            groups.add(newGroup);
         }
     }
 
