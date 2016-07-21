@@ -200,4 +200,11 @@ public class Utils {
         Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
         return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
+
+    static public void drawLine(List<Point> points, Mat img) {
+        for (int i = 0; i < points.size() - 1; i++) {
+            Imgproc.line(img, points.get(i), points.get(i+1), new Scalar(0, 0, 255));
+        }
+    }
+
 }
