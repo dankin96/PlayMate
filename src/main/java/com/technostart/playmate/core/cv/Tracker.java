@@ -137,8 +137,7 @@ public class Tracker {
 
         }
 
-        // TODO Поиск ближайших контуров
-        Set<Integer> initContoursIdx;
+        // Поиск ближайших контуров.
         Map<Integer, List<Integer>> cntIdxToGroupIdx = new HashMap<>();
 
         // Поиск ближайшего к группе контура.
@@ -169,7 +168,7 @@ public class Tracker {
                 Group updatedGroup = groups.get(groupIdx);
                 updatedGroup.add(contour);
                 groups.set(groupIdx, updatedGroup);
-                // Добавляем индекс для удаления.
+                // Отмечаем добавленный контур.
                 addedContoursIdx.add(contourIdx);
             } else {
                 System.err.println("Find group index error!");
@@ -178,7 +177,7 @@ public class Tracker {
 
         // TODO Поиск контуров похожих по цвету
 
-        // Создаем новые группы из оставшихс контуров.
+        // Создаем новые группы из оставшихся контуров.
         for (int i = 0, size = contours.size(); i < size; i++) {
             if (addedContoursIdx.contains(i)) {
                 addedContoursIdx.remove(i);
@@ -188,7 +187,7 @@ public class Tracker {
                 groups.add(newGroup);
             }
         }
-        
+
         // TODO Восстановление траектории по контурам
 
         /**
