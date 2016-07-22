@@ -7,10 +7,7 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Tracker {
     // Параметры по умлочанию.
@@ -19,7 +16,7 @@ public class Tracker {
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
     // TODO: должно зависеть от размеров кадра
-    private static final double DIST_THRESHOLD = 100;
+    private static final double DIST_THRESHOLD = 1000;
 
     // Параметры выделения фона.
     private Mat bgMask;
@@ -141,7 +138,7 @@ public class Tracker {
         }
 
         // TODO Поиск ближайших контуров
-
+        Set<Integer> initContoursIdx;
         Map<Integer, List<Integer>> cntIdxToGroupIdx = new HashMap<>();
 
         // Поиск ближайшего к группе контура.
@@ -159,6 +156,8 @@ public class Tracker {
             }
         }
 
+        Set<Integer> addedContoursIdx = new HashSet<>();
+
         // Поиск ближайшей к контуру группы.
         for (Integer contourIdx : cntIdxToGroupIdx.keySet()) {
             int groupIdx;
@@ -170,6 +169,8 @@ public class Tracker {
                 Group updatedGroup = groups.get(groupIdx);
                 updatedGroup.add(contour);
                 groups.set(groupIdx, updatedGroup);
+                // Добавляем индекс для удаления.
+                addedContoursIdx.add(contourIdx);
             } else {
                 System.err.println("Find group index error!");
             }
@@ -177,12 +178,17 @@ public class Tracker {
 
         // TODO Поиск контуров похожих по цвету
 
-        // Создание групп из оставшихся контуров.
-        for (MatOfPoint contour : contours) {
-            Group newGroup = new Group(contour);
-            groups.add(newGroup);
+        // Создаем новые группы из оставшихс контуров.
+        for (int i = 0, size = contours.size(); i < size; i++) {
+            if (addedContoursIdx.contains(i)) {
+                addedContoursIdx.remove(i);
+            } else {
+                MatOfPoint contour = contours.get(i);
+                Group newGroup = new Group(contour);
+                groups.add(newGroup);
+            }
         }
-
+        
         // TODO Восстановление траектории по контурам
 
         /**
