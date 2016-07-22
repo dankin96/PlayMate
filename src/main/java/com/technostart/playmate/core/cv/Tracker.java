@@ -17,7 +17,7 @@ public class Tracker {
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
     // TODO: должно зависеть от размеров кадра
-    private static final double DIST_THRESHOLD = 1000;
+    private static final double DIST_THRESHOLD = 2000;
 
     // Параметры выделения фона.
     private Mat bgMask;
@@ -61,6 +61,11 @@ public class Tracker {
         private Scalar medianColor;
         private Point lastCoord;
 
+        // Кол-во итераций без добавления новых элементов.
+        private int idle;
+        // Максимальное кол-во итераций простоя.
+        public static final int MAX_IDLE = 3;
+
         private List<Scalar> colors;
         private List<MatOfPoint> contours;
         private List<Point> track;
@@ -89,6 +94,8 @@ public class Tracker {
             Point centroid = Utils.getCentroid(contour);
             lastCoord = centroid;
             track.add(centroid);
+
+            idle = idle > 0 ? idle - 1: 0;
         }
 
         public Point getLastCoord() {
@@ -107,6 +114,10 @@ public class Tracker {
 
         public List<MatOfPoint> getContourList() {
             return contours;
+        }
+
+        public void idle() {
+            idle++;
         }
     }
 
@@ -133,10 +144,17 @@ public class Tracker {
         }
         contoursBuffer.add(contours);*/
 
-        // TODO Чистка групп
-        for (Group group : groups) {
-
+        // Чистка групп.
+        ArrayList<Group> updatedGroups = new ArrayList<>();
+        for (int i = 0, size = groups.size(); i < size; i++) {
+            Group group = groups.get(i);
+            if (group.idle < Group.MAX_IDLE) {
+                group.idle();
+                groups.set(i, group);
+                updatedGroups.add(group);
+            }
         }
+        groups = updatedGroups;
 
         // Поиск ближайших контуров.
         Map<Integer, List<Integer>> cntIdxToGroupIdx = new HashMap<>();
@@ -202,13 +220,14 @@ public class Tracker {
         Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
 
         // Рисуем группы контуров разными цветами.
-        /*for (Group group : groups) {
+        for (Group group : groups) {
             List<MatOfPoint> contoursToDraw = group.getContourList();
-            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getNextColor(), 1);
-        }*/
+            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getNextColor(), 2);
+        }
+
         // Рисуем треки.
         for (Group group : groups) {
-            Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 3);
+            // Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 3);
         }
         Imgproc.resize(dataImg, dataImg, inputFrame.size());
         Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0, inputFrame);

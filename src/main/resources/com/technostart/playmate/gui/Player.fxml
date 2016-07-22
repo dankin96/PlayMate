@@ -9,19 +9,19 @@
       onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.102-ea"
       xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.technostart.playmate.gui.PlayerController">
     <children>
-        <SplitPane dividerPositions="0.7" prefHeight="720.0" prefWidth="1280.0">
+        <SplitPane dividerPositions="0.7" prefHeight="768.0" prefWidth="1366.0">
             <items>
                 <AnchorPane minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                     <children>
                         <VBox minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                             <children>
-                                <ImageView fx:id="currentFrameView" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
+                                <ImageView fx:id="currentFrameView" fitHeight="200.0" fitWidth="400" pickOnBounds="true"
                                            preserveRatio="true">
                                     <VBox.margin>
-                                        <Insets left="60.0" top="20.0"/>
+                                        <Insets left="60.0" top="10.0"/>
                                     </VBox.margin>
                                 </ImageView>
-                                <ImageView fx:id="processedFrameView" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
+                                <ImageView fx:id="processedFrameView" fitHeight="400.0" fitWidth="711.0" pickOnBounds="true"
                                            preserveRatio="true">
                                     <VBox.margin>
                                         <Insets left="60.0" top="5.0"/>
@@ -32,25 +32,25 @@
                                         <Button fx:id="openVideoButton" mnemonicParsing="false" onAction="#openFile"
                                                 text="Open Video">
                                             <HBox.margin>
-                                                <Insets left="80.0" top="15.0"/>
+                                                <Insets left="80.0" top="10.0"/>
                                             </HBox.margin>
                                         </Button>
                                         <Button fx:id="previousFrame" mnemonicParsing="false"
                                                 onAction="#showPreviousFrame" text="&lt;&lt;">
                                             <HBox.margin>
-                                                <Insets left="77.0" top="15.0"/>
+                                                <Insets left="77.0" top="10.0"/>
                                             </HBox.margin>
                                         </Button>
                                         <Button fx:id="nextFrame" mnemonicParsing="false" onAction="#showNextFrame"
                                                 text="&gt;&gt;">
                                             <HBox.margin>
-                                                <Insets left="52.0" top="15.0"/>
+                                                <Insets left="52.0" top="10.0"/>
                                             </HBox.margin>
                                         </Button>
                                         <Slider fx:id="sliderFrame" blockIncrement="5.0" max="1000.0"
                                                 onMouseReleased="#showCurrentFrame" prefWidth="160.0">
                                             <HBox.margin>
-                                                <Insets left="40.0" top="20.0"/>
+                                                <Insets left="40.0" top="10.0"/>
                                             </HBox.margin>
                                         </Slider>
                                     </children>
