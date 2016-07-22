@@ -201,9 +201,9 @@ public class Utils {
         return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
 
-    static public void drawLine(List<Point> points, Mat img) {
+    static public void drawLine(List<Point> points, Mat img, Scalar color, int thickness) {
         for (int i = 0; i < points.size() - 1; i++) {
-            Imgproc.line(img, points.get(i), points.get(i+1), new Scalar(0, 0, 255));
+            Imgproc.line(img, points.get(i), points.get(i+1), color, thickness);
         }
     }
 

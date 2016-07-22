@@ -6,6 +6,7 @@ import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
+import sun.security.action.PutAllAction;
 
 import java.util.*;
 
@@ -201,11 +202,14 @@ public class Tracker {
         Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
 
         // Рисуем группы контуров разными цветами.
-        for (Group group : groups) {
+        /*for (Group group : groups) {
             List<MatOfPoint> contoursToDraw = group.getContourList();
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getNextColor(), 1);
+        }*/
+        // Рисуем треки.
+        for (Group group : groups) {
+            Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 3);
         }
-        // TODO Рисуем треки.
         Imgproc.resize(dataImg, dataImg, inputFrame.size());
         Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0, inputFrame);
         return inputFrame;
