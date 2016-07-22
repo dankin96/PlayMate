@@ -17,7 +17,7 @@ public class Tracker {
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
     // TODO: должно зависеть от размеров кадра
-    private static final double DIST_THRESHOLD = 2000;
+    private static final double DIST_THRESHOLD = 4000;
 
     // Параметры выделения фона.
     private Mat bgMask;
@@ -28,12 +28,8 @@ public class Tracker {
     private int bufferLength;
     private List<Mat> maskBuffer;
 
-    // Буфер контуров.
-    private List<List<MatOfPoint>> contoursBuffer;
-
     //
-//    Map<Group, List<Point>> groupList;
-    ArrayList<Group> groups;
+    private ArrayList<Group> groups;
 
     public Tracker() {
         this(DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
@@ -43,15 +39,12 @@ public class Tracker {
         this.historyLength = historyLength;
         this.bufferLength = bufferLength;
 
-        this.bgMask = new Mat();
-        this.bgSubstractor =
-                Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_THRESHOLD, false);
-        this.bgSubstractor.setShadowThreshold(shadow_threshold);
+        bgMask = new Mat();
+        bgSubstractor = Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_THRESHOLD, false);
+        bgSubstractor.setShadowThreshold(shadow_threshold);
         // Находим тени но не отображаем их на маске.
-        this.bgSubstractor.setShadowValue(0);
-        this.maskBuffer = new ArrayList<>(bufferLength);
-
-        this.contoursBuffer = new ArrayList<>(bufferLength);
+        bgSubstractor.setShadowValue(0);
+        maskBuffer = new ArrayList<>(bufferLength);
 
         groups = new ArrayList<>();
     }
@@ -64,7 +57,7 @@ public class Tracker {
         // Кол-во итераций без добавления новых элементов.
         private int idle;
         // Максимальное кол-во итераций простоя.
-        public static final int MAX_IDLE = 3;
+        public static final int MAX_IDLE = 2;
 
         private List<Scalar> colors;
         private List<MatOfPoint> contours;
@@ -138,11 +131,6 @@ public class Tracker {
         List<MatOfPoint> contours = new ArrayList<>();
         Imgproc.findContours(bgMask.clone(), contours, new Mat(),
                 Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-        // Сохранение контуров.
-        /*if (contoursBuffer.size() >= bufferLength) {
-            contoursBuffer.remove(0);
-        }
-        contoursBuffer.add(contours);*/
 
         // Чистка групп.
         ArrayList<Group> updatedGroups = new ArrayList<>();
@@ -249,13 +237,6 @@ public class Tracker {
             }
         }
         return idx;
-    }
-
-
-    private int getNearestGroupIdx(MatOfPoint contour, List<Group> groups) {
-        List<Integer> groupsIdx = ContiguousSet
-                .create(com.google.common.collect.Range.closed(0, groups.size()), DiscreteDomain.integers()).asList();
-        return getNearestGroupIdx(contour, groups, groupsIdx);
     }
 
     private int getNearestContourIdx(Group group, List<MatOfPoint> contours) {

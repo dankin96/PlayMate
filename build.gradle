@@ -14,10 +14,9 @@ repositories {
 }
 
 dependencies {
-
     compile files('libs/OpenCV/opencv-310.jar')
-//    compile fileTree(dir: 'libs/OpenCV/', include: '*')
     testCompile group: 'junit', name: 'junit', version: '4.11'
+
 }
 
 tasks.withType(Test) {
