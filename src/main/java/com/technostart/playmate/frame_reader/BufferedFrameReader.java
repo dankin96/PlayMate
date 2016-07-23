@@ -4,11 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class BufferedFrameReader<T> implements FrameReader<T> {
-    private FrameReader<T> frameReader;
-    private Map<Integer, T> buffer;
-    private int capacity;
-    private int cursor;
-    private int interval;
+    FrameReader<T> frameReader;
+    Map<Integer, T> buffer;
+    int cursor;
+    int interval;
 
     public BufferedFrameReader(FrameReader<T> frameReader, int interval) {
         this.frameReader = frameReader;
@@ -61,7 +60,7 @@ public class BufferedFrameReader<T> implements FrameReader<T> {
         return cursor;
     }
 
-    private void load() {
+    protected void load() {
         for (int i = cursor; i < cursor + interval; i++) {
             if (!buffer.containsKey(i)) {
                 buffer.put(i, frameReader.read());

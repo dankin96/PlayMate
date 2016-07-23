@@ -1,9 +1,7 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.frame_reader.CvFrameReader;
-import com.technostart.playmate.frame_reader.FrameReader;
+import com.technostart.playmate.frame_reader.*;
 import com.technostart.playmate.core.cv.Tracker;
-import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.core.cv.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -52,12 +50,21 @@ public class PlayerController implements Initializable {
     @FXML
     ImageView processedFrameView;
 
-    private FrameReader<Mat> capture;
+    private FrameReader<Image> capture;
     private String videoFileName;
     private int frameNumberToShow;
 
     private Tracker tracker;
     private TableDetector table;
+    private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
+        @Override
+        public Image process(Mat inputFrame) {
+            Mat newFrame = inputFrame.clone();
+            Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
+            newFrame = tracker.getFrame(newFrame);
+            return Utils.mat2Image(newFrame);
+        }
+    };
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -104,14 +111,10 @@ public class PlayerController implements Initializable {
 
     }
 
-    private void showFrame(Mat inputFrame) {
+    private void showFrame(Image imageToShow) {
         position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
 //        Image imageToShow = Utils.mat2Image(inputFrame);
 //        currentFrameView.setImage(imageToShow);
-        if (this.checkBoxCanny.isSelected()) {
-            inputFrame = processFrame(inputFrame);
-        }
-        Image imageToShow = Utils.mat2Image(inputFrame);
         processedFrameView.setImage(imageToShow);
     }
 
@@ -121,7 +124,7 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        capture = new BufferedFrameReader<>(new CvFrameReader(videoFileName), 50);
+        capture = new BufferedFrameReader<>(new Mat2ImgReader(new CvFrameReader(videoFileName), frameHandler), 30);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -131,10 +134,10 @@ public class PlayerController implements Initializable {
     @FXML
     protected void cannySelected(ActionEvent event) {
         if (this.checkBoxCanny.isSelected()) {
-            Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = table.getTable(frame, (int) this.threshold.getValue());
-            Image imageToShow = Utils.mat2Image(frame);
-            processedFrameView.setImage(imageToShow);
+//            Mat frame = capture.get(capture.getCurrentFrameNumber());
+//            frame = table.getTable(frame, (int) this.threshold.getValue());
+//            Image imageToShow = Utils.mat2Image(frame);
+//            processedFrameView.setImage(imageToShow);
         }
     }
 
