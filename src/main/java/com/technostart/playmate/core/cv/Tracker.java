@@ -1,12 +1,9 @@
 package com.technostart.playmate.core.cv;
 
-//import org.opencv.core.*;
-import com.google.common.collect.*;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
-import sun.security.action.PutAllAction;
 
 import java.util.*;
 

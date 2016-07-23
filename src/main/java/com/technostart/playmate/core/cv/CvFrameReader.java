@@ -57,7 +57,7 @@ public class CvFrameReader implements FrameReader<Mat>, Closeable {
     }
 
     @Override
-    public int getFrameNumber() {
+    public int getFramesNumber() {
         return frameNumber;
     }
 

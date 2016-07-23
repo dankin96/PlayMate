@@ -10,7 +10,7 @@ public interface FrameReader<T> {
 
     T get(int index);
 
-    int getFrameNumber();
+    int getFramesNumber();
 
     int getCurrentFrameNumber();
 }

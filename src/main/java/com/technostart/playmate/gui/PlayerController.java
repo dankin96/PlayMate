@@ -4,9 +4,6 @@ import com.technostart.playmate.core.cv.CvFrameReader;
 import com.technostart.playmate.core.cv.FrameReader;
 import com.technostart.playmate.core.cv.Tracker;
 import com.technostart.playmate.core.cv.BufferedFrameReader;
-import com.technostart.playmate.core.cv.CvFrameReader;
-import com.technostart.playmate.core.cv.FrameReader;
-import com.technostart.playmate.core.cv.Tracker;
 import com.technostart.playmate.core.cv.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -77,7 +74,7 @@ public class PlayerController implements Initializable {
                                 Number oldValue, Number newValue) {
                 if (capture != null) {
                     System.out.print("\nFrame\n");
-                    int frameNumber = capture.getFrameNumber();
+                    int frameNumber = capture.getFramesNumber();
                     double pos = sliderFrame.getValue() * frameNumber / 1000;
                     pos = pos < 0 ? 0 : pos;
                     pos = frameNumber <= pos ? frameNumber - 2 : pos;
@@ -122,11 +119,11 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        capture = new CvFrameReader(videoFileName);
+        capture = new BufferedFrameReader<>(new CvFrameReader(videoFileName), 10);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
-        System.out.print("FrameNumber - " + capture.getFrameNumber() + "\n");
+        System.out.print("FrameNumber - " + capture.getFramesNumber() + "\n");
     }
 
     @FXML
