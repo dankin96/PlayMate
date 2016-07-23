@@ -56,6 +56,7 @@ public class PlayerController implements Initializable {
 
     private Tracker tracker;
     private TableDetector table;
+
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Override
         public Image process(Mat inputFrame) {
@@ -124,7 +125,10 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        capture = new BufferedFrameReader<>(new Mat2ImgReader(new CvFrameReader(videoFileName), frameHandler), 30);
+        // Инициализация ридера.
+        CvFrameReader cvReader = new CvFrameReader(videoFileName);
+        Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
+        capture = new BufferedFrameReader<>(mat2ImgReader, 100);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -168,9 +172,4 @@ public class PlayerController implements Initializable {
         showFrame(capture.get(frameNumberToShow));
     }
 
-    private Mat processFrame(Mat frame) {
-        Mat newFrame = frame.clone();
-        Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-        return tracker.getFrame(newFrame);
-    }
 }

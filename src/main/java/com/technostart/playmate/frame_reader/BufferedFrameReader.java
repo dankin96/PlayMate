@@ -60,7 +60,11 @@ public class BufferedFrameReader<T> implements FrameReader<T> {
         return cursor;
     }
 
-    protected void load() {
+    public void clear() {
+        buffer.clear();
+    }
+
+    private void load() {
         for (int i = cursor; i < cursor + interval; i++) {
             if (!buffer.containsKey(i)) {
                 buffer.put(i, frameReader.read());

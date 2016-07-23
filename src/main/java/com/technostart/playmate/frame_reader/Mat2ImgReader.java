@@ -13,6 +13,10 @@ public class Mat2ImgReader implements FrameReader<Image> {
         this.handler = frameHandler;
     }
 
+    public void setHandler(FrameHandler<Image, Mat> frameHandler) {
+        this.handler = frameHandler;
+    }
+
     @Override
     public Image read() {
         return handler.process(frameReader.read());
