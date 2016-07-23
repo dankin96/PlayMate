@@ -1,73 +1,72 @@
 package com.technostart.playmate.core.cv;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BufferedFrameReader<T> implements FrameReader<T> {
     private FrameReader<T> frameReader;
-    private List<T> buffer;
+    private Map<Integer, T> buffer;
     private int capacity;
     private int cursor;
     private int interval;
 
-    public BufferedFrameReader(FrameReader<T> frameReader, int capacity, int interval) {
+    public BufferedFrameReader(FrameReader<T> frameReader, int interval) {
         this.frameReader = frameReader;
         this.interval = interval;
-        buffer = new ArrayList<>(capacity);
+        buffer = new HashMap<>();
         cursor = 0;
         load();
     }
 
     @Override
     public T read() {
+        if (!buffer.containsKey(cursor)) {
+            frameReader.get(cursor);
+            load();
+        }
         return buffer.get(cursor);
     }
 
     @Override
     public T next() {
-        cursor++;
-        if (cursor >= buffer.size()) {
-            load();
+        if (cursor + 1 < getFramesNumber()) {
+            cursor++;
         }
         return read();
     }
 
     @Override
     public T prev() {
-        cursor--;
+        if (0 < cursor - 1) {
+            cursor--;
+        }
         return read();
     }
 
     @Override
     public T get(int index) {
-        if (index >= buffer.size()) {
-            buffer.clear();
-            frameReader.get(index);
-            load();
+        if (0 <= index && index < getFramesNumber()) {
+            cursor = index;
         }
-        return frameReader.get(index);
+        return read();
     }
 
     @Override
-    public int getFrameNumber() {
-        return frameReader.getFrameNumber();
+    public int getFramesNumber() {
+        return frameReader.getFramesNumber();
     }
 
     @Override
     public int getCurrentFrameNumber() {
-        return frameReader.getCurrentFrameNumber();
+        return cursor;
     }
 
     private void load() {
-        for (int i = 0; i < interval; i++) {
-            buffer.add(frameReader.read());
+        for (int i = cursor; i < cursor + interval; i++) {
+            if (!buffer.containsKey(i)) {
+                buffer.put(i, frameReader.read());
+            }
         }
     }
 
-    private void addToBuffer(T value) {
-        if (cursor > interval) {
-            buffer.remove(0);
-        }
-        buffer.add(value);
-    }
 }
