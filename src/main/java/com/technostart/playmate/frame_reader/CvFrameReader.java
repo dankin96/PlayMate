@@ -1,4 +1,4 @@
-package com.technostart.playmate.core.cv;
+package com.technostart.playmate.frame_reader;
 
 import org.opencv.core.Mat;
 import org.opencv.videoio.VideoCapture;

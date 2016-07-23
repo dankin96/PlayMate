@@ -1,4 +1,4 @@
-package com.technostart.playmate.core.cv;
+package com.technostart.playmate.frame_reader;
 
 import java.util.HashMap;
 import java.util.Map;

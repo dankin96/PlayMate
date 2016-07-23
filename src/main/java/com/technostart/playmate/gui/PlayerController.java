@@ -1,9 +1,9 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.CvFrameReader;
-import com.technostart.playmate.core.cv.FrameReader;
+import com.technostart.playmate.frame_reader.CvFrameReader;
+import com.technostart.playmate.frame_reader.FrameReader;
 import com.technostart.playmate.core.cv.Tracker;
-import com.technostart.playmate.core.cv.BufferedFrameReader;
+import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.core.cv.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -21,6 +21,8 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.net.URL;
@@ -104,12 +106,12 @@ public class PlayerController implements Initializable {
 
     private void showFrame(Mat inputFrame) {
         position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
-        Image imageToShow = Utils.mat2Image(inputFrame);
-        currentFrameView.setImage(imageToShow);
+//        Image imageToShow = Utils.mat2Image(inputFrame);
+//        currentFrameView.setImage(imageToShow);
         if (this.checkBoxCanny.isSelected()) {
             inputFrame = processFrame(inputFrame);
         }
-        imageToShow = Utils.mat2Image(inputFrame);
+        Image imageToShow = Utils.mat2Image(inputFrame);
         processedFrameView.setImage(imageToShow);
     }
 
@@ -119,7 +121,7 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        capture = new BufferedFrameReader<>(new CvFrameReader(videoFileName), 10);
+        capture = new BufferedFrameReader<>(new CvFrameReader(videoFileName), 50);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -164,6 +166,8 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return tracker.getFrame(frame);
+        Mat newFrame = frame.clone();
+        Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
+        return tracker.getFrame(newFrame);
     }
 }
