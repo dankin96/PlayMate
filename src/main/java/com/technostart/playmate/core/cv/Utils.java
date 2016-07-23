@@ -190,7 +190,6 @@ public class Utils {
 
 
     static public Image mat2Image(Mat frame) {
-        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
         params[1] = 70;
