@@ -46,8 +46,6 @@ public class PlayerController implements Initializable {
     @FXML
     Label thresholdLabel;
     @FXML
-    ImageView currentFrameView;
-    @FXML
     ImageView processedFrameView;
 
     private FrameReader<Image> capture;
@@ -62,7 +60,7 @@ public class PlayerController implements Initializable {
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
             Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = tracker.getFrame(newFrame);
+            newFrame = table.getTable(newFrame, 30);
             return Utils.mat2Image(newFrame);
         }
     };
@@ -71,7 +69,6 @@ public class PlayerController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
-        currentFrameView.setImage(imageToShow);
         processedFrameView.setImage(imageToShow);
 
         tracker = new Tracker(5, 5, 0.5f);
@@ -128,7 +125,7 @@ public class PlayerController implements Initializable {
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-        capture = new BufferedFrameReader<>(mat2ImgReader, 100);
+        capture = new BufferedFrameReader<>(mat2ImgReader, 30);
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");

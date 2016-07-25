@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("WeakerAccess")
 public class Utils {
     // Параметры по умолчанию
     public static final int DEFAULT_KERNEL_RATE = 250;

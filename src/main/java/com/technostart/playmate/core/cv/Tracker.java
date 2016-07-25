@@ -7,6 +7,7 @@ import org.opencv.video.Video;
 
 import java.util.*;
 
+@SuppressWarnings("WeakerAccess")
 public class Tracker {
     // Параметры по умлочанию.
     public static final int DEFAULT_HISTORY_LENGTH = 5;
@@ -85,7 +86,7 @@ public class Tracker {
             lastCoord = centroid;
             track.add(centroid);
 
-            idle = idle > 0 ? idle - 1: 0;
+            idle = idle > 0 ? idle - 1 : 0;
         }
 
         public Point getLastCoord() {
