@@ -1,18 +1,21 @@
 package com.technostart.playmate.frame_reader;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class BufferedFrameReader<T> implements FrameReader<T> {
     FrameReader<T> frameReader;
     Map<Integer, T> buffer;
+    List<Integer> keyList;
     int cursor;
     int interval;
+    int capacity;
 
-    public BufferedFrameReader(FrameReader<T> frameReader, int interval) {
+    public BufferedFrameReader(FrameReader<T> frameReader, int interval, int capacity) {
         this.frameReader = frameReader;
         this.interval = interval;
-        buffer = new HashMap<>();
+        this.capacity = capacity;
+        keyList = new ArrayList<>();
+        buffer = new LinkedHashMap<>();
         cursor = 0;
         load();
     }
@@ -67,6 +70,11 @@ public class BufferedFrameReader<T> implements FrameReader<T> {
     private void load() {
         for (int i = cursor; i < cursor + interval; i++) {
             if (!buffer.containsKey(i)) {
+                if (buffer.size() > capacity) {
+                    int removeIdx = buffer.keySet().iterator().next();
+                    buffer.remove(removeIdx);
+                }
+                keyList.add(i);
                 buffer.put(i, frameReader.read());
             }
         }
