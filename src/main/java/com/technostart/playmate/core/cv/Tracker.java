@@ -14,8 +14,10 @@ public class Tracker {
     public static final double DEFAULT_THRESHOLD = 20;
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
-    // TODO: должно зависеть от размеров кадра
-    private static final double DIST_THRESHOLD = 4000;
+    // Должна зависеть от размеров кадра.
+    private double distThreshold = 10000;
+
+    Size frameSize;
 
     // Параметры выделения фона.
     private Mat bgMask;
@@ -29,14 +31,16 @@ public class Tracker {
     //
     private ArrayList<Group> groups;
 
-    public Tracker() {
-        this(DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
+    public Tracker(Size frameSize) {
+        this(frameSize, DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
     }
 
-    public Tracker(int historyLength, int bufferLength, float shadow_threshold) {
+    public Tracker(Size frameSize, int historyLength, int bufferLength, float shadow_threshold) {
+        this.frameSize = frameSize;
+        distThreshold = Math.pow(frameSize.height / 2, 2);
+
         this.historyLength = historyLength;
         this.bufferLength = bufferLength;
-
         bgMask = new Mat();
         bgSubstractor = Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_THRESHOLD, false);
         bgSubstractor.setShadowThreshold(shadow_threshold);
@@ -113,8 +117,9 @@ public class Tracker {
     }
 
     public Mat getFrame(Mat inputFrame) {
-        // Resize.
-        Mat frame = Utils.resizeIn(inputFrame);
+        Utils.setResizeHeight((int) inputFrame.size().height);
+        Utils.setResizeWidth((int) inputFrame.size().width);
+        Mat frame = inputFrame;
         // TODO Правка геометрии
         // Выделение фона.
         bgSubstractor.apply(frame, bgMask);
@@ -205,24 +210,22 @@ public class Tracker {
         // Матрица для отрисовки контуров, треков и т.д.
         Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
 
-        // Рисуем группы контуров разными цветами.
+        // Рисуем группы контуров и треки разными цветами.
         for (Group group : groups) {
+            // Группы.
             List<MatOfPoint> contoursToDraw = group.getContourList();
-            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getNextColor(), 2);
+            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getNextColor(), 1);
+            // Треки.
+            Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 1);
         }
 
-        // Рисуем треки.
-        for (Group group : groups) {
-            // Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 3);
-        }
-        Imgproc.resize(dataImg, dataImg, inputFrame.size());
-        Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0, inputFrame);
+        Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0, inputFrame);
         return inputFrame;
     }
 
     private int getNearestGroupIdx(MatOfPoint contour, List<Group> groups, List<Integer> groupsIdx) {
         Point contourCoord = Utils.getCentroid(contour);
-        double minDist = DIST_THRESHOLD;
+        double minDist = distThreshold;
         int idx = -1;
 
         for (int i : groupsIdx) {
@@ -239,7 +242,7 @@ public class Tracker {
 
     private int getNearestContourIdx(Group group, List<MatOfPoint> contours) {
         Point groupCoord = group.getLastCoord();
-        double minDist = DIST_THRESHOLD;
+        double minDist = distThreshold;
         int idx = -1;
 
         for (int i = 0, size = contours.size(); i < size; i++) {
