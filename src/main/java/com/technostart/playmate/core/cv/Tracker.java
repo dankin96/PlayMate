@@ -5,7 +5,10 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractorMOG2;
 import org.opencv.video.Video;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
@@ -38,8 +41,8 @@ public class Tracker {
 
     public Tracker(Size frameSize, int historyLength, int bufferLength, float shadow_threshold) {
         this.frameSize = frameSize;
-        distThreshold = Math.pow(frameSize.width / 3, 2);
-        weightThreshold = distThreshold;
+        distThreshold = Math.pow(frameSize.width / 4, 2);
+        weightThreshold = 1 - (1 / distThreshold);
 
         this.historyLength = historyLength;
         this.bufferLength = bufferLength;
@@ -61,7 +64,7 @@ public class Tracker {
         // Кол-во итераций без добавления новых элементов.
         private int idle;
         // Максимальное кол-во итераций простоя.
-        public static final int MAX_IDLE = 2;
+        public static final int MAX_IDLE = 3;
 
         private List<Scalar> colors;
         private List<MatOfPoint> contours;
@@ -92,6 +95,21 @@ public class Tracker {
         }
 
         public void add(List<MatOfPoint> newContours) {
+            int size = newContours.size();
+            if (size == 0) {
+                return;
+            }
+            if (size == 1) {
+                add(newContours.get(0));
+                return;
+            }
+            if (size == 2) {
+                Point c1 = Utils.getCentroid(newContours.get(0));
+                Point c2 = Utils.getCentroid(newContours.get(1));
+                Point c = new Point((c1.x + c2.x) / 2, (c1.y + c2.y) / 2);
+                add(c);
+                return;
+            }
             contours.addAll(newContours);
             // TODO: Центроид с весами.
             Point centroid = Utils.getContoursCentroid(newContours);
@@ -170,12 +188,13 @@ public class Tracker {
                 Group curGroup = groups.get(groupIdx);
                 Point groupPoint = curGroup.getLastCoord();
                 Point cntPoint = Utils.getCentroid(curContour);
-                distWeight = Utils.getDistance(groupPoint, cntPoint);
+                double dist = Utils.getDistance(groupPoint, cntPoint);
+                distWeight = 1 / dist;
                 // TODO: Вычисление веса по форме/площади.
                 double shapeWeight = 0;
                 // TODO: Нормализация и суммирование.
                 double weight = distWeight + shapeWeight;
-                // TODO: Сохранение веса.
+                // Сохранение веса.
                 groupIdxToWeight.put(groupIdx, weight);
             }
             contoursWeight.put(cntIdx, groupIdxToWeight);
