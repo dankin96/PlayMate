@@ -60,7 +60,7 @@ public class PlayerController implements Initializable {
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
             Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = table.getTable(newFrame, 30);
+            newFrame = tracker.getFrame(inputFrame);
             return Utils.mat2Image(newFrame);
         }
     };
@@ -71,8 +71,7 @@ public class PlayerController implements Initializable {
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         processedFrameView.setImage(imageToShow);
 
-        tracker = new Tracker(5, 5, 0.5f);
-        table = new TableDetector();
+
 
         // Инициализация слайдера.
         sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
@@ -122,14 +121,20 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
+        // Очистка буфера.
+        if (capture != null) capture.close();
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
+        Mat firstFrame = cvReader.read();
+        tracker = new Tracker(firstFrame.size(), 5, 5, 0.5f);
+        table = new TableDetector();
+
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-        capture = new BufferedFrameReader<>(mat2ImgReader, 30);
-        System.out.print("\nname" + videoFileName);
+        capture = new BufferedFrameReader<>(mat2ImgReader, 100, 400);
+        
         showFrame(capture.read());
+
         position.textProperty().setValue("1");
-        System.out.print("FrameNumber - " + capture.getFramesNumber() + "\n");
     }
 
     @FXML
