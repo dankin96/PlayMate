@@ -46,4 +46,9 @@ public class Mat2ImgReader implements FrameReader<Image> {
     public int getCurrentFrameNumber() {
         return frameReader.getCurrentFrameNumber();
     }
+
+    @Override
+    public void close() {
+        frameReader.close();
+    }
 }

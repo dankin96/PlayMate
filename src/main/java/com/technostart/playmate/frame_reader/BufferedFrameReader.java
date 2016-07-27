@@ -63,6 +63,12 @@ public class BufferedFrameReader<T> implements FrameReader<T> {
         return cursor;
     }
 
+    @Override
+    public void close() {
+        buffer.clear();
+        frameReader.close();
+    }
+
     public void clear() {
         buffer.clear();
     }

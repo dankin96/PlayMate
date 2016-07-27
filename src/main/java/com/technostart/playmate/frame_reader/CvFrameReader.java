@@ -62,7 +62,7 @@ public class CvFrameReader implements FrameReader<Mat>, Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         capture.release();
     }
 }

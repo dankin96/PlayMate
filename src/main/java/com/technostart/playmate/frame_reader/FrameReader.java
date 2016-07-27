@@ -13,4 +13,6 @@ public interface FrameReader<T> {
     int getFramesNumber();
 
     int getCurrentFrameNumber();
+
+    void close();
 }
