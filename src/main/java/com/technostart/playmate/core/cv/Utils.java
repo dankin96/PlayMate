@@ -13,7 +13,9 @@ import java.util.List;
 @SuppressWarnings("WeakerAccess")
 public class Utils {
     // Параметры по умолчанию
-    public static final int DEFAULT_KERNEL_RATE = 250;
+
+    // Чем больше значение тем меньше радиус.
+    public static final int DEFAULT_KERNEL_RATE = 300;
 
     // Resize
     private static int resizeHeight = 480;
@@ -22,7 +24,7 @@ public class Utils {
     public static int resizeInterpolation = Imgproc.INTER_LINEAR;
 
     // Параметры шумодава
-    private static int kernelRate = 250;
+    private static int kernelRate = DEFAULT_KERNEL_RATE;
     private static int kernelRadius;
     public static Mat kernelShape;
 
