@@ -147,56 +147,13 @@ public class Tracker {
         }
         groups = updatedGroups;
 
-        // Поиск ближайших контуров.
-        Map<Integer, List<Integer>> cntIdxToGroupIdx = new HashMap<>();
+        // TODO: Расстановка весов по расстоянию.
+        // TODO: Расстановка весов по форме/площади.
+        // TODO: Выбор групп по весам.
+        // TODO: Отсев контуров по порогу.
+        // TODO: Добавление контуров в группы.
+        // TODO: Создаем новые группы из оставшихся контуров.
 
-        // Поиск ближайшего к группе контура.
-        for (int i = 0, groupsSize = groups.size(); i < groupsSize; i++) {
-            Group group = groups.get(i);
-            int contourIdx;
-            contourIdx = getNearestContourIdx(group, contours);
-            if (contourIdx >= 0) {
-                List<Integer> groupsList = cntIdxToGroupIdx.get(contourIdx);
-                if (groupsList == null) groupsList = new ArrayList<>();
-                groupsList.add(i);
-                cntIdxToGroupIdx.put(contourIdx, groupsList);
-            } else {
-                // Не нашлось контура для добавления.
-            }
-        }
-
-        Set<Integer> addedContoursIdx = new HashSet<>();
-
-        // Поиск ближайшей к контуру группы.
-        for (Integer contourIdx : cntIdxToGroupIdx.keySet()) {
-            int groupIdx;
-            MatOfPoint contour = contours.get(contourIdx);
-            List<Integer> groupsIdxList = cntIdxToGroupIdx.get(contourIdx);
-            groupIdx = getNearestGroupIdx(contour, groups, groupsIdxList);
-            if (groupIdx >= 0) {
-                // Добавляем контур в группу.
-                Group updatedGroup = groups.get(groupIdx);
-                updatedGroup.add(contour);
-                groups.set(groupIdx, updatedGroup);
-                // Отмечаем добавленный контур.
-                addedContoursIdx.add(contourIdx);
-            } else {
-                System.err.println("Find group index error!");
-            }
-        }
-
-        // TODO Поиск контуров похожих по цвету
-
-        // Создаем новые группы из оставшихся контуров.
-        for (int i = 0, size = contours.size(); i < size; i++) {
-            if (addedContoursIdx.contains(i)) {
-                addedContoursIdx.remove(i);
-            } else {
-                MatOfPoint contour = contours.get(i);
-                Group newGroup = new Group(contour);
-                groups.add(newGroup);
-            }
-        }
 
         // TODO Восстановление траектории по контурам
 
