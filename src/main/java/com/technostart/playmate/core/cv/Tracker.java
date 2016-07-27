@@ -30,6 +30,7 @@ public class Tracker {
 
     //
     private ArrayList<Group> groups;
+    private double weightThreshold = 0.1;
 
     public Tracker(Size frameSize) {
         this(frameSize, DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
@@ -120,7 +121,6 @@ public class Tracker {
         Utils.setResizeHeight((int) inputFrame.size().height);
         Utils.setResizeWidth((int) inputFrame.size().width);
         Mat frame = inputFrame;
-        // TODO Правка геометрии
         // Выделение фона.
         bgSubstractor.apply(frame, bgMask);
         // Шумодав.
@@ -147,13 +147,55 @@ public class Tracker {
         }
         groups = updatedGroups;
 
-        // TODO: Расстановка весов по расстоянию.
-        // TODO: Расстановка весов по форме/площади.
-        // TODO: Выбор групп по весам.
-        // TODO: Отсев контуров по порогу.
-        // TODO: Добавление контуров в группы.
-        // TODO: Создаем новые группы из оставшихся контуров.
+        // Структура для хранения весов Map<contourIdx, Map<groupIdx, weight>>
+        Map<Integer, Map<Integer, Double>> contoursWeight = new HashMap<>();
 
+        for (int cntIdx = 0, cntSize = contours.size(); cntIdx < cntSize; cntIdx++) {
+            for (int groupIdx = 0, groupSize = groups.size(); groupIdx < groupSize; groupIdx++) {
+                // TODO: Вычисление веса по расстоянию.
+                // TODO: Вычисление веса по форме/площади.
+                // TODO: Нормализация и суммирование.
+                // TODO: Сохранение веса.
+            }
+        }
+        // Выбор групп по весам.
+        Map<Integer, List<Integer>> groupIdxToCntList = new HashMap<>();
+        List<Integer> restContours = new ArrayList<>();
+        for (Map.Entry<Integer, Map<Integer, Double>> entry : contoursWeight.entrySet()) {
+            Integer cntIdx = entry.getKey();
+            Map<Integer, Double> groupIdxToWeight = entry.getValue();
+            // Поиск индекса группы с максимальным весом.
+            int groupIdx = -1;
+            double maxWeight = 0;
+            for (Map.Entry<Integer, Double> groupIdxToWeightEntry : groupIdxToWeight.entrySet()) {
+                int curGroupIdx = groupIdxToWeightEntry.getKey();
+                double curWeight = groupIdxToWeightEntry.getValue();
+                if (maxWeight < curWeight) {
+                    maxWeight = curWeight;
+                    groupIdx = curGroupIdx;
+                }
+            }
+            // Отсев контуров по порогу.
+            if (weightThreshold <= maxWeight) {
+                // Добавляем контур в список группы.
+                List<Integer> cntList = groupIdxToCntList.get(groupIdx);
+                if (cntList == null) {
+                    cntList = new ArrayList<>();
+                }
+                cntList.add(cntIdx);
+                groupIdxToCntList.put(groupIdx, cntList);
+            } else {
+                restContours.add(cntIdx);
+            }
+        }
+
+        // Создание новых групп из оставшихся контуров.
+        // FIXME: Тут надо рассматривать каждый контур как группу и сразу объединить их
+        // FIXME: можно создать группы из каждого контура и потом посчитать веса для них же.
+        for (Integer cntIdx : restContours) {
+            Group newGroup = new Group(contours.get(cntIdx));
+            groups.add(newGroup);
+        }
 
         // TODO Восстановление траектории по контурам
 
