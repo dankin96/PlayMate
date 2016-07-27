@@ -38,7 +38,8 @@ public class Tracker {
 
     public Tracker(Size frameSize, int historyLength, int bufferLength, float shadow_threshold) {
         this.frameSize = frameSize;
-        distThreshold = Math.pow(frameSize.height / 2, 2);
+        distThreshold = Math.pow(frameSize.width / 3, 2);
+        weightThreshold = distThreshold;
 
         this.historyLength = historyLength;
         this.bufferLength = bufferLength;
@@ -86,8 +87,18 @@ public class Tracker {
 
         public void add(MatOfPoint contour) {
             contours.add(contour);
-            // Координаты.
             Point centroid = Utils.getCentroid(contour);
+            add(centroid);
+        }
+
+        public void add(List<MatOfPoint> newContours) {
+            contours.addAll(newContours);
+            // TODO: Центроид с весами.
+            Point centroid = Utils.getContoursCentroid(newContours);
+            add(centroid);
+        }
+
+        private void add(Point centroid) {
             lastCoord = centroid;
             track.add(centroid);
 
@@ -151,15 +162,27 @@ public class Tracker {
         Map<Integer, Map<Integer, Double>> contoursWeight = new HashMap<>();
 
         for (int cntIdx = 0, cntSize = contours.size(); cntIdx < cntSize; cntIdx++) {
+            MatOfPoint curContour = contours.get(cntIdx);
+            Map<Integer, Double> groupIdxToWeight = new HashMap<>();
             for (int groupIdx = 0, groupSize = groups.size(); groupIdx < groupSize; groupIdx++) {
                 // TODO: Вычисление веса по расстоянию.
+                double distWeight = 0;
+                Group curGroup = groups.get(groupIdx);
+                Point groupPoint = curGroup.getLastCoord();
+                Point cntPoint = Utils.getCentroid(curContour);
+                distWeight = Utils.getDistance(groupPoint, cntPoint);
                 // TODO: Вычисление веса по форме/площади.
+                double shapeWeight = 0;
                 // TODO: Нормализация и суммирование.
+                double weight = distWeight + shapeWeight;
                 // TODO: Сохранение веса.
+                groupIdxToWeight.put(groupIdx, weight);
             }
+            contoursWeight.put(cntIdx, groupIdxToWeight);
         }
+
         // Выбор групп по весам.
-        Map<Integer, List<Integer>> groupIdxToCntList = new HashMap<>();
+        Map<Integer, List<MatOfPoint>> groupIdxToCntList = new HashMap<>();
         List<Integer> restContours = new ArrayList<>();
         for (Map.Entry<Integer, Map<Integer, Double>> entry : contoursWeight.entrySet()) {
             Integer cntIdx = entry.getKey();
@@ -176,17 +199,26 @@ public class Tracker {
                 }
             }
             // Отсев контуров по порогу.
-            if (weightThreshold <= maxWeight) {
+            if (maxWeight <= weightThreshold && 0 < groupIdx) {
                 // Добавляем контур в список группы.
-                List<Integer> cntList = groupIdxToCntList.get(groupIdx);
+                List<MatOfPoint> cntList = groupIdxToCntList.get(groupIdx);
                 if (cntList == null) {
                     cntList = new ArrayList<>();
                 }
-                cntList.add(cntIdx);
+                cntList.add(contours.get(cntIdx));
                 groupIdxToCntList.put(groupIdx, cntList);
             } else {
                 restContours.add(cntIdx);
             }
+        }
+
+        // Заполняем группы.
+        for (Map.Entry<Integer, List<MatOfPoint>> entry : groupIdxToCntList.entrySet()) {
+            int groupIdx = entry.getKey();
+            List<MatOfPoint> contoursList = entry.getValue();
+            Group updatedGroup = groups.get(groupIdx);
+            updatedGroup.add(contoursList);
+            groups.set(groupIdx, updatedGroup);
         }
 
         // Создание новых групп из оставшихся контуров.
@@ -196,8 +228,6 @@ public class Tracker {
             Group newGroup = new Group(contours.get(cntIdx));
             groups.add(newGroup);
         }
-
-        // TODO Восстановление траектории по контурам
 
         /**
          * Композиция исходного изображения с данными трекера.

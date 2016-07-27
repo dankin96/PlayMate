@@ -130,7 +130,7 @@ public class PlayerController implements Initializable {
         table = new TableDetector();
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-        capture = new BufferedFrameReader<>(mat2ImgReader, 100, 400);
+        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
         
         showFrame(capture.read());
 

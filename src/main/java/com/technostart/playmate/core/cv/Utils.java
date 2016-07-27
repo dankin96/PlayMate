@@ -108,6 +108,31 @@ public class Utils {
         return new Point(cx, cy);
     }
 
+    static public Point getCentroid(List<Point> points) {
+        MatOfPoint contour = new MatOfPoint();
+        contour.fromList(points);
+        return getCentroid(contour);
+    }
+
+    static public Point getContoursCentroid(List<MatOfPoint> contours) {
+        List<Point> centers = new ArrayList<>();
+        for (MatOfPoint cnt : contours) {
+            centers.add(Utils.getCentroid(cnt));
+        }
+        return getCentroid(centers);
+    }
+
+    // Возвращает контур из центров тяжести входных контуров.
+    static public MatOfPoint getEqualContour(List<MatOfPoint> contours) {
+        List<Point> centers = new ArrayList<>();
+        for (MatOfPoint cnt : contours) {
+            centers.add(Utils.getCentroid(cnt));
+        }
+        MatOfPoint newContour = new MatOfPoint();
+        newContour.fromList(centers);
+        return newContour;
+    }
+
     public static MatOfPoint findNearestContour(MatOfPoint contour, List<MatOfPoint> contours) {
         MatOfPoint firstContour = null;
         for (MatOfPoint cnt : contours) {
@@ -205,8 +230,9 @@ public class Utils {
 
     static public void drawLine(List<Point> points, Mat img, Scalar color, int thickness) {
         for (int i = 0; i < points.size() - 1; i++) {
-            Imgproc.line(img, points.get(i), points.get(i+1), color, thickness);
+            Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
         }
     }
+
 
 }
