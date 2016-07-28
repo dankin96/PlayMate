@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
+
 <Pane fx:id="pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
-      onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.102-ea"
-      xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.technostart.playmate.gui.PlayerController">
+      onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.65" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.technostart.playmate.gui.PlayerController">
     <children>
         <SplitPane dividerPositions="0.7" prefHeight="720.0" prefWidth="1280.0">
             <items>
@@ -15,14 +23,14 @@
                     <children>
                         <VBox minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                             <children>
-                                <ImageView fx:id="currentFrameView" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
-                                           preserveRatio="true">
+                                <ImageView fx:id="currentFrameView" fitHeight="325.0" fitWidth="710.0"
+                                           pickOnBounds="true" preserveRatio="true">
                                     <VBox.margin>
                                         <Insets left="60.0" top="20.0"/>
                                     </VBox.margin>
                                 </ImageView>
-                                <ImageView fx:id="processedFrameView" fitHeight="270.0" fitWidth="495.0" pickOnBounds="true"
-                                           preserveRatio="true">
+                                <ImageView fx:id="processedFrameView" fitHeight="325.0" fitWidth="710.0"
+                                           pickOnBounds="true" preserveRatio="true">
                                     <VBox.margin>
                                         <Insets left="60.0" top="5.0"/>
                                     </VBox.margin>
@@ -92,12 +100,29 @@
                                         <Insets left="90.0" top="40.0"/>
                                     </VBox.margin>
                                 </CheckBox>
-                                <Slider fx:id="threshold" onMouseReleased="#cannySelected" prefHeight="30.0"
-                                        prefWidth="30.0" value="50.0">
+                                <Slider fx:id="threshold" blockIncrement="2.0" max="300.0"
+                                        onMouseReleased="#showCurrentFrame" prefHeight="30.0" prefWidth="150.0"
+                                        value="100.0">
                                     <VBox.margin>
                                         <Insets left="75.0" right="75.0"/>
                                     </VBox.margin>
                                 </Slider>
+                                <Label fx:id="thresholdLabel" text="threshold - 100">
+                                    <VBox.margin>
+                                        <Insets left="100.0"/>
+                                    </VBox.margin>
+                                </Label>
+                                <Slider fx:id="sliderApproxCoef" blockIncrement="0.005" max="0.25" onMouseReleased="#showCurrentFrame"
+                                        prefHeight="30.0" prefWidth="175.0" value="0.05">
+                                    <padding>
+                                        <Insets left="75.0" right="75.0"/>
+                                    </padding>
+                                </Slider>
+                                <Label fx:id="approxLabel" text="approx coef - 0.1">
+                                    <VBox.margin>
+                                        <Insets left="100.0"/>
+                                    </VBox.margin>
+                                </Label>
                             </children>
                         </VBox>
                     </children>

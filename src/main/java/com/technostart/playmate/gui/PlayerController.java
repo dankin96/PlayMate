@@ -43,11 +43,15 @@ public class PlayerController implements Initializable {
     @FXML
     Slider threshold;
     @FXML
+    Slider sliderApproxCoef;
+    @FXML
     CheckBox checkBoxCanny;
     @FXML
     Label position;
     @FXML
     Label thresholdLabel;
+    @FXML
+    Label approxLabel;
     @FXML
     ImageView currentFrameView;
     @FXML
@@ -67,7 +71,7 @@ public class PlayerController implements Initializable {
         currentFrameView.setImage(imageToShow);
         processedFrameView.setImage(imageToShow);
 
-        tracker = new Tracker(5, 5, 0.5f);
+//        tracker = new Tracker(5, 5, 0.5f);
         table = new TableDetector();
 
         // Инициализация слайдера.
@@ -103,6 +107,21 @@ public class PlayerController implements Initializable {
 
         });
 
+        // слайдер коэффициента аппроксимации
+        sliderApproxCoef.valueProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observable,
+                                Number oldValue, Number newValue) {
+                double pos = sliderApproxCoef.getValue();
+                pos = pos < 0 ? 0 : pos;
+                pos = sliderApproxCoef.getMax() <= pos ? sliderApproxCoef.getMax() : pos;
+                approxLabel.textProperty().setValue(String.format("approx coef - %(.4f" ,pos));
+                System.out.print(pos + "\n");
+                System.out.print("approx coef Value Changed (newValue: " + newValue.doubleValue() + ")\n");
+            }
+
+        });
+
     }
 
     private void showFrame(Mat inputFrame) {
@@ -133,7 +152,7 @@ public class PlayerController implements Initializable {
     protected void cannySelected(ActionEvent event) {
         if (this.checkBoxCanny.isSelected()) {
             Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = table.getTable(frame, (int) this.threshold.getValue());
+            frame = table.getTable(frame, (int) this.threshold.getValue(), this.sliderApproxCoef.getValue());
             Image imageToShow = Utils.mat2Image(frame);
             processedFrameView.setImage(imageToShow);
         }
@@ -167,6 +186,6 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return tracker.getFrame(table.getTable(frame, (int) this.threshold.getValue()));
+        return table.getTable(frame, (int) this.threshold.getValue(), this.sliderApproxCoef.getValue());
     }
 }
