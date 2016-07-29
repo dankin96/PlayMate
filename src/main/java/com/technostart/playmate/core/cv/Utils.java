@@ -10,9 +10,12 @@ import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings("WeakerAccess")
 public class Utils {
     // Параметры по умолчанию
-    public static final int DEFAULT_KERNEL_RATE = 250;
+
+    // Чем больше значение тем меньше радиус.
+    public static final int DEFAULT_KERNEL_RATE = 300;
 
     // Resize
     private static int resizeHeight = 480;
@@ -21,7 +24,7 @@ public class Utils {
     public static int resizeInterpolation = Imgproc.INTER_LINEAR;
 
     // Параметры шумодава
-    private static int kernelRate = 250;
+    private static int kernelRate = DEFAULT_KERNEL_RATE;
     private static int kernelRadius;
     public static Mat kernelShape;
 
@@ -95,7 +98,7 @@ public class Utils {
     }
 
     public static double getDistance(Point p1, Point p2) {
-        return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2);
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
     }
 
     public static Point getCentroid(MatOfPoint contour) {
@@ -103,6 +106,32 @@ public class Utils {
         double cx = m.m10 / m.m00;
         double cy = m.m01 / m.m00;
         return new Point(cx, cy);
+    }
+
+    static public Point getCentroid(List<Point> points) {
+        MatOfPoint contour = new MatOfPoint();
+        contour.fromList(points);
+        contour = convexHull(contour);
+        return getCentroid(contour);
+    }
+
+    static public Point getContoursCentroid(List<MatOfPoint> contours) {
+        List<Point> centers = new ArrayList<>();
+        for (MatOfPoint cnt : contours) {
+            centers.add(Utils.getCentroid(cnt));
+        }
+        return getCentroid(centers);
+    }
+
+    // Возвращает контур из центров тяжести входных контуров.
+    static public MatOfPoint getEqualContour(List<MatOfPoint> contours) {
+        List<Point> centers = new ArrayList<>();
+        for (MatOfPoint cnt : contours) {
+            centers.add(Utils.getCentroid(cnt));
+        }
+        MatOfPoint newContour = new MatOfPoint();
+        newContour.fromList(centers);
+        return newContour;
     }
 
     public static MatOfPoint findNearestContour(MatOfPoint contour, List<MatOfPoint> contours) {
@@ -188,9 +217,22 @@ public class Utils {
         return mean;
     }
 
+    public static MatOfPoint convexHull(MatOfPoint inputContour) {
+        MatOfInt hull = new MatOfInt();
+        Imgproc.convexHull(inputContour, hull);
+        List<Point> hullPoints = new ArrayList<>();
+        List<Point> contourPoints = inputContour.toList();
+        for (int idx : hull.toList()) {
+            Point point = contourPoints.get(idx);
+            hullPoints.add(point);
+        }
+        MatOfPoint hullContour = new MatOfPoint();
+        hullContour.fromList(hullPoints);
+        return hullContour;
+    }
+
 
     static public Image mat2Image(Mat frame) {
-        Imgproc.resize(frame, frame, new Size(), 0.7, 0.7, Imgproc.INTER_LINEAR);
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
         params[1] = 70;
@@ -200,4 +242,12 @@ public class Utils {
         Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
         return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
+
+    static public void drawLine(List<Point> points, Mat img, Scalar color, int thickness) {
+        for (int i = 0; i < points.size() - 1; i++) {
+            Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
+        }
+    }
+
+
 }
