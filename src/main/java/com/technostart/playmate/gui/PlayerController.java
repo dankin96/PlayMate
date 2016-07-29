@@ -8,6 +8,7 @@ import com.technostart.playmate.core.cv.CvFrameReader;
 import com.technostart.playmate.core.cv.FrameReader;
 import com.technostart.playmate.core.cv.Tracker;
 import com.technostart.playmate.core.cv.*;
+import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
@@ -62,7 +63,7 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private TableDetectorImpl table;
+    private TableDetector table;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -113,7 +114,7 @@ public class PlayerController implements Initializable {
                 double pos = sliderApproxCoef.getValue();
                 pos = pos < 0 ? 0 : pos;
                 pos = sliderApproxCoef.getMax() <= pos ? sliderApproxCoef.getMax() : pos;
-                approxLabel.textProperty().setValue(String.format("approx coef - %(.4f" ,pos));
+                approxLabel.textProperty().setValue(String.format("approx coef - %(.4f", pos));
                 table.setApproxCoef(pos);
             }
 
@@ -139,7 +140,9 @@ public class PlayerController implements Initializable {
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
         capture = new CvFrameReader(videoFileName);
-        table = new TableDetectorImpl((int) this.threshold.getValue(), this.sliderApproxCoef.getValue());
+        table = new TableDetector(capture.get(frameNumberToShow).size());
+        table.setThreshold((int) threshold.getValue());
+        table.setApproxCoef(sliderApproxCoef.getValue());
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -150,7 +153,7 @@ public class PlayerController implements Initializable {
     protected void cannySelected(ActionEvent event) {
         if (this.checkBoxCanny.isSelected()) {
             Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = table.getTable(frame);
+            frame = table.getFrame(frame);
             Image imageToShow = Utils.mat2Image(frame);
             processedFrameView.setImage(imageToShow);
         }
@@ -184,6 +187,6 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return table.getTable(frame);
+        return table.getFrame(frame);
     }
 }
