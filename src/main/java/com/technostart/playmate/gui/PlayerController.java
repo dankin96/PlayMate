@@ -8,6 +8,7 @@ import com.technostart.playmate.core.cv.CvFrameReader;
 import com.technostart.playmate.core.cv.FrameReader;
 import com.technostart.playmate.core.cv.Tracker;
 import com.technostart.playmate.core.cv.*;
+import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -62,8 +63,8 @@ public class PlayerController implements Initializable {
     private String videoFileName;
     private int frameNumberToShow;
 
+    private TableDetector tableDetector;
     private Tracker tracker;
-    private TableDetector table;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -101,7 +102,7 @@ public class PlayerController implements Initializable {
                 pos = pos < 0 ? 0 : pos;
                 pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
                 thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
-                table.setThreshold((int) pos);
+                tableDetector.setThreshold((int) pos);
             }
 
         });
@@ -115,7 +116,7 @@ public class PlayerController implements Initializable {
                 pos = pos < 0 ? 0 : pos;
                 pos = sliderApproxCoef.getMax() <= pos ? sliderApproxCoef.getMax() : pos;
                 approxLabel.textProperty().setValue(String.format("approx coef - %(.4f", pos));
-                table.setApproxCoef(pos);
+                tableDetector.setApproxCoef(pos);
             }
 
         });
@@ -140,9 +141,9 @@ public class PlayerController implements Initializable {
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
         capture = new CvFrameReader(videoFileName);
-        table = new TableDetector(capture.get(frameNumberToShow).size());
-        table.setThreshold((int) threshold.getValue());
-        table.setApproxCoef(sliderApproxCoef.getValue());
+        tableDetector = new TableDetector(capture.get(frameNumberToShow).size());
+        tableDetector.setThreshold((int) threshold.getValue());
+        tableDetector.setApproxCoef(sliderApproxCoef.getValue());
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -153,7 +154,7 @@ public class PlayerController implements Initializable {
     protected void cannySelected(ActionEvent event) {
         if (this.checkBoxCanny.isSelected()) {
             Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = table.getFrame(frame);
+            frame = tableDetector.getFrame(frame);
             Image imageToShow = Utils.mat2Image(frame);
             processedFrameView.setImage(imageToShow);
         }
@@ -187,6 +188,6 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return table.getFrame(frame);
+        return tableDetector.getFrame(frame);
     }
 }

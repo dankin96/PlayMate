@@ -75,7 +75,7 @@ public class TableDetector extends FieldDetector {
         System.out.println("Counter = " + counter);
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-        convexHull(counter);
+//        convexHull(counter);
         approximation(counter, approxCoef);
         print(cntImg, counter);
         Imgproc.resize(cntImg, cntImg, inputFrame.size());
@@ -99,7 +99,7 @@ public class TableDetector extends FieldDetector {
         MatOfPoint2f approxCurve = new MatOfPoint2f();
         for (int i = 0; i < counter; i++) {
             MatOfPoint temp = new MatOfPoint();
-            hullmop.get(i).convertTo(approx, CvType.CV_32FC2);
+            contours.get(i).convertTo(approx, CvType.CV_32FC2);
             double approxDistance = Imgproc.arcLength(approx, true) * approxCoef;
             Imgproc.approxPolyDP(approx, approxCurve, approxDistance, false);
             approxCurve.convertTo(temp, CvType.CV_32S);
@@ -112,7 +112,6 @@ public class TableDetector extends FieldDetector {
         //обработка кадра различными фильтрами
         Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
         Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace); //фильтр лучше для краев
-        Utils.filterNoise(processingFrame);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
@@ -122,7 +121,7 @@ public class TableDetector extends FieldDetector {
         for (int i = 0; i < counter; i++) {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
             Imgproc.drawContours(cntImg, hullmop, i, Palette.BLACK, 3);
-//            Imgproc.drawContours(cntImg, contours, i, Palette.WHITE, 3);
+            Imgproc.drawContours(cntImg, contours, i, Palette.WHITE, 3);
         }
         System.out.println("\nsize contours = " + contours.size());
         System.out.println("\nsize hull = " + hullmop.size());
