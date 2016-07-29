@@ -27,8 +27,8 @@ public class UtilsTest {
         Point p4 = new Point(2, 0);
         assertEquals(0, Utils.getDistance(p1, p1), 0);
         assertEquals(1, Utils.getDistance(p1, p2), 0);
-        assertEquals(4, Utils.getDistance(p1, p3), 0);
-        assertEquals(4, Utils.getDistance(p1, p4), 0);
+        assertEquals(2, Utils.getDistance(p1, p3), 0);
+        assertEquals(2, Utils.getDistance(p1, p4), 0);
     }
 
     @Test

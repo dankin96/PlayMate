@@ -14,11 +14,12 @@ import java.util.Map;
 public class Tracker {
     // Параметры по умлочанию.
     public static final int DEFAULT_HISTORY_LENGTH = 5;
-    public static final double DEFAULT_THRESHOLD = 20;
+    public static final double DEFAULT_BG_THRESHOLD = 20;
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
+    public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
     // Должна зависеть от размеров кадра.
-    private double distThreshold = 10000;
+    private double distThreshold;
 
     Size frameSize;
 
@@ -33,7 +34,8 @@ public class Tracker {
 
     //
     private ArrayList<Group> groups;
-    private double weightThreshold = 0.1;
+    private double weightThreshold;
+    private double maxDist;
 
     public Tracker(Size frameSize) {
         this(frameSize, DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
@@ -41,13 +43,20 @@ public class Tracker {
 
     public Tracker(Size frameSize, int historyLength, int bufferLength, float shadow_threshold) {
         this.frameSize = frameSize;
-        distThreshold = Math.pow(frameSize.width / 4, 2);
-        weightThreshold = 1 - (1 / distThreshold);
+
+        // Вычисляем значения для нормализации весов по расстоянию.
+        Point leftUp = new Point(0, 0);
+        Point rightBottom = new Point(frameSize.width, frameSize.height);
+        maxDist = Utils.getDistance(leftUp, rightBottom);
+        distThreshold = maxDist / 4;
+        weightThreshold = DEFAULT_WEIGHT_THRESHOLD;
 
         this.historyLength = historyLength;
         this.bufferLength = bufferLength;
+
+        // Выделение фона.
         bgMask = new Mat();
-        bgSubstractor = Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_THRESHOLD, false);
+        bgSubstractor = Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_BG_THRESHOLD, false);
         bgSubstractor.setShadowThreshold(shadow_threshold);
         // Находим тени но не отображаем их на маске.
         bgSubstractor.setShadowValue(0);
@@ -96,24 +105,25 @@ public class Tracker {
 
         public void add(List<MatOfPoint> newContours) {
             int size = newContours.size();
+            contours.addAll(newContours);
+            Point centroid = null;
             if (size == 0) {
                 return;
-            }
-            if (size == 1) {
+            } else if (size == 1) {
                 add(newContours.get(0));
                 return;
-            }
-            if (size == 2) {
+            } else if (size == 2) {
                 Point c1 = Utils.getCentroid(newContours.get(0));
                 Point c2 = Utils.getCentroid(newContours.get(1));
-                Point c = new Point((c1.x + c2.x) / 2, (c1.y + c2.y) / 2);
-                add(c);
-                return;
+                centroid = new Point((c1.x + c2.x) / 2, (c1.y + c2.y) / 2);
+            } else if (size > 2) {
+                // TODO: Центроид с весами.
+                centroid = Utils.getContoursCentroid(newContours);
             }
-            contours.addAll(newContours);
-            // TODO: Центроид с весами.
-            Point centroid = Utils.getContoursCentroid(newContours);
-            add(centroid);
+
+            if (centroid != null) {
+                add(centroid);
+            }
         }
 
         private void add(Point centroid) {
@@ -189,10 +199,10 @@ public class Tracker {
                 Point groupPoint = curGroup.getLastCoord();
                 Point cntPoint = Utils.getCentroid(curContour);
                 double dist = Utils.getDistance(groupPoint, cntPoint);
-                distWeight = 1 / dist;
                 // TODO: Вычисление веса по форме/площади.
                 double shapeWeight = 0;
                 // TODO: Нормализация и суммирование.
+                distWeight = 1 - dist / maxDist;
                 double weight = distWeight + shapeWeight;
                 // Сохранение веса.
                 groupIdxToWeight.put(groupIdx, weight);
@@ -218,7 +228,7 @@ public class Tracker {
                 }
             }
             // Отсев контуров по порогу.
-            if (maxWeight <= weightThreshold && 0 < groupIdx) {
+            if (weightThreshold <= maxWeight && 0 < groupIdx) {
                 // Добавляем контур в список группы.
                 List<MatOfPoint> cntList = groupIdxToCntList.get(groupIdx);
                 if (cntList == null) {
@@ -267,7 +277,7 @@ public class Tracker {
             Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 1);
         }
 
-        Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0, inputFrame);
+        Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0.5, inputFrame);
         return inputFrame;
     }
 

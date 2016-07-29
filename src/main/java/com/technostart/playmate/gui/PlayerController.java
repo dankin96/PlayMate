@@ -59,8 +59,9 @@ public class PlayerController implements Initializable {
         @Override
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
+            Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
             Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = tracker.getFrame(inputFrame);
+            newFrame = tracker.getFrame(newFrame);
             return Utils.mat2Image(newFrame);
         }
     };
