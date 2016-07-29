@@ -4,7 +4,13 @@ import org.opencv.core.Scalar;
 
 import java.util.Arrays;
 import java.util.List;
+<<<<<<< HEAD
 
+=======
+import java.util.Random;
+
+@SuppressWarnings("WeakerAccess")
+>>>>>>> 5091e808b10d71644b104b0590f9f537a1ecaf25
 public class Palette {
     public static final Scalar BLUE = new Scalar(255, 0, 0);
     public static final Scalar GREEN = new Scalar(0, 255, 0);
@@ -27,4 +33,26 @@ public class Palette {
         return palette.get(colorIdx);
     }
 
+<<<<<<< HEAD
 }
+=======
+    public static Scalar getRandomColor() {
+        return getRandomColor(0);
+    }
+
+    /**
+     * @param offset чем меньше тем ярче цвета и больше коллизий.
+     * @return случайный цвет в формате BGR.
+     */
+    public static Scalar getRandomColor(int offset) {
+        Random random = new Random();
+        int delta = 255 - offset;
+
+        int blue = random.nextInt(delta) + offset;
+        int green = random.nextInt(delta) + offset;
+        int red = random.nextInt(delta) + offset;
+        return new Scalar(blue, green, red);
+    }
+
+}
+>>>>>>> 5091e808b10d71644b104b0590f9f537a1ecaf25

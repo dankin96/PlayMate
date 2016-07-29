@@ -1,4 +1,4 @@
-package com.technostart.playmate.core.cv;
+package com.technostart.playmate.frame_reader;
 
 
 public interface FrameReader<T> {
@@ -10,7 +10,9 @@ public interface FrameReader<T> {
 
     T get(int index);
 
-    int getFrameNumber();
+    int getFramesNumber();
 
     int getCurrentFrameNumber();
+
+    void close();
 }

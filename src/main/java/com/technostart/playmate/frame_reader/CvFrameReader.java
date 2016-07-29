@@ -1,4 +1,4 @@
-package com.technostart.playmate.core.cv;
+package com.technostart.playmate.frame_reader;
 
 import org.opencv.core.Mat;
 import org.opencv.videoio.VideoCapture;
@@ -57,12 +57,12 @@ public class CvFrameReader implements FrameReader<Mat>, Closeable {
     }
 
     @Override
-    public int getFrameNumber() {
+    public int getFramesNumber() {
         return frameNumber;
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         capture.release();
     }
 }
