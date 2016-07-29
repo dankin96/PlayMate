@@ -62,7 +62,7 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private TableDetector table;
+    private TableDetectorImpl table;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -72,7 +72,6 @@ public class PlayerController implements Initializable {
         processedFrameView.setImage(imageToShow);
 
 //        tracker = new Tracker(5, 5, 0.5f);
-        table = new TableDetector();
 
         // Инициализация слайдера.
         sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
@@ -101,8 +100,7 @@ public class PlayerController implements Initializable {
                 pos = pos < 0 ? 0 : pos;
                 pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
                 thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
-                System.out.print(pos + "\n");
-                System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
+                table.setThreshold((int) pos);
             }
 
         });
@@ -116,8 +114,7 @@ public class PlayerController implements Initializable {
                 pos = pos < 0 ? 0 : pos;
                 pos = sliderApproxCoef.getMax() <= pos ? sliderApproxCoef.getMax() : pos;
                 approxLabel.textProperty().setValue(String.format("approx coef - %(.4f" ,pos));
-                System.out.print(pos + "\n");
-                System.out.print("approx coef Value Changed (newValue: " + newValue.doubleValue() + ")\n");
+                table.setApproxCoef(pos);
             }
 
         });
@@ -142,6 +139,7 @@ public class PlayerController implements Initializable {
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
         capture = new CvFrameReader(videoFileName);
+        table = new TableDetectorImpl((int) this.threshold.getValue(), this.sliderApproxCoef.getValue());
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -152,7 +150,7 @@ public class PlayerController implements Initializable {
     protected void cannySelected(ActionEvent event) {
         if (this.checkBoxCanny.isSelected()) {
             Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = table.getTable(frame, (int) this.threshold.getValue(), this.sliderApproxCoef.getValue());
+            frame = table.getTable(frame);
             Image imageToShow = Utils.mat2Image(frame);
             processedFrameView.setImage(imageToShow);
         }
@@ -186,6 +184,6 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return table.getTable(frame, (int) this.threshold.getValue(), this.sliderApproxCoef.getValue());
+        return table.getTable(frame);
     }
 }
