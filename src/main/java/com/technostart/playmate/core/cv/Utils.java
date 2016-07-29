@@ -111,6 +111,7 @@ public class Utils {
     static public Point getCentroid(List<Point> points) {
         MatOfPoint contour = new MatOfPoint();
         contour.fromList(points);
+        contour = convexHull(contour);
         return getCentroid(contour);
     }
 
@@ -214,6 +215,20 @@ public class Utils {
             mean.val[i] /= scalars.size();
         }
         return mean;
+    }
+
+    public static MatOfPoint convexHull(MatOfPoint inputContour) {
+        MatOfInt hull = new MatOfInt();
+        Imgproc.convexHull(inputContour, hull);
+        List<Point> hullPoints = new ArrayList<>();
+        List<Point> contourPoints = inputContour.toList();
+        for (int idx : hull.toList()) {
+            Point point = contourPoints.get(idx);
+            hullPoints.add(point);
+        }
+        MatOfPoint hullContour = new MatOfPoint();
+        hullContour.fromList(hullPoints);
+        return hullContour;
     }
 
 

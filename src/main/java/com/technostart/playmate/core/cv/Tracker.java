@@ -14,7 +14,7 @@ import java.util.Map;
 public class Tracker {
     // Параметры по умлочанию.
     public static final int DEFAULT_HISTORY_LENGTH = 5;
-    public static final double DEFAULT_BG_THRESHOLD = 20;
+    public static final double DEFAULT_BG_THRESHOLD = 10;
     public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
     public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
@@ -272,9 +272,9 @@ public class Tracker {
         for (Group group : groups) {
             // Группы.
             List<MatOfPoint> contoursToDraw = group.getContourList();
-            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getNextColor(), 1);
+            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
             // Треки.
-            Utils.drawLine(group.getTrack(), dataImg, Palette.getNextColor(), 1);
+            Utils.drawLine(group.getTrack(), dataImg, Palette.getRandomColor(10), 1);
         }
 
         Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0.5, inputFrame);

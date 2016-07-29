@@ -72,8 +72,6 @@ public class PlayerController implements Initializable {
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         processedFrameView.setImage(imageToShow);
 
-
-
         // Инициализация слайдера.
         sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
@@ -131,7 +129,8 @@ public class PlayerController implements Initializable {
         table = new TableDetector();
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
+        capture = mat2ImgReader;
+//        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
         
         showFrame(capture.read());
 
