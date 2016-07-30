@@ -1,7 +1,7 @@
 package com.technostart.playmate.gui;
 
 import com.technostart.playmate.frame_reader.*;
-import com.technostart.playmate.core.cv.Tracker;
+import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.cv.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
