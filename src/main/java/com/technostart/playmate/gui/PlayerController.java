@@ -29,7 +29,7 @@ import org.opencv.core.Point;
 
 import java.io.File;
 import java.net.URL;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class PlayerController implements Initializable {
     @FXML
@@ -198,11 +198,22 @@ public class PlayerController implements Initializable {
 
     private void createMockTable(Mat frame) {
         //задать стол точками
-        Point[] pointsOfTable = new Point[4];
-        pointsOfTable[0] = new Point(frame.width() * 0.8, frame.height() * 0.2);
-        pointsOfTable[1] = new Point(frame.width() * 0.8, frame.height() * 0.4);
-        pointsOfTable[2] = new Point(frame.width() * 0.2, frame.height() * 0.4);
-        pointsOfTable[3] = new Point(frame.width() * 0.2, frame.height() * 0.2);
+        String points = areaOfPoints.getText();
+        Queue<Double> array = new LinkedList<Double>();
+        String temp = "";
+        for (int i = 0; i < points.length(); i++) {
+            if (points.charAt(i) != ',' && points.charAt(i) != ' ') {
+                temp += points.charAt(i);
+            } else {
+                array.add(Double.parseDouble(temp));
+                temp = "";
+            }
+        }
+        array.add(Double.parseDouble(temp));
+        Point[] pointsOfTable = new Point[array.size() / 2];
+        for (int i = 0; i < pointsOfTable.length; i++) {
+            pointsOfTable[i] = new Point(frame.width() * array.poll(), frame.height() * array.poll());
+        }
         tableDetectorMock.setPoints(new MatOfPoint(pointsOfTable));
     }
 }
