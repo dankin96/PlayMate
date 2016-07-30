@@ -10,15 +10,13 @@ import com.technostart.playmate.core.cv.Tracker;
 import com.technostart.playmate.core.cv.*;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.cv.field_detector.TableDetectorMock;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -26,6 +24,8 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 
 import java.io.File;
 import java.net.URL;
@@ -49,6 +49,8 @@ public class PlayerController implements Initializable {
     @FXML
     CheckBox checkBoxCanny;
     @FXML
+    TextField areaOfPoints;
+    @FXML
     Label position;
     @FXML
     Label thresholdLabel;
@@ -63,6 +65,7 @@ public class PlayerController implements Initializable {
     private String videoFileName;
     private int frameNumberToShow;
 
+    private TableDetectorMock tableDetectorMock;
     private TableDetector tableDetector;
     private Tracker tracker;
 
@@ -141,9 +144,10 @@ public class PlayerController implements Initializable {
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
         capture = new CvFrameReader(videoFileName);
-        tableDetector = new TableDetector(capture.get(frameNumberToShow).size());
+        tableDetectorMock = new TableDetectorMock(capture.get(frameNumberToShow).size());
+        /*tableDetector = new TableDetector(capture.get(frameNumberToShow).size());
         tableDetector.setThreshold((int) threshold.getValue());
-        tableDetector.setApproxCoef(sliderApproxCoef.getValue());
+        tableDetector.setApproxCoef(sliderApproxCoef.getValue());*/
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -154,7 +158,7 @@ public class PlayerController implements Initializable {
     protected void cannySelected(ActionEvent event) {
         if (this.checkBoxCanny.isSelected()) {
             Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = tableDetector.getFrame(frame);
+            frame = processFrame(frame);
             Image imageToShow = Utils.mat2Image(frame);
             processedFrameView.setImage(imageToShow);
         }
@@ -188,6 +192,17 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        return tableDetector.getFrame(frame);
+        createMockTable(frame);
+        return tableDetectorMock.getField(frame);
+    }
+
+    private void createMockTable(Mat frame) {
+        //задать стол точками
+        Point[] pointsOfTable = new Point[4];
+        pointsOfTable[0] = new Point(frame.width() * 0.8, frame.height() * 0.2);
+        pointsOfTable[1] = new Point(frame.width() * 0.8, frame.height() * 0.4);
+        pointsOfTable[2] = new Point(frame.width() * 0.2, frame.height() * 0.4);
+        pointsOfTable[3] = new Point(frame.width() * 0.2, frame.height() * 0.2);
+        tableDetectorMock.setPoints(new MatOfPoint(pointsOfTable));
     }
 }

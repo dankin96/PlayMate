@@ -5,9 +5,17 @@ import org.opencv.core.Size;
 
 public abstract class FieldDetector {
     protected Size frameSize;
+
     public FieldDetector(Size frameSize) {
         this.frameSize = frameSize;
     }
 
-    public abstract Mat getField(Mat frame);
+    public abstract Mat getField(Mat inputFrame);
+
+    public double getWidth() {
+        return frameSize.width;
+    }
+    public double getHeight() {
+        return frameSize.height;
+    }
 }
