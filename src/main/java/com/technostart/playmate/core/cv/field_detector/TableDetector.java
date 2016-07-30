@@ -39,7 +39,6 @@ public class TableDetector extends FieldDetector {
     @Override
     public Mat getField(Mat frame) {
         // TODO: тут вся обработка без отрисовки.
-        // возвращает маску стола
         return null;
     }
 

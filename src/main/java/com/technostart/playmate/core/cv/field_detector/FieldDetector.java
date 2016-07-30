@@ -15,6 +15,7 @@ public abstract class FieldDetector {
     public double getWidth() {
         return frameSize.width;
     }
+
     public double getHeight() {
         return frameSize.height;
     }
