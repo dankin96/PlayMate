@@ -1,5 +1,6 @@
 package com.technostart.playmate.gui;
 
+import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.frame_reader.*;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.cv.*;
@@ -126,7 +127,7 @@ public class PlayerController implements Initializable {
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), 5, 5, 0.5f);
-        table = new TableDetector();
+        table = new TableDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
         capture = mat2ImgReader;
