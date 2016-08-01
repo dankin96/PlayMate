@@ -13,7 +13,6 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class UtilsTest {
-
     @Before
     public void setUp() throws Exception {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -55,5 +54,46 @@ public class UtilsTest {
         assertEquals(scalar3, Utils.scalarMean(scalars3));
         assertEquals(scalar7, Utils.scalarMean(scalars4));
         assertEquals(scalar8, Utils.scalarMean(scalars8));
+    }
+
+    @Test
+    public void getWeightedCentroid() throws Exception {
+        Point p0 = new Point(0, 0);
+        Point p1 = new Point(1, 1);
+        Point p2 = new Point(-1, 1);
+        Point p3 = new Point(-1, -1);
+        Point p4 = new Point(1, -1);
+        Point p5 = new Point(0, -1);
+        Point p6 = new Point(0, 5);
+        Point p7 = new Point(3, 0);
+        Point p8 = new Point(3, 5);
+
+        Point rectCent = new Point(1.5, 2.5);
+
+        Point p11 = new Point(0, 1);
+        Point p12 = new Point(0, 2);
+        Point p13 = new Point(0, 3);
+        Point p14 = new Point(0, 4);
+        Point p15 = new Point(0, 5);
+
+        List<Point> squarePoints = Arrays.asList(p1, p2, p3, p4);
+        List<Point> rectPoints = Arrays.asList(p0, p6, p7, p8);
+        List<Point> linePoints = Arrays.asList(p11, p12, p13, p14, p15);
+
+        List<Double> weights1 = Arrays.asList(1.0, 1.0, 1.0, 1.0);
+        List<Double> weights01 = Arrays.asList(0.0, 0.0, 1.0, 1.0);
+        List<Double> weights10 = Arrays.asList(10.0, 10.0, 10.0, 10.0);
+        List<Double> weights10_2 = Arrays.asList(0.0, 0.0, 10.0, 10.0);
+
+        // Центр квадрата.
+        assertEquals(p0, Utils.getWeightedCentroid(squarePoints, weights1));
+        // Центр прямоугольника.
+        assertEquals(rectCent, Utils.getWeightedCentroid(rectPoints, weights1));
+        // Центр нижней стороны квадрата.
+        assertEquals(p5, Utils.getWeightedCentroid(squarePoints, weights01));
+        // Проверка весов больше 1.
+        assertEquals(p0, Utils.getWeightedCentroid(squarePoints, weights10));
+        assertEquals(p5, Utils.getWeightedCentroid(squarePoints, weights10_2));
+        // TODO: Проверка точек на пямой линии.
     }
 }

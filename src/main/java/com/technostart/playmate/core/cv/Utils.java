@@ -101,6 +101,10 @@ public class Utils {
         return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Центры масс.
+    ///////////////////////////////////////////////////////////////////////////
+
     public static Point getCentroid(MatOfPoint contour) {
         Moments m = Imgproc.moments(contour);
         double cx = m.m10 / m.m00;
@@ -108,14 +112,33 @@ public class Utils {
         return new Point(cx, cy);
     }
 
-    static public Point getCentroid(List<Point> points) {
+    public static Point getCentroid(List<Point> points) {
         MatOfPoint contour = new MatOfPoint();
         contour.fromList(points);
         contour = convexHull(contour);
         return getCentroid(contour);
     }
 
-    static public Point getContoursCentroid(List<MatOfPoint> contours) {
+    public static Point getWeightedCentroid(List<Point> points, List<Double> weights) {
+        int pSize = points.size();
+        int wSize = weights.size();
+        assert pSize == wSize;
+
+        // Рассчет центра
+        double xNum = 0, yNum = 0, denum = 0;
+        for (int i = 0; i < pSize; i++) {
+            Point point = points.get(i);
+            Double weight = weights.get(i);
+            xNum += point.x * weight;
+            yNum += point.y * weight;
+            denum += weight;
+        }
+        double x = xNum / denum;
+        double y = yNum / denum;
+        return new Point(x, y);
+    }
+
+    public static Point getContoursCentroid(List<MatOfPoint> contours) {
         List<Point> centers = new ArrayList<>();
         for (MatOfPoint cnt : contours) {
             centers.add(Utils.getCentroid(cnt));
@@ -123,8 +146,16 @@ public class Utils {
         return getCentroid(centers);
     }
 
+    public static Point getContoursCentroid(List<MatOfPoint> contours, List<Double> weights) {
+        List<Point> centroids = new ArrayList<>();
+        for (int i = 0, size = contours.size(); i < size; i++) {
+            centroids.add(centroids.get(i));
+        }
+        return getWeightedCentroid(centroids, weights);
+    }
+
     // Возвращает контур из центров тяжести входных контуров.
-    static public MatOfPoint getEqualContour(List<MatOfPoint> contours) {
+    public static MatOfPoint getEqualContour(List<MatOfPoint> contours) {
         List<Point> centers = new ArrayList<>();
         for (MatOfPoint cnt : contours) {
             centers.add(Utils.getCentroid(cnt));
@@ -133,6 +164,9 @@ public class Utils {
         newContour.fromList(centers);
         return newContour;
     }
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    ///////////////////////////////////////////////////////////////////////////
 
     public static MatOfPoint findNearestContour(MatOfPoint contour, List<MatOfPoint> contours) {
         MatOfPoint firstContour = null;
@@ -243,7 +277,11 @@ public class Utils {
         return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
 
-    static public void drawLine(List<Point> points, Mat img, Scalar color, int thickness) {
+    ///////////////////////////////////////////////////////////////////////////
+    // Методы отрисовки.
+    ///////////////////////////////////////////////////////////////////////////
+
+    public static void drawLine(List<Point> points, Mat img, Scalar color, int thickness) {
         for (int i = 0; i < points.size() - 1; i++) {
             Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
         }
