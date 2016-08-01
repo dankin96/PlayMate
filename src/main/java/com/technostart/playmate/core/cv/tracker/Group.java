@@ -46,7 +46,7 @@ public class Group {
         add(centroid);
     }
 
-    public void add(List<MatOfPoint> newContours) {
+    public void add(List<MatOfPoint> newContours, List<Double> weights) {
         int size = newContours.size();
         contours.addAll(newContours);
         Point centroid = null;
@@ -61,7 +61,8 @@ public class Group {
             centroid = new Point((c1.x + c2.x) / 2, (c1.y + c2.y) / 2);
         } else if (size > 2) {
             // TODO: Центроид с весами.
-            centroid = Utils.getContoursCentroid(newContours);
+            centroid = Utils.getContoursCentroid(newContours, weights);
+//            centroid = Utils.getContoursCentroid(newContours);
         }
 
         if (centroid != null) {

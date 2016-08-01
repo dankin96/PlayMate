@@ -148,8 +148,8 @@ public class Utils {
 
     public static Point getContoursCentroid(List<MatOfPoint> contours, List<Double> weights) {
         List<Point> centroids = new ArrayList<>();
-        for (int i = 0, size = contours.size(); i < size; i++) {
-            centroids.add(centroids.get(i));
+        for (MatOfPoint contour : contours) {
+            centroids.add(getCentroid(contour));
         }
         return getWeightedCentroid(centroids, weights);
     }

@@ -123,6 +123,7 @@ public class Tracker {
 
         // Выбор групп по весам.
         Map<Integer, List<MatOfPoint>> groupIdxToCntList = new HashMap<>();
+        Map<Integer, List<Double>> groupIdxToWeightList = new HashMap<>();
         List<Integer> restContours = new ArrayList<>();
         for (Map.Entry<Integer, Map<Integer, Double>> entry : contoursWeight.entrySet()) {
             Integer cntIdx = entry.getKey();
@@ -147,6 +148,13 @@ public class Tracker {
                 }
                 cntList.add(contours.get(cntIdx));
                 groupIdxToCntList.put(groupIdx, cntList);
+                // Добавляем вес в список группы.
+                List<Double> weightList = groupIdxToWeightList.get(groupIdx);
+                if (weightList == null) {
+                    weightList = new ArrayList<>();
+                }
+                weightList.add(maxWeight);
+                groupIdxToWeightList.put(groupIdx, weightList);
             } else {
                 restContours.add(cntIdx);
             }
@@ -156,8 +164,9 @@ public class Tracker {
         for (Map.Entry<Integer, List<MatOfPoint>> entry : groupIdxToCntList.entrySet()) {
             int groupIdx = entry.getKey();
             List<MatOfPoint> contoursList = entry.getValue();
+            List<Double> weightList = groupIdxToWeightList.get(groupIdx);
             Group updatedGroup = groups.get(groupIdx);
-            updatedGroup.add(contoursList);
+            updatedGroup.add(contoursList, weightList);
             groups.set(groupIdx, updatedGroup);
         }
 
