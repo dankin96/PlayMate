@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
@@ -35,7 +36,8 @@ public class Tracker {
     private List<Mat> maskBuffer;
 
     //
-    private ArrayList<Group> groups;
+    AtomicInteger groupId = new AtomicInteger();
+    private Map<Integer, Group> groups;
     private double weightThreshold;
     private double maxDist;
 
@@ -64,7 +66,7 @@ public class Tracker {
         bgSubstractor.setShadowValue(0);
         maskBuffer = new ArrayList<>(bufferLength);
 
-        groups = new ArrayList<>();
+        groups = new HashMap<>();
     }
 
     public Mat getFrame(Mat inputFrame) {
@@ -85,17 +87,21 @@ public class Tracker {
         Imgproc.findContours(bgMask.clone(), contours, new Mat(),
                 Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
-        // Чистка групп.
-        ArrayList<Group> updatedGroups = new ArrayList<>();
-        for (int i = 0, size = groups.size(); i < size; i++) {
-            Group group = groups.get(i);
-            if (group.getIdle() < Group.MAX_IDLE) {
-                group.idle();
-                groups.set(i, group);
-                updatedGroups.add(group);
+        // Находим группы для удаления.
+        List<Integer> groupIdToRemove = new ArrayList<>();
+        for (Integer groupIdx : groups.keySet()) {
+            Group group = groups.get(groupIdx);
+            if (group.getIdle() > Group.MAX_IDLE) {
+                groupIdToRemove.add(groupIdx);
             }
+            group.idle();
         }
-        groups = updatedGroups;
+
+        // Удаляем группы.
+        for (int id : groupIdToRemove) {
+            groups.remove(id);
+        }
+
 
         // Структура для хранения весов Map<contourIdx, Map<groupIdx, weight>>
         Map<Integer, Map<Integer, Double>> contoursWeight = new HashMap<>();
@@ -103,7 +109,7 @@ public class Tracker {
         for (int cntIdx = 0, cntSize = contours.size(); cntIdx < cntSize; cntIdx++) {
             MatOfPoint curContour = contours.get(cntIdx);
             Map<Integer, Double> groupIdxToWeight = new HashMap<>();
-            for (int groupIdx = 0, groupSize = groups.size(); groupIdx < groupSize; groupIdx++) {
+            for (int groupIdx : groups.keySet()) {
                 // TODO: Вычисление веса по расстоянию.
                 double distWeight = 0;
                 Group curGroup = groups.get(groupIdx);
@@ -167,7 +173,7 @@ public class Tracker {
             List<Double> weightList = groupIdxToWeightList.get(groupIdx);
             Group updatedGroup = groups.get(groupIdx);
             updatedGroup.add(contoursList, weightList);
-            groups.set(groupIdx, updatedGroup);
+            groups.put(groupIdx, updatedGroup);
         }
 
         // Создание новых групп из оставшихся контуров.
@@ -175,7 +181,7 @@ public class Tracker {
         // FIXME: можно создать группы из каждого контура и потом посчитать веса для них же.
         for (Integer cntIdx : restContours) {
             Group newGroup = new Group(contours.get(cntIdx));
-            groups.add(newGroup);
+            groups.put(groupId.incrementAndGet(), newGroup);
         }
 
         /**
@@ -189,7 +195,7 @@ public class Tracker {
         Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
 
         // Рисуем группы контуров и треки разными цветами.
-        for (Group group : groups) {
+        for (Group group : groups.values()) {
             // Группы.
             List<MatOfPoint> contoursToDraw = group.getContourList();
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
