@@ -14,6 +14,7 @@ repositories {
 }
 
 dependencies {
+    compile 'io.reactivex:rxjava:1.1.8'
     compile files('libs/OpenCV/opencv-310.jar')
     testCompile group: 'junit', name: 'junit', version: '4.11'
 
