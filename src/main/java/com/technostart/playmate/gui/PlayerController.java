@@ -1,9 +1,12 @@
 package com.technostart.playmate.gui;
 
+import com.technostart.playmate.core.cv.field_detector.FieldDetector;
+import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.frame_reader.*;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.cv.*;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
@@ -22,6 +25,11 @@ import javafx.stage.FileChooser;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+import rx.Observable;
+import rx.Observer;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import java.io.File;
 import java.net.URL;
@@ -54,18 +62,38 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private TableDetector table;
+    private LineSegmentDetector table;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Override
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
-            Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
+//            Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
             Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = tracker.getFrame(newFrame);
+            newFrame = table.getFrame(newFrame);
             return Utils.mat2Image(newFrame);
         }
     };
+
+
+    @FunctionalInterface
+    interface Command<T> {
+         T execute();
+    }
+
+    private Observable<Image> createFrameObservable(Command<Image> command) {
+        return Observable.create(subscriber -> {
+            subscriber.onNext(command.execute());
+            subscriber.onCompleted();
+        });
+    }
+
+    private Subscription createFrameSubscription(Command<Image> command) {
+        return createFrameObservable(command)
+                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.io())
+                .subscribe(this::showFrame);
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -74,36 +102,27 @@ public class PlayerController implements Initializable {
         processedFrameView.setImage(imageToShow);
 
         // Инициализация слайдера.
-        sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable,
-                                Number oldValue, Number newValue) {
-                if (capture != null) {
-                    System.out.print("\nFrame\n");
-                    int frameNumber = capture.getFramesNumber();
-                    double pos = sliderFrame.getValue() * frameNumber / 1000;
-                    pos = pos < 0 ? 0 : pos;
-                    pos = frameNumber <= pos ? frameNumber - 2 : pos;
-                    frameNumberToShow = (int) pos;
-                    System.out.print(pos + "\n");
-                    System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
-                }
+        sliderFrame.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (capture != null) {
+                System.out.print("\nFrame\n");
+                int frameNumber = capture.getFramesNumber();
+                double pos = sliderFrame.getValue() * frameNumber / 1000;
+                pos = pos < 0 ? 0 : pos;
+                pos = frameNumber <= pos ? frameNumber - 2 : pos;
+                frameNumberToShow = (int) pos;
+                System.out.print(pos + "\n");
+                System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
             }
         });
 
         // Инициализация порога для checkBoxCanny.
-        threshold.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable,
-                                Number oldValue, Number newValue) {
-                double pos = threshold.getValue();
-                pos = pos < 0 ? 0 : pos;
-                pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
-                thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
-                System.out.print(pos + "\n");
-                System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
-            }
-
+        threshold.valueProperty().addListener((observable, oldValue, newValue) -> {
+            double pos = threshold.getValue();
+            pos = pos < 0 ? 0 : pos;
+            pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
+            thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
+            System.out.print(pos + "\n");
+            System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
         });
 
     }
@@ -127,7 +146,7 @@ public class PlayerController implements Initializable {
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), 5, 5, 0.5f);
-        table = new TableDetector(firstFrame.size());
+        table = new LineSegmentDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
         capture = mat2ImgReader;
@@ -162,17 +181,17 @@ public class PlayerController implements Initializable {
 
     @FXML
     protected void showNextFrame() {
-        showFrame(capture.next());
+        createFrameSubscription(() -> capture.next());
     }
 
     @FXML
     protected void showPreviousFrame() {
-        showFrame(capture.prev());
+        createFrameSubscription(() -> capture.prev());
     }
 
     @FXML
     public void showCurrentFrame() {
-        showFrame(capture.get(frameNumberToShow));
+        createFrameSubscription(() -> capture.get(frameNumberToShow));
     }
 
 }

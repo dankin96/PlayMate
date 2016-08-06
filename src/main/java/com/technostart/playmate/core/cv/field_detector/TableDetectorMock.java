@@ -22,6 +22,11 @@ public class TableDetectorMock extends FieldDetector {
         return cntImg;
     }
 
+    @Override
+    public Mat getFrame(Mat inputFrame) {
+        return null;
+    }
+
     public void setPoints(MatOfPoint points) {
         this.tableContour = points;
     }
