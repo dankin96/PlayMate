@@ -1,33 +1,31 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.field_detector.FieldDetector;
+import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
-import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.frame_reader.*;
+import com.technostart.playmate.core.cv.settings.SettingsManager;
 import com.technostart.playmate.core.cv.tracker.Tracker;
-import com.technostart.playmate.core.cv.*;
-import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
+import com.technostart.playmate.frame_reader.CvFrameReader;
+import com.technostart.playmate.frame_reader.FrameHandler;
+import com.technostart.playmate.frame_reader.FrameReader;
+import com.technostart.playmate.frame_reader.Mat2ImgReader;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuBar;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
-import rx.Observer;
-import rx.Subscriber;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -36,6 +34,12 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class PlayerController implements Initializable {
+
+    SettingsManager settingsManager;
+    @FXML
+    public MenuBar menuBar;
+    @FXML
+    public VBox settingsBox;
     @FXML
     Button openVideoButton;
     @FXML
@@ -47,13 +51,7 @@ public class PlayerController implements Initializable {
     @FXML
     Slider sliderFrame;
     @FXML
-    Slider threshold;
-    @FXML
-    CheckBox checkBoxCanny;
-    @FXML
     Label position;
-    @FXML
-    Label thresholdLabel;
     @FXML
     ImageView processedFrameView;
 
@@ -78,7 +76,7 @@ public class PlayerController implements Initializable {
 
     @FunctionalInterface
     interface Command<T> {
-         T execute();
+        T execute();
     }
 
     private Observable<Image> createFrameObservable(Command<Image> command) {
@@ -97,6 +95,12 @@ public class PlayerController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Менеджер настроек.
+        settingsManager = new SettingsManager();
+        settingsManager.mockProperty();
+
+        // Создаем поля настроек.
+        SettingsFieldCreator.fill(settingsBox, settingsManager.getProperties());
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         processedFrameView.setImage(imageToShow);
@@ -114,17 +118,6 @@ public class PlayerController implements Initializable {
                 System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
             }
         });
-
-        // Инициализация порога для checkBoxCanny.
-        threshold.valueProperty().addListener((observable, oldValue, newValue) -> {
-            double pos = threshold.getValue();
-            pos = pos < 0 ? 0 : pos;
-            pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
-            thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
-            System.out.print(pos + "\n");
-            System.out.print("Threshold Value Changed (newValue: " + newValue.intValue() + ")\n");
-        });
-
     }
 
     private void showFrame(Image imageToShow) {
@@ -151,20 +144,10 @@ public class PlayerController implements Initializable {
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
         capture = mat2ImgReader;
 //        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
-        
+
         showFrame(capture.read());
 
         position.textProperty().setValue("1");
-    }
-
-    @FXML
-    protected void cannySelected(ActionEvent event) {
-        if (this.checkBoxCanny.isSelected()) {
-//            Mat frame = capture.get(capture.getCurrentFrameNumber());
-//            frame = table.getTable(frame, (int) this.threshold.getValue());
-//            Image imageToShow = Utils.mat2Image(frame);
-//            processedFrameView.setImage(imageToShow);
-        }
     }
 
     // Переключает кадры с клавиатуры на < и >

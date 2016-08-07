@@ -14,4 +14,12 @@ public class Property<T> {
         this.type = type;
         this.value = value;
     }
+
+    public String getType() {
+        return type;
+    }
+
+    public T getValue() {
+        return value;
+    }
 }
