@@ -22,4 +22,21 @@ public class Property<T> {
     public T getValue() {
         return value;
     }
+
+    public static Property<Integer> newIntProperty(int value) {
+        return new Property<Integer>(Property.INTEGER, value);
+    }
+
+    public static Property<Boolean> newBoolProperty(boolean value) {
+        return new Property<Boolean>(Property.BOOLEAN, value);
+    }
+
+    public static Property<Double> newDoubleProperty(double value) {
+        return new Property<Double>(Property.DOUBLE, value);
+    }
+
+    public static Property<String> newStringProperty(String value) {
+        return new Property<String>(Property.STRING, value);
+    }
+
 }

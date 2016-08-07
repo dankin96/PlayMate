@@ -29,8 +29,15 @@ import rx.Observable;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ResourceBundle;
 
 public class PlayerController implements Initializable {
@@ -73,7 +80,6 @@ public class PlayerController implements Initializable {
         }
     };
 
-
     @FunctionalInterface
     interface Command<T> {
         T execute();
@@ -97,10 +103,8 @@ public class PlayerController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         // Менеджер настроек.
         settingsManager = new SettingsManager();
-        settingsManager.mockProperty();
+        updateSettingsFields();
 
-        // Создаем поля настроек.
-        SettingsFieldCreator.fill(settingsBox, settingsManager.getProperties());
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         processedFrameView.setImage(imageToShow);
@@ -173,8 +177,57 @@ public class PlayerController implements Initializable {
     }
 
     @FXML
-    public void showCurrentFrame() {
+    private void showCurrentFrame() {
         createFrameSubscription(() -> capture.get(frameNumberToShow));
     }
 
+    @FXML
+    private void openSettings(ActionEvent actionEvent) {
+        loadSettings();
+    }
+
+    @FXML
+    private void saveSettings(ActionEvent actionEvent) {
+        writeSettings();
+    }
+
+    private void loadSettings() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Open Settings File");
+        String settingsFileName = fileChooser.showOpenDialog(null).getAbsolutePath();
+        String json = readFile(settingsFileName);
+        settingsManager.fromJson(json);
+        updateSettingsFields();
+    }
+
+    private void writeSettings() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Settings to File");
+        File settingsFile = fileChooser.showOpenDialog(null);
+        saveTextFile(settingsFile, settingsManager.toJson());
+    }
+
+    private void updateSettingsFields() {
+        settingsBox.getChildren().clear();
+        SettingsFieldCreator.bind(settingsBox, settingsManager);
+    }
+
+    private void saveTextFile(File file, String content) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+            bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String readFile(String path) {
+        String string = null;
+        try {
+            byte[] encoded = Files.readAllBytes(Paths.get(path));
+            string =  new String(encoded, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return string;
+    }
 }

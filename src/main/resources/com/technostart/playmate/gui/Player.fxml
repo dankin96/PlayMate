@@ -15,8 +15,8 @@
                     <menus>
                         <Menu text="File">
                             <items>
-                                <MenuItem text="Open Settings"/>
-                                <MenuItem text="Save Settings"/>
+                                <MenuItem text="Open Settings" onAction="#openSettings"/>
+                                <MenuItem text="Save Settings" onAction="#saveSettings"/>
                                 <SeparatorMenuItem  />
                                 <MenuItem text="Open Video"/>
                             </items>

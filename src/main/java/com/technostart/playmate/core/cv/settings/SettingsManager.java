@@ -4,7 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
 public class SettingsManager {
@@ -16,7 +17,8 @@ public class SettingsManager {
 
     public void fromJson(String json) {
         Gson gson = new Gson();
-        Type type = new TypeToken<Map<String, Property>>(){}.getType();
+        Type type = new TypeToken<Map<String, Property>>() {
+        }.getType();
         properties = gson.fromJson(json, type);
     }
 
@@ -64,4 +66,25 @@ public class SettingsManager {
         assert property.type.equals(Property.BOOLEAN);
         return (boolean) property.value;
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Установка настроек.
+    ///////////////////////////////////////////////////////////////////////////
+
+    public void putInt(String key, int value) {
+        properties.put(key, Property.newIntProperty(value));
+    }
+
+    public void putBoolean(String key, boolean value) {
+        properties.put(key, Property.newBoolProperty(value));
+    }
+
+    public void putDouble(String key, double value) {
+        properties.put(key, Property.newDoubleProperty(value));
+    }
+
+    public void putString(String key, String value) {
+        properties.put(key, Property.newStringProperty(value));
+    }
+
 }
