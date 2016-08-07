@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 public class SettingsManagerTest {
     @Before
     public void setUp() throws Exception {
-        
+
     }
 
     @Test

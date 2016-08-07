@@ -1,0 +1,22 @@
+{
+  "KernelRate": {
+    "type": "Integer",
+    "value": 200
+  },
+  "ResizeWidth": {
+    "type": "Integer",
+    "value": 640
+  },
+  "TrackerBgHistoryLength": {
+    "type": "Integer",
+    "value": 5
+  },
+  "TrackerWeightThreshold": {
+    "type": "Double",
+    "value": 0.9
+  },
+  "GroupMaxIdle": {
+    "type": "Integer",
+    "value": 3
+  }
+}

@@ -1,5 +1,6 @@
 package com.technostart.playmate.core.cv.settings;
 
+@SuppressWarnings("WeakerAccess")
 public class Property<T> {
     public static final String BOOLEAN = "Boolean";
     public static final String INTEGER = "Integer";
