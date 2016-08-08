@@ -7,6 +7,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 
 import java.util.Map;
 
@@ -21,9 +22,10 @@ public class SettingsFieldCreator {
             String key = entry.getKey();
             Property property = entry.getValue();
 
-            HBox propertyBox = new HBox();
+            VBox propertyBox = new VBox();
             propertyBox.setSpacing(5);
-            propertyBox.getChildren().add(new Label(key));
+            String labelText = String.format("%s (%s)", key, property.getType());
+            propertyBox.getChildren().add(new Label(labelText));
             String type = property.getType();
             // Создание вьюшки для редактирования в зависимости от типа.
             switch (type) {

@@ -1,16 +1,16 @@
 package com.technostart.playmate.gui;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.Resources;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
 import com.technostart.playmate.core.cv.settings.SettingsManager;
 import com.technostart.playmate.core.cv.tracker.Tracker;
-import com.technostart.playmate.frame_reader.CvFrameReader;
-import com.technostart.playmate.frame_reader.FrameHandler;
-import com.technostart.playmate.frame_reader.FrameReader;
-import com.technostart.playmate.frame_reader.Mat2ImgReader;
+import com.technostart.playmate.frame_reader.*;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuBar;
@@ -34,7 +34,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -42,23 +41,21 @@ import java.util.ResourceBundle;
 
 public class PlayerController implements Initializable {
 
-    SettingsManager settingsManager;
+    private SettingsManager settingsManager;
     @FXML
     public MenuBar menuBar;
     @FXML
     public VBox settingsBox;
     @FXML
-    Button openVideoButton;
-    @FXML
     Pane pane;
     @FXML
-    Button nextFrame;
+    Button nextFrameBtn;
     @FXML
-    Button previousFrame;
+    Button previousFrameBtn;
     @FXML
-    Slider sliderFrame;
+    Slider frameSlider;
     @FXML
-    Label position;
+    Label positionLabel;
     @FXML
     ImageView processedFrameView;
 
@@ -73,7 +70,7 @@ public class PlayerController implements Initializable {
         @Override
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
-//            Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
+            Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
             Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
             newFrame = table.getFrame(newFrame);
             return Utils.mat2Image(newFrame);
@@ -94,15 +91,27 @@ public class PlayerController implements Initializable {
 
     private Subscription createFrameSubscription(Command<Image> command) {
         return createFrameObservable(command)
-                .subscribeOn(Schedulers.computation())
-                .observeOn(Schedulers.io())
+//                .subscribeOn(Schedulers.computation())
+//                .observeOn(Schedulers.io())
                 .subscribe(this::showFrame);
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // FIXME: перенести в fxml
+        settingsBox.setPadding(new Insets(10, 10, 0, 10));
+        settingsBox.setSpacing(10);
+
         // Менеджер настроек.
         settingsManager = new SettingsManager();
+        // Загрузка настроек из ресурсов.
+        URL url = Resources.getResource("com/technostart/playmate/settings/settings.json");
+        try {
+            String jsonSettings = Resources.toString(url, Charsets.UTF_8);
+            settingsManager.fromJson(jsonSettings);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         updateSettingsFields();
 
         videoFileName = "";
@@ -110,11 +119,11 @@ public class PlayerController implements Initializable {
         processedFrameView.setImage(imageToShow);
 
         // Инициализация слайдера.
-        sliderFrame.valueProperty().addListener((observable, oldValue, newValue) -> {
+        frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (capture != null) {
                 System.out.print("\nFrame\n");
                 int frameNumber = capture.getFramesNumber();
-                double pos = sliderFrame.getValue() * frameNumber / 1000;
+                double pos = frameSlider.getValue() * frameNumber / 1000;
                 pos = pos < 0 ? 0 : pos;
                 pos = frameNumber <= pos ? frameNumber - 2 : pos;
                 frameNumberToShow = (int) pos;
@@ -125,9 +134,7 @@ public class PlayerController implements Initializable {
     }
 
     private void showFrame(Image imageToShow) {
-        position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
-//        Image imageToShow = Utils.mat2Image(inputFrame);
-//        currentFrameView.setImage(imageToShow);
+        positionLabel.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
         processedFrameView.setImage(imageToShow);
     }
 
@@ -147,11 +154,11 @@ public class PlayerController implements Initializable {
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
         capture = mat2ImgReader;
-//        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
+        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
 
         showFrame(capture.read());
 
-        position.textProperty().setValue("1");
+        positionLabel.textProperty().setValue("1");
     }
 
     // Переключает кадры с клавиатуры на < и >

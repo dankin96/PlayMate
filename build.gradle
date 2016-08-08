@@ -7,7 +7,6 @@ apply plugin: 'maven-publish'
 sourceCompatibility = 1.8
 
 
-
 repositories {
     mavenCentral()
     mavenLocal()
@@ -15,10 +14,10 @@ repositories {
 
 dependencies {
     compile 'com.google.code.gson:gson:2.7'
+    compile 'com.google.guava:guava:19.0'
     compile 'io.reactivex:rxjava:1.1.8'
     compile files('libs/OpenCV/opencv-310.jar')
     testCompile group: 'junit', name: 'junit', version: '4.11'
-
 }
 
 tasks.withType(Test) {

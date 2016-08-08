@@ -1,6 +1,7 @@
 package com.technostart.playmate.core.cv.settings;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
@@ -31,17 +32,17 @@ public class SettingsManager {
     }
 
     public String toJson() {
-        Gson gson = new Gson();
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(properties);
-    }
-
-    public void load() {
-
     }
 
     public Map<String, Property> getProperties() {
         return properties;
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Получение настроек.
+    ///////////////////////////////////////////////////////////////////////////
 
     public int getInt(String key) {
         Property property = properties.get(key);

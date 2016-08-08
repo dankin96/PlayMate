@@ -1,7 +1,7 @@
 package com.technostart.playmate.core.cv.field_detector;
 
 import com.technostart.playmate.core.cv.Palette;
-import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
@@ -32,7 +32,9 @@ public class LineSegmentDetector extends FieldDetector {
     public Mat getField(Mat inputFrame) {
         Mat procFrame = inputFrame.clone();
         Mat tmpFrame = new Mat();
-        Imgproc.cvtColor(procFrame, procFrame, Imgproc.COLOR_BGR2GRAY);
+        if (inputFrame.type() != CvType.CV_8UC1) {
+            Imgproc.cvtColor(procFrame, procFrame, Imgproc.COLOR_BGR2GRAY);
+        }
         Imgproc.bilateralFilter(procFrame, tmpFrame, 10, 25, 25);
         Imgproc.Canny(tmpFrame, tmpFrame, cannyThreshold1, cannyThreshold2);
         Mat lines = new Mat();
@@ -40,10 +42,13 @@ public class LineSegmentDetector extends FieldDetector {
         return lines;
     }
 
-public Mat getFrame(Mat inputFrame) {
-    Mat lines = getField(inputFrame);
-    for (int x = 0; x < lines.rows(); x++) {
-        double[] vec = lines.get(x, 0);
+    public Mat getFrame(Mat inputFrame) {
+        if (inputFrame.type() != CvType.CV_8UC3) {
+            Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
+        }
+        Mat lines = getField(inputFrame);
+        for (int x = 0; x < lines.rows(); x++) {
+            double[] vec = lines.get(x, 0);
             double x1 = vec[0],
                     y1 = vec[1],
                     x2 = vec[2],
