@@ -2,6 +2,7 @@ package com.technostart.playmate.core.cv.field_detector;
 
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
+import com.technostart.playmate.core.cv.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
@@ -11,10 +12,14 @@ import java.util.Comparator;
 import java.util.List;
 
 public class TableDetector extends FieldDetector {
-    static final int sigmaColor = 25;
-    static final int sigmaSpace = 25;
-    static final int ksize = 5;
-    static final int diameter = 5;
+    @Cfg
+    static int sigmaColor = 25;
+    @Cfg
+    static int sigmaSpace = 25;
+    @Cfg
+    static int ksize = 5;
+    @Cfg
+    static Integer diameter = 5;
     private List<MatOfPoint> contours;
     private List<MatOfInt> hull;
     private List<MatOfPoint> hullmop;

@@ -1,10 +1,9 @@
 package com.technostart.playmate.gui;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Resources;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
 import com.technostart.playmate.core.cv.settings.SettingsManager;
+import com.technostart.playmate.core.cv.settings.SettingsParser;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.*;
 import javafx.event.ActionEvent;
@@ -37,6 +36,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class PlayerController implements Initializable {
@@ -64,7 +65,7 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private LineSegmentDetector table;
+    private LineSegmentDetector tableDetector;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Override
@@ -72,7 +73,7 @@ public class PlayerController implements Initializable {
             Mat newFrame = inputFrame.clone();
             Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
             Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = table.getFrame(newFrame);
+            newFrame = tableDetector.getFrame(newFrame);
             return Utils.mat2Image(newFrame);
         }
     };
@@ -85,14 +86,14 @@ public class PlayerController implements Initializable {
     private Observable<Image> createFrameObservable(Command<Image> command) {
         return Observable.create(subscriber -> {
             subscriber.onNext(command.execute());
-            subscriber.onCompleted();
+//            subscriber.onCompleted();
         });
     }
 
     private Subscription createFrameSubscription(Command<Image> command) {
         return createFrameObservable(command)
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.computation())
+                .observeOn(Schedulers.io())
                 .subscribe(this::showFrame);
     }
 
@@ -105,14 +106,13 @@ public class PlayerController implements Initializable {
         // Менеджер настроек.
         settingsManager = new SettingsManager();
         // Загрузка настроек из ресурсов.
-        URL url = Resources.getResource("com/technostart/playmate/settings/settings.json");
+        /*URL url = Resources.getResource("com/technostart/playmate/settings/settings.json");
         try {
             String jsonSettings = Resources.toString(url, Charsets.UTF_8);
             settingsManager.fromJson(jsonSettings);
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        updateSettingsFields();
+        }*/
 
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
@@ -150,7 +150,7 @@ public class PlayerController implements Initializable {
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), 5, 5, 0.5f);
-        table = new LineSegmentDetector(firstFrame.size());
+        tableDetector = new LineSegmentDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
         capture = mat2ImgReader;
@@ -159,6 +159,9 @@ public class PlayerController implements Initializable {
         showFrame(capture.read());
 
         positionLabel.textProperty().setValue("1");
+
+        // Обновляем поля с настройками.
+        updateSettingsFromObjects(Arrays.asList(tracker));
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -236,5 +239,18 @@ public class PlayerController implements Initializable {
             e.printStackTrace();
         }
         return string;
+    }
+
+    private void updateSettingsFromObjects(List<Object> objects) {
+        for (Object object : objects) {
+            try {
+                SettingsParser.toSettings(object, settingsManager);
+            } catch (IllegalAccessException e) {
+                // TODO: вывести ошибку.
+                System.out.println("Ошибка парсера настроек");
+                e.printStackTrace();
+            }
+        }
+        updateSettingsFields();
     }
 }

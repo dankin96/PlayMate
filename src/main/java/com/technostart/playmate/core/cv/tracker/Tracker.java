@@ -2,6 +2,7 @@ package com.technostart.playmate.core.cv.tracker;
 
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
+import com.technostart.playmate.core.cv.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractorMOG2;
@@ -15,6 +16,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
+    @Cfg
+    private Integer test2 = 2;
+    @Cfg
+    private int test1 = 1;
+    @Cfg
+    private Boolean bool1 = false;
+    @Cfg
+    public boolean bool2 = true;
+    @Cfg
+    private String s1 = "someshit";
     // Параметры по умлочанию.
     public static final int DEFAULT_HISTORY_LENGTH = 5;
     public static final double DEFAULT_BG_THRESHOLD = 10;
