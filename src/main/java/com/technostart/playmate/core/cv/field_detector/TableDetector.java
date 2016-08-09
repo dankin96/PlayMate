@@ -39,6 +39,7 @@ public class TableDetector extends FieldDetector {
     @Override
     public Mat getField(Mat frame) {
         // TODO: тут вся обработка без отрисовки.
+        // возвращает маску стола
         return null;
     }
 
@@ -71,13 +72,15 @@ public class TableDetector extends FieldDetector {
                 break;
             }
         }
+        counter = 3;
         System.out.println("Counter = " + counter);
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-//        convexHull(counter);
+        convexHull(counter);
         approximation(counter, approxCoef);
         print(cntImg, counter);
-        Imgproc.resize(cntImg, cntImg, inputFrame.size());
+        cntImg = lineSegmentDetect(cntImg);
+//        Imgproc.resize(cntImg, cntImg, inputFrame.size());
         //добавление найденного контура к текущей картинке
         // Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
         hull.clear();
@@ -98,9 +101,9 @@ public class TableDetector extends FieldDetector {
         MatOfPoint2f approxCurve = new MatOfPoint2f();
         for (int i = 0; i < counter; i++) {
             MatOfPoint temp = new MatOfPoint();
-            contours.get(i).convertTo(approx, CvType.CV_32FC2);
+            hullmop.get(i).convertTo(approx, CvType.CV_32FC2);
             double approxDistance = Imgproc.arcLength(approx, true) * approxCoef;
-            Imgproc.approxPolyDP(approx, approxCurve, approxDistance, false);
+            Imgproc.approxPolyDP(approx, approxCurve, approxDistance, true);
             approxCurve.convertTo(temp, CvType.CV_32S);
             approxContours.add(temp);
         }
@@ -116,12 +119,36 @@ public class TableDetector extends FieldDetector {
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
     }
 
+    private Mat lineSegmentDetect(Mat inputFrame) {
+        Mat lines = new Mat();
+        if (inputFrame.type() != CvType.CV_8UC1) {
+            Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_BGR2GRAY);
+        }
+        int minLineLength = 20;
+        int maxLineGap = 700;
+        Imgproc.HoughLinesP(inputFrame, lines, 1, Math.PI / 720, 100, minLineLength, maxLineGap);
+        Mat linesImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
+        for (int x = 0; x < lines.rows(); x++) {
+            double[] vec = lines.get(x, 0);
+            double x1 = vec[0],
+                    y1 = vec[1],
+                    x2 = vec[2],
+                    y2 = vec[3];
+            Point start = new Point(x1, y1);
+            Point end = new Point(x2, y2);
+            Imgproc.line(linesImg, start, end, Palette.getRandomColor(), 3);
+        }
+        System.out.println("lines = " + lines.rows());
+        return linesImg;
+    }
+
     private Mat print(Mat cntImg, int counter) {
         for (int i = 0; i < counter; i++) {
-            Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
-            Imgproc.drawContours(cntImg, hullmop, i, Palette.BLACK, 3);
-            Imgproc.drawContours(cntImg, contours, i, Palette.WHITE, 3);
+//            Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
+//            Imgproc.drawContours(cntImg, hullmop, i, Palette.WHITE, 2);
+//            Imgproc.drawContours(cntImg, contours, i, Palette.getNextColor(), -1);
         }
+        Imgproc.drawContours(cntImg, hullmop, 1, Palette.WHITE, 2);
         System.out.println("\nsize contours = " + contours.size());
         System.out.println("\nsize hull = " + hullmop.size());
         System.out.println("\nsize approxcontours = " + approxContours.size());

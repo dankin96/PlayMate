@@ -114,7 +114,7 @@ public class Tracker {
         for (List<MatOfPoint> curCnts : contoursBuffer) {
             cnts.addAll(curCnts);
         }
-        Imgproc.drawContours(cntImg, cnts, -1, new Scalar(0, 255, 0), 1);
+        Imgproc.drawContours(cntImg, cnts, -1, Palette.GREEN, 5);
         Imgproc.resize(cntImg, cntImg, inputFrame.size());
         Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
         return inputFrame;

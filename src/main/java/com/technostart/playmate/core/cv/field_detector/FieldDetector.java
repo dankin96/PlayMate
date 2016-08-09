@@ -12,6 +12,8 @@ public abstract class FieldDetector {
 
     public abstract Mat getField(Mat inputFrame);
 
+    public abstract Mat getFrame(Mat inputFrame);
+
     public double getWidth() {
         return frameSize.width;
     }

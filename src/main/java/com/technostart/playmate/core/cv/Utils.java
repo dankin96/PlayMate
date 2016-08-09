@@ -243,6 +243,14 @@ public class Utils {
         return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
 
+    static public Mat createHomography(Mat inputFrame, Mat srcPoints, Mat dstPoints) {
+        Mat perspectiveTransform = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
+        Mat cropped_image = inputFrame.clone();
+        Mat homographyImg = new Mat();
+        Imgproc.warpPerspective(homographyImg, cropped_image, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        return homographyImg;
+    }
+
     static public void drawLine(List<Point> points, Mat img, Scalar color, int thickness) {
         for (int i = 0; i < points.size() - 1; i++) {
             Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);

@@ -23,6 +23,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
@@ -76,7 +77,7 @@ public class PlayerController implements Initializable {
         currentFrameView.setImage(imageToShow);
         processedFrameView.setImage(imageToShow);
 
-//        tracker = new Tracker(5, 5, 0.5f);
+        tracker = new Tracker(5, 5, 0.5f);
 
         // Инициализация слайдера.
         sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
@@ -144,10 +145,10 @@ public class PlayerController implements Initializable {
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
         capture = new CvFrameReader(videoFileName);
-        tableDetectorMock = new TableDetectorMock(capture.get(frameNumberToShow).size());
-        /*tableDetector = new TableDetector(capture.get(frameNumberToShow).size());
+//        tableDetectorMock = new TableDetectorMock(capture.get(frameNumberToShow).size());
+        tableDetector = new TableDetector(capture.get(frameNumberToShow).size());
         tableDetector.setThreshold((int) threshold.getValue());
-        tableDetector.setApproxCoef(sliderApproxCoef.getValue());*/
+        tableDetector.setApproxCoef(sliderApproxCoef.getValue());
         System.out.print("\nname" + videoFileName);
         showFrame(capture.read());
         position.textProperty().setValue("1");
@@ -192,8 +193,12 @@ public class PlayerController implements Initializable {
     }
 
     private Mat processFrame(Mat frame) {
-        createMockTable(frame);
-        return tableDetectorMock.getField(frame);
+//        Mat temp = tableDetector.getFrame(frame);
+//        createMockTable(frame);
+//        frame = tracker.getFrame(frame);
+//        Core.addWeighted(frame, 0.5, temp, 0.5, 0, frame);
+        return tableDetector.getFrame(frame);
+//        return lineDetector.getFrame(frame);
     }
 
     private void createMockTable(Mat frame) {
