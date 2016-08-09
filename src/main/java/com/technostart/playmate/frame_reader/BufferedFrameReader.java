@@ -11,17 +11,14 @@ public class BufferedFrameReader<T> implements FrameReader<T> {
     FrameReader<T> frameReader;
     Map<Integer, T> buffer;
     List<Integer> keyList;
-    @Cfg
     int cursor;
     @Cfg(name = "BuffFrameReaderInterval")
-    int interval;
+    int interval = 10;
     @Cfg(name = "BuffFrameReaderCapacity")
-    int capacity;
+    int capacity = 400;
 
-    public BufferedFrameReader(FrameReader<T> frameReader, int interval, int capacity) {
+    public BufferedFrameReader(FrameReader<T> frameReader) {
         this.frameReader = frameReader;
-        this.interval = interval;
-        this.capacity = capacity;
         keyList = new ArrayList<>();
         buffer = new LinkedHashMap<>();
         cursor = 0;

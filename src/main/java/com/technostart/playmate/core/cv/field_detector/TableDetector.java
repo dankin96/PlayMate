@@ -19,7 +19,8 @@ public class TableDetector extends FieldDetector {
     @Cfg
     static int ksize = 5;
     @Cfg
-    static Integer diameter = 5;
+    static int diameter = 5;
+
     private List<MatOfPoint> contours;
     private List<MatOfInt> hull;
     private List<MatOfPoint> hullmop;

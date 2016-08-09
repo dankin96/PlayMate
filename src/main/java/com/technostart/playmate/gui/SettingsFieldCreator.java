@@ -4,6 +4,7 @@ import com.technostart.playmate.core.cv.settings.Property;
 import com.technostart.playmate.core.cv.settings.SettingsManager;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -15,7 +16,7 @@ public class SettingsFieldCreator {
     public SettingsFieldCreator() {
     }
 
-    public static void bind(Pane container, SettingsManager settingsManager) throws NumberFormatException{
+    public static void bind(Pane container, SettingsManager settingsManager) throws NumberFormatException {
         Map<String, Property> propertyMap = settingsManager.getProperties();
         for (Map.Entry<String, Property> entry : propertyMap.entrySet()) {
             String key = entry.getKey();

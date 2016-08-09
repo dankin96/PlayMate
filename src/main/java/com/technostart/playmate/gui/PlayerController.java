@@ -115,10 +115,6 @@ public class PlayerController implements Initializable {
     @Override
 
     public void initialize(URL location, ResourceBundle resources) {
-        // FIXME: перенести в fxml
-        settingsBox.setPadding(new Insets(10, 10, 0, 10));
-        settingsBox.setSpacing(10);
-
         // Менеджер настроек.
         settingsManager = new SettingsManager();
 
@@ -163,7 +159,7 @@ public class PlayerController implements Initializable {
         System.out.print("\nname" + videoFileName);
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
-        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
+        capture = new BufferedFrameReader<>(mat2ImgReader);
 
         showFrame(capture.read());
 
