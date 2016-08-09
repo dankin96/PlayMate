@@ -103,12 +103,12 @@
                         </AnchorPane>
                         <AnchorPane minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                             <children>
-                                <ScrollPane hbarPolicy="NEVER" prefHeight="766.0" prefWidth="269.0">
+                                <ScrollPane layoutY="28.0" prefHeight="739.0" prefWidth="269.0">
                                     <padding>
-                                        <Insets left="10.0" right="10.0" top="10.0"/>
+                                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
                                     </padding>
                                     <content>
-                                        <VBox fx:id="settingsBox" prefHeight="214.0" prefWidth="228.0"/>
+                                        <VBox fx:id="settingsBox" prefHeight="214.0" prefWidth="241.0"/>
                                     </content>
                                 </ScrollPane>
                             </children>
