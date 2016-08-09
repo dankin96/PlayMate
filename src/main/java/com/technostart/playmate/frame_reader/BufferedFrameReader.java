@@ -2,17 +2,19 @@ package com.technostart.playmate.frame_reader;
 
 import com.technostart.playmate.core.cv.settings.Cfg;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class BufferedFrameReader<T> implements FrameReader<T> {
     FrameReader<T> frameReader;
     Map<Integer, T> buffer;
     List<Integer> keyList;
-    @Cfg
     int cursor;
-    @Cfg
+    @Cfg(name = "BuffFrameReaderInterval")
     int interval;
-    @Cfg
+    @Cfg(name = "BuffFrameReaderCapacity")
     int capacity;
 
     public BufferedFrameReader(FrameReader<T> frameReader, int interval, int capacity) {

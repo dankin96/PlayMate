@@ -21,23 +21,24 @@ public class SettingsParser {
         for (Field field : fields) {
             field.setAccessible(true);
             if (!field.isAnnotationPresent(Cfg.class)) continue;
-
+            String annotateName = field.getAnnotation(Cfg.class).name();
+            String name = annotateName.equals(" defaultName") ? field.getName() : annotateName;
             Type type = field.getType();
             switch (type.getTypeName()) {
                 case "int":
                 case "java.lang.Integer":
-                    manager.putInt(field.getName(), (int) field.get(obj));
+                    manager.putInt(name, (int) field.get(obj));
                     break;
                 case "double":
                 case "java.lang.Double":
-                    manager.putDouble(field.getName(), (double) field.get(obj));
+                    manager.putDouble(name, (double) field.get(obj));
                     break;
                 case "java.lang.String":
-                    manager.putString(field.getName(), (String) field.get(obj));
+                    manager.putString(name, (String) field.get(obj));
                     break;
                 case "boolean":
                 case "java.lang.Boolean":
-                    manager.putBoolean(field.getName(), (boolean) field.get(obj));
+                    manager.putBoolean(name, (boolean) field.get(obj));
                     break;
             }
         }
@@ -52,8 +53,9 @@ public class SettingsParser {
         for (Field field : fields) {
             field.setAccessible(true);
             if (field.isAnnotationPresent(Cfg.class)) {
+                String annotateName = field.getAnnotation(Cfg.class).name();
+                String key = annotateName.equals(" defaultName") ? field.getName() : annotateName;
                 Type type = field.getType();
-                String key = field.getName();
                 switch (type.getTypeName()) {
                     case "int":
                     case "java.lang.Integer":
