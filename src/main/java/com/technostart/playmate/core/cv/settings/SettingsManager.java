@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
@@ -13,7 +13,7 @@ public class SettingsManager {
     Map<String, Property> properties;
 
     public SettingsManager() {
-        this.properties = new HashMap<>();
+        this.properties = new LinkedHashMap<>();
     }
 
     public void fromJson(String json) {

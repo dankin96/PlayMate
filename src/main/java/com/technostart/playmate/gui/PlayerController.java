@@ -173,7 +173,7 @@ public class PlayerController implements Initializable {
                 setValue("na");
 
         // Обновляем поля с настройками.
-        updateSettingsFromObjects(Arrays.asList(tracker, tableDetector));
+        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector));
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -218,10 +218,14 @@ public class PlayerController implements Initializable {
         capture.clear();
     }
 
+    /**
+     * Применяет настройки.
+     */
     @FXML
     private void applySettings(ActionEvent actionEvent) {
         try {
             tableDetector = SettingsParser.fromSettings(settingsManager, tableDetector);
+            capture = SettingsParser.fromSettings(settingsManager, capture);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -270,6 +274,9 @@ public class PlayerController implements Initializable {
         return string;
     }
 
+    /**
+     * Загружает настройки из перечисленных объектов.
+     */
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
             try {
