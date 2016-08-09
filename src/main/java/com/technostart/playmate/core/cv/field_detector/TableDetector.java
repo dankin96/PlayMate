@@ -27,8 +27,10 @@ public class TableDetector extends FieldDetector {
     private Mat processingFrame;
     private Mat structeredElement;
     private int min_area;
-    private int threshold;
-    private double approxCoef;
+    @Cfg
+    private int threshold = 100;
+    @Cfg
+    private double approxCoef = 0.01;
 
     public TableDetector(Size frameSize) {
         super(frameSize);
@@ -84,7 +86,7 @@ public class TableDetector extends FieldDetector {
         convexHull(counter);
         approximation(counter, approxCoef);
         print(cntImg, counter);
-        cntImg = lineSegmentDetect(cntImg);
+//        cntImg = lineSegmentDetect(cntImg);
 //        Imgproc.resize(cntImg, cntImg, inputFrame.size());
 //        добавление найденного контура к текущей картинке
         // Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
@@ -149,22 +151,14 @@ public class TableDetector extends FieldDetector {
 
     private Mat print(Mat cntImg, int counter) {
         for (int i = 0; i < counter; i++) {
-//            Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
-//            Imgproc.drawContours(cntImg, hullmop, i, Palette.WHITE, 2);
-//            Imgproc.drawContours(cntImg, contours, i, Palette.getNextColor(), -1);
+            Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
+            Imgproc.drawContours(cntImg, hullmop, i, Palette.WHITE, 3);
+            Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
         }
-        Imgproc.drawContours(cntImg, hullmop, 1, Palette.WHITE, 2);
+//        Imgproc.drawContours(cntImg, hullmop, 1, Palette.WHITE, 2);
         System.out.println("\nsize contours = " + contours.size());
         System.out.println("\nsize hull = " + hullmop.size());
         System.out.println("\nsize approxcontours = " + approxContours.size());
         return cntImg;
-    }
-
-    public void setThreshold(int threshold) {
-        this.threshold = threshold;
-    }
-
-    public void setApproxCoef(double approxCoef) {
-        this.approxCoef = approxCoef;
     }
 }

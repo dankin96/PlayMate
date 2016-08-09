@@ -4,8 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
@@ -47,7 +50,6 @@ public class SettingsManager {
     public int getInt(String key) {
         Property property = properties.get(key);
         assert property.type.equals(Property.INTEGER);
-        // FIXME:
         Object value = property.value;
         if (value instanceof Double) return ((Double) value).intValue();
         return (int) value;
@@ -91,4 +93,69 @@ public class SettingsManager {
         properties.put(key, Property.newStringProperty(value));
     }
 
+    /**
+     * Добавляет поля с настройками из аннотированных полей объекта.
+     */
+    public void toSettings(Object obj) throws IllegalAccessException {
+        Class clazz = obj.getClass();
+        List<Field> fields = Arrays.asList(clazz.getDeclaredFields());
+        for (Field field : fields) {
+            field.setAccessible(true);
+            if (!field.isAnnotationPresent(Cfg.class)) continue;
+            String annotateName = field.getAnnotation(Cfg.class).name();
+            String name = annotateName.equals(" defaultName") ? field.getName() : annotateName;
+            Type type = field.getType();
+            switch (type.getTypeName()) {
+                case "int":
+                case "java.lang.Integer":
+                    putInt(name, (int) field.get(obj));
+                    break;
+                case "double":
+                case "java.lang.Double":
+                    putDouble(name, (double) field.get(obj));
+                    break;
+                case "java.lang.String":
+                    putString(name, (String) field.get(obj));
+                    break;
+                case "boolean":
+                case "java.lang.Boolean":
+                    putBoolean(name, (boolean) field.get(obj));
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Заполняет поля класса соответствующими значениями из менеджера.
+     */
+    public <T> T fromSettings(T obj) throws IllegalAccessException {
+        Class clazz = obj.getClass();
+        List<Field> fields = Arrays.asList(clazz.getDeclaredFields());
+        for (Field field : fields) {
+            field.setAccessible(true);
+            if (field.isAnnotationPresent(Cfg.class)) {
+                String annotateName = field.getAnnotation(Cfg.class).name();
+                String key = annotateName.equals(" defaultName") ? field.getName() : annotateName;
+                Type type = field.getType();
+                switch (type.getTypeName()) {
+                    case "int":
+                    case "java.lang.Integer":
+                        field.setInt(obj, getInt(key));
+                        break;
+                    case "double":
+                    case "java.lang.Double":
+                        field.setDouble(obj, getDouble(key));
+                        break;
+                    case "java.lang.String":
+                        field.set(obj, getString(key));
+                        break;
+                    case "boolean":
+                    case "java.lang.Boolean":
+                        field.setBoolean(obj, getBoolean(key));
+                        break;
+                }
+            }
+        }
+        return obj;
+    }
 }
