@@ -30,6 +30,13 @@
                                 <MenuItem onAction="#saveSettings" text="Export Settings" />
                             </items>
                         </Menu>
+                        <Menu text="Edit">
+                            <items>
+                                <MenuItem text="Clear Buffer" onAction="#clearBuffer"/>
+                                <SeparatorMenuItem />
+                                <MenuItem text="Apply Settings" onAction="#applySettings" accelerator="Shortcut+R" />
+                            </items>
+                        </Menu>
                     </menus>
                 </MenuBar>
                 <SplitPane dividerPositions="0.8" prefHeight="768.0" prefWidth="1366.0">

@@ -47,7 +47,10 @@ public class SettingsManager {
     public int getInt(String key) {
         Property property = properties.get(key);
         assert property.type.equals(Property.INTEGER);
-        return (int) (double) property.value;
+        // FIXME:
+        Object value = property.value;
+        if (value instanceof Double) return ((Double) value).intValue();
+        return (int) value;
     }
 
     public double getDouble(String key) {

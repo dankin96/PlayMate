@@ -5,7 +5,10 @@ import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
 import com.technostart.playmate.core.cv.settings.SettingsManager;
 import com.technostart.playmate.core.cv.settings.SettingsParser;
 import com.technostart.playmate.core.cv.tracker.Tracker;
-import com.technostart.playmate.frame_reader.*;
+import com.technostart.playmate.frame_reader.BufferedFrameReader;
+import com.technostart.playmate.frame_reader.CvFrameReader;
+import com.technostart.playmate.frame_reader.FrameHandler;
+import com.technostart.playmate.frame_reader.Mat2ImgReader;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -26,7 +29,6 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -60,7 +62,7 @@ public class PlayerController implements Initializable {
     @FXML
     ImageView processedFrameView;
 
-    private FrameReader<Image> capture;
+    private BufferedFrameReader<Image> capture;
     private String videoFileName;
     private int frameNumberToShow;
 
@@ -78,6 +80,7 @@ public class PlayerController implements Initializable {
         }
     };
 
+
     @FunctionalInterface
     interface Command<T> {
         T execute();
@@ -86,14 +89,14 @@ public class PlayerController implements Initializable {
     private Observable<Image> createFrameObservable(Command<Image> command) {
         return Observable.create(subscriber -> {
             subscriber.onNext(command.execute());
-//            subscriber.onCompleted();
+            subscriber.onCompleted();
         });
     }
 
     private Subscription createFrameSubscription(Command<Image> command) {
         return createFrameObservable(command)
-                .subscribeOn(Schedulers.computation())
-                .observeOn(Schedulers.io())
+//                .subscribeOn(Schedulers.computation())
+//                .observeOn(Schedulers.io())
                 .subscribe(this::showFrame);
     }
 
@@ -105,14 +108,6 @@ public class PlayerController implements Initializable {
 
         // Менеджер настроек.
         settingsManager = new SettingsManager();
-        // Загрузка настроек из ресурсов.
-        /*URL url = Resources.getResource("com/technostart/playmate/settings/settings.json");
-        try {
-            String jsonSettings = Resources.toString(url, Charsets.UTF_8);
-            settingsManager.fromJson(jsonSettings);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
 
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
@@ -149,19 +144,19 @@ public class PlayerController implements Initializable {
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
-        tracker = new Tracker(firstFrame.size(), 5, 5, 0.5f);
+        tracker = new Tracker(firstFrame.size(), 5, 0.5f);
         tableDetector = new LineSegmentDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-        capture = mat2ImgReader;
+//        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
 
         showFrame(capture.read());
 
-        positionLabel.textProperty().setValue("1");
+        positionLabel.textProperty().setValue("na");
 
         // Обновляем поля с настройками.
-        updateSettingsFromObjects(Arrays.asList(tracker));
+        updateSettingsFromObjects(Arrays.asList(tracker, tableDetector));
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -201,6 +196,23 @@ public class PlayerController implements Initializable {
         writeSettings();
     }
 
+    @FXML
+    private void clearBuffer(ActionEvent actionEvent) {
+        capture.clear();
+    }
+
+    @FXML
+    private void applySettings(ActionEvent actionEvent) {
+        try {
+            tableDetector = SettingsParser.fromSettings(settingsManager, tableDetector);
+        } catch (IllegalAccessException e) {
+            // TODO: вывести ошибку.
+            System.out.println("Ошибка парсера настроек");
+            e.printStackTrace();
+        }
+    }
+
+
     private void loadSettings() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open Settings File");
@@ -234,7 +246,7 @@ public class PlayerController implements Initializable {
         String string = null;
         try {
             byte[] encoded = Files.readAllBytes(Paths.get(path));
-            string =  new String(encoded, StandardCharsets.UTF_8);
+            string = new String(encoded, StandardCharsets.UTF_8);
         } catch (IOException e) {
             e.printStackTrace();
         }

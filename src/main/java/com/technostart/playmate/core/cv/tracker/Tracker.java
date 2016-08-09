@@ -16,22 +16,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
-    @Cfg
-    private Integer test2 = 2;
-    @Cfg
-    private int test1 = 1;
-    @Cfg
-    private Boolean bool1 = false;
-    @Cfg
-    public boolean bool2 = true;
-    @Cfg
-    private String s1 = "someshit";
     // Параметры по умлочанию.
     public static final int DEFAULT_HISTORY_LENGTH = 5;
     public static final double DEFAULT_BG_THRESHOLD = 10;
-    public static final int DEFAULT_BUFFER_LENGTH = 30;
     public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
     public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
+
     // Должна зависеть от размеров кадра.
     private double distThreshold;
 
@@ -40,11 +30,10 @@ public class Tracker {
     // Параметры выделения фона.
     private Mat bgMask;
     private BackgroundSubtractorMOG2 bgSubstractor;
-    private int historyLength;
 
-    // Буфер для фона.
-    private int bufferLength;
-    private List<Mat> maskBuffer;
+    @Cfg
+    private int bgSubstHistoryLength = 5;
+    private double bgSubstThreshold = 10;
 
     //
     AtomicInteger groupId = new AtomicInteger();
@@ -53,10 +42,10 @@ public class Tracker {
     private double maxDist;
 
     public Tracker(Size frameSize) {
-        this(frameSize, DEFAULT_HISTORY_LENGTH, DEFAULT_BUFFER_LENGTH, DEFAULT_SHADOW_THRESHOLD);
+        this(frameSize, DEFAULT_HISTORY_LENGTH, DEFAULT_SHADOW_THRESHOLD);
     }
 
-    public Tracker(Size frameSize, int historyLength, int bufferLength, float shadow_threshold) {
+    public Tracker(Size frameSize, int historyLength, float shadow_threshold) {
         this.frameSize = frameSize;
 
         // Вычисляем значения для нормализации весов по расстоянию.
@@ -66,8 +55,7 @@ public class Tracker {
         distThreshold = maxDist / 4;
         weightThreshold = DEFAULT_WEIGHT_THRESHOLD;
 
-        this.historyLength = historyLength;
-        this.bufferLength = bufferLength;
+        this.bgSubstHistoryLength = historyLength;
 
         // Выделение фона.
         bgMask = new Mat();
@@ -75,7 +63,6 @@ public class Tracker {
         bgSubstractor.setShadowThreshold(shadow_threshold);
         // Находим тени но не отображаем их на маске.
         bgSubstractor.setShadowValue(0);
-        maskBuffer = new ArrayList<>(bufferLength);
 
         groups = new HashMap<>();
     }
@@ -88,11 +75,7 @@ public class Tracker {
         bgSubstractor.apply(frame, bgMask);
         // Шумодав.
         bgMask = Utils.filterNoise(bgMask);
-        // Сохранение маски.
-        if (maskBuffer.size() >= bufferLength) {
-            maskBuffer.remove(0);
-        }
-        maskBuffer.add(bgMask);
+
         // Выделение контуров.
         List<MatOfPoint> contours = new ArrayList<>();
         Imgproc.findContours(bgMask.clone(), contours, new Mat(),

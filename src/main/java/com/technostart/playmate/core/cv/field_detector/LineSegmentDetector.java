@@ -1,6 +1,7 @@
 package com.technostart.playmate.core.cv.field_detector;
 
 import com.technostart.playmate.core.cv.Palette;
+import com.technostart.playmate.core.cv.settings.Cfg;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -8,21 +9,16 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class LineSegmentDetector extends FieldDetector {
+    @Cfg
     private double cannyThreshold1 = 10;
+    @Cfg
     private double cannyThreshold2 = cannyThreshold1 * 3;
+    @Cfg
     private int houghLinesThreshold = 200;
-
-    public void setCannyThreshold1(double cannyThreshold1) {
-        this.cannyThreshold1 = cannyThreshold1;
-    }
-
-    public void setCannyThreshold2(double cannyThreshold2) {
-        this.cannyThreshold2 = cannyThreshold2;
-    }
-
-    public void setHoughLinesThreshold(int houghLinesThreshold) {
-        this.houghLinesThreshold = houghLinesThreshold;
-    }
+    @Cfg
+    private double houghtLinesMinLength = 120;
+    @Cfg
+    private double houghtLinesMaxGap = 30;
 
     public LineSegmentDetector(Size frameSize) {
         super(frameSize);
@@ -38,7 +34,8 @@ public class LineSegmentDetector extends FieldDetector {
         Imgproc.bilateralFilter(procFrame, tmpFrame, 10, 25, 25);
         Imgproc.Canny(tmpFrame, tmpFrame, cannyThreshold1, cannyThreshold2);
         Mat lines = new Mat();
-        Imgproc.HoughLinesP(tmpFrame, lines, 1, Math.PI / 180, 10, 120, 30);
+        Imgproc.HoughLinesP(tmpFrame, lines, 1, Math.PI / 180,
+                houghLinesThreshold, houghtLinesMinLength, houghtLinesMaxGap);
         return lines;
     }
 
