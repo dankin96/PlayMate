@@ -3,7 +3,6 @@ package com.technostart.playmate.gui;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
 import com.technostart.playmate.core.cv.settings.SettingsManager;
-import com.technostart.playmate.core.cv.settings.SettingsParser;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.frame_reader.CvFrameReader;
@@ -209,8 +208,8 @@ public class PlayerController implements Initializable {
     private void applySettings(ActionEvent actionEvent) {
         try {
             // TODO: дописать новые объекты если будут.
-            tableDetector = SettingsParser.fromSettings(settingsManager, tableDetector);
-            capture = SettingsParser.fromSettings(settingsManager, capture);
+            tableDetector = settingsManager.fromSettings(tableDetector);
+            capture = settingsManager.fromSettings(capture);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -224,7 +223,7 @@ public class PlayerController implements Initializable {
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
             try {
-                SettingsParser.toSettings(object, settingsManager);
+                settingsManager.toSettings(object);
             } catch (IllegalAccessException e) {
                 // TODO: вывести ошибку.
                 System.out.println("Ошибка парсера настроек");
