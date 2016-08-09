@@ -214,11 +214,17 @@ public class PlayerController implements Initializable {
         capture.clear();
     }
 
+    @FXML
+    private void reloadFrame() {
+        capture.clear();
+        createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
+    }
+
     /**
      * Применяет настройки.
      */
     @FXML
-    private void applySettings(ActionEvent actionEvent) {
+    private void applySettings() {
         try {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
@@ -264,7 +270,9 @@ public class PlayerController implements Initializable {
 
     private void updateSettingsFields() {
         settingsBox.getChildren().clear();
-        SettingsFieldCreator.bind(settingsBox, settingsManager);
+        SettingsFieldCreator fieldCreator = new SettingsFieldCreator();
+        fieldCreator.setOnUpdateListener(this::applySettings);
+        fieldCreator.bind(settingsBox, settingsManager);
     }
 
     private void saveTextFile(File file, String content) {

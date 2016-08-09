@@ -35,9 +35,10 @@
                         </Menu>
                         <Menu text="Edit">
                             <items>
-                                <MenuItem onAction="#clearBuffer" text="Clear Buffer"/>
+                                <MenuItem text="Clear Buffer" onAction="#clearBuffer"/>
                                 <SeparatorMenuItem/>
-                                <MenuItem accelerator="Shortcut+R" onAction="#applySettings" text="Apply Settings"/>
+                                <MenuItem text="Reload Frame" onAction="#reloadFrame" accelerator="Shortcut+R"/>
+                                <MenuItem text="Apply Settings" onAction="#applySettings"/>
                             </items>
                         </Menu>
                     </menus>
