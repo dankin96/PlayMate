@@ -4,8 +4,7 @@ version '1.0-SNAPSHOT'
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 
-sourceCompatibility = 1.7
-
+sourceCompatibility = 1.8
 
 
 repositories {
@@ -14,9 +13,10 @@ repositories {
 }
 
 dependencies {
-
+    compile 'com.google.code.gson:gson:2.7'
+    compile 'com.google.guava:guava:19.0'
+    compile 'io.reactivex:rxjava:1.1.8'
     compile files('libs/OpenCV/opencv-310.jar')
-//    compile fileTree(dir: 'libs/OpenCV/', include: '*')
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 

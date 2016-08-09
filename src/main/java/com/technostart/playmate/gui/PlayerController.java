@@ -1,12 +1,5 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.CvFrameReader;
-import com.technostart.playmate.core.cv.FrameReader;
-import com.technostart.playmate.core.cv.Tracker;
-import com.technostart.playmate.core.cv.BufferedFrameReader;
-import com.technostart.playmate.core.cv.CvFrameReader;
-import com.technostart.playmate.core.cv.FrameReader;
-import com.technostart.playmate.core.cv.Tracker;
 import com.technostart.playmate.core.cv.*;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
@@ -17,52 +10,72 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
+import com.technostart.playmate.core.cv.settings.SettingsManager;
+import com.technostart.playmate.core.cv.settings.SettingsParser;
+import com.technostart.playmate.core.cv.tracker.Tracker;
+import com.technostart.playmate.frame_reader.BufferedFrameReader;
+import com.technostart.playmate.frame_reader.CvFrameReader;
+import com.technostart.playmate.frame_reader.FrameHandler;
+import com.technostart.playmate.frame_reader.Mat2ImgReader;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import rx.Observable;
+import rx.Subscription;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ResourceBundle;
 
 public class PlayerController implements Initializable {
+
+    private SettingsManager settingsManager;
     @FXML
-    Button openVideoButton;
+    public MenuBar menuBar;
+    @FXML
+    public VBox settingsBox;
     @FXML
     Pane pane;
     @FXML
-    Button nextFrame;
+    Button nextFrameBtn;
     @FXML
-    Button previousFrame;
+    Button previousFrameBtn;
     @FXML
-    Slider sliderFrame;
+    Slider frameSlider;
     @FXML
-    Slider threshold;
-    @FXML
-    Slider sliderApproxCoef;
-    @FXML
-    CheckBox checkBoxCanny;
-    @FXML
-    TextField areaOfPoints;
-    @FXML
-    Label position;
-    @FXML
-    Label thresholdLabel;
-    @FXML
-    Label approxLabel;
-    @FXML
-    ImageView currentFrameView;
+    Label positionLabel;
     @FXML
     ImageView processedFrameView;
 
-    private FrameReader<Mat> capture;
+    private BufferedFrameReader<Image> capture;
     private String videoFileName;
     private int frameNumberToShow;
 
@@ -70,71 +83,67 @@ public class PlayerController implements Initializable {
     private TableDetector tableDetector;
     private Tracker tracker;
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        videoFileName = "";
-        Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
-        currentFrameView.setImage(imageToShow);
-        processedFrameView.setImage(imageToShow);
+    private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
+        @Override
+        public Image process(Mat inputFrame) {
+            Mat newFrame = inputFrame.clone();
+            Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
+            newFrame = tableDetector.getFrame(newFrame);
+            return Utils.mat2Image(newFrame);
+        }
+    };
 
-        tracker = new Tracker(5, 5, 0.5f);
 
-        // Инициализация слайдера.
-        sliderFrame.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable,
-                                Number oldValue, Number newValue) {
-                if (capture != null) {
-                    System.out.print("\nFrame\n");
-                    int frameNumber = capture.getFrameNumber();
-                    double pos = sliderFrame.getValue() * frameNumber / 1000;
-                    pos = pos < 0 ? 0 : pos;
-                    pos = frameNumber <= pos ? frameNumber - 2 : pos;
-                    frameNumberToShow = (int) pos;
-                    System.out.print(pos + "\n");
-                    System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
-                }
-            }
-        });
-
-        // Инициализация порога для checkBoxCanny.
-        threshold.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable,
-                                Number oldValue, Number newValue) {
-                double pos = threshold.getValue();
-                pos = pos < 0 ? 0 : pos;
-                pos = threshold.getMax() <= pos ? threshold.getMax() : pos;
-                thresholdLabel.textProperty().setValue("threshold - " + String.valueOf((int) pos));
-                tableDetector.setThreshold((int) pos);
-            }
-
-        });
-
-        // слайдер коэффициента аппроксимации
-        sliderApproxCoef.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable,
-                                Number oldValue, Number newValue) {
-                double pos = sliderApproxCoef.getValue();
-                pos = pos < 0 ? 0 : pos;
-                pos = sliderApproxCoef.getMax() <= pos ? sliderApproxCoef.getMax() : pos;
-                approxLabel.textProperty().setValue(String.format("approx coef - %(.4f", pos));
-                tableDetector.setApproxCoef(pos);
-            }
-
-        });
-
+    @FunctionalInterface
+    interface Command<T> {
+        T execute();
     }
 
-    private void showFrame(Mat inputFrame) {
-        position.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
-        Image imageToShow = Utils.mat2Image(inputFrame);
-        currentFrameView.setImage(imageToShow);
-        if (this.checkBoxCanny.isSelected()) {
-            inputFrame = processFrame(inputFrame);
-        }
-        imageToShow = Utils.mat2Image(inputFrame);
+    private Observable<Image> createFrameObservable(Command<Image> command) {
+        return Observable.create(subscriber -> {
+            subscriber.onNext(command.execute());
+            subscriber.onCompleted();
+        });
+    }
+
+    private Subscription createFrameSubscription(Command<Image> command) {
+        return createFrameObservable(command)
+//                .subscribeOn(Schedulers.computation())
+//                .observeOn(Schedulers.io())
+                .subscribe(this::showFrame);
+    }
+
+    @Override
+
+    public void initialize(URL location, ResourceBundle resources) {
+        // FIXME: перенести в fxml
+        settingsBox.setPadding(new Insets(10, 10, 0, 10));
+        settingsBox.setSpacing(10);
+
+        // Менеджер настроек.
+        settingsManager = new SettingsManager();
+
+        videoFileName = "";
+        Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
+        processedFrameView.setImage(imageToShow);
+
+        // Инициализация слайдера.
+        frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (capture != null) {
+                System.out.print("\nFrame\n");
+                int frameNumber = capture.getFramesNumber();
+                double pos = frameSlider.getValue() * frameNumber / 1000;
+                pos = pos < 0 ? 0 : pos;
+                pos = frameNumber <= pos ? frameNumber - 2 : pos;
+                frameNumberToShow = (int) pos;
+                System.out.print(pos + "\n");
+                System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
+            }
+        });
+    }
+
+    private void showFrame(Image imageToShow) {
+        positionLabel.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
         processedFrameView.setImage(imageToShow);
     }
 
@@ -144,25 +153,27 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        capture = new CvFrameReader(videoFileName);
+        // Очистка буфера.
+        if (capture != null) capture.close();
+        // Инициализация ридера.
+        CvFrameReader cvReader = new CvFrameReader(videoFileName);
+        Mat firstFrame = cvReader.read();
+        tracker = new Tracker(firstFrame.size(), 5, 0.5f);
+        tableDetector = new TableDetector(firstFrame.size());
 //        tableDetectorMock = new TableDetectorMock(capture.get(frameNumberToShow).size());
-        tableDetector = new TableDetector(capture.get(frameNumberToShow).size());
-        tableDetector.setThreshold((int) threshold.getValue());
-        tableDetector.setApproxCoef(sliderApproxCoef.getValue());
         System.out.print("\nname" + videoFileName);
-        showFrame(capture.read());
-        position.textProperty().setValue("1");
-        System.out.print("FrameNumber - " + capture.getFrameNumber() + "\n");
-    }
+        Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
+//        capture = mat2ImgReader;
+        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
 
-    @FXML
-    protected void cannySelected(ActionEvent event) {
-        if (this.checkBoxCanny.isSelected()) {
-            Mat frame = capture.get(capture.getCurrentFrameNumber());
-            frame = processFrame(frame);
-            Image imageToShow = Utils.mat2Image(frame);
-            processedFrameView.setImage(imageToShow);
-        }
+        showFrame(capture.read());
+
+        positionLabel.textProperty().
+
+                setValue("na");
+
+        // Обновляем поля с настройками.
+        updateSettingsFromObjects(Arrays.asList(tracker, tableDetector));
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -179,46 +190,96 @@ public class PlayerController implements Initializable {
 
     @FXML
     protected void showNextFrame() {
-        showFrame(capture.next());
+        createFrameSubscription(() -> capture.next());
     }
 
     @FXML
     protected void showPreviousFrame() {
-        showFrame(capture.prev());
+        createFrameSubscription(() -> capture.prev());
     }
 
     @FXML
-    public void showCurrentFrame() {
-        showFrame(capture.get(frameNumberToShow));
+    private void showCurrentFrame() {
+        createFrameSubscription(() -> capture.get(frameNumberToShow));
     }
 
-    private Mat processFrame(Mat frame) {
-//        Mat temp = tableDetector.getFrame(frame);
-//        createMockTable(frame);
-//        frame = tracker.getFrame(frame);
-//        Core.addWeighted(frame, 0.5, temp, 0.5, 0, frame);
-        return tableDetector.getFrame(frame);
-//        return lineDetector.getFrame(frame);
+    @FXML
+    private void openSettings(ActionEvent actionEvent) {
+        loadSettings();
     }
 
-    private void createMockTable(Mat frame) {
-        //задать стол точками
-        String points = areaOfPoints.getText();
-        Queue<Double> array = new LinkedList<Double>();
-        String temp = "";
-        for (int i = 0; i < points.length(); i++) {
-            if (points.charAt(i) != ',' && points.charAt(i) != ' ') {
-                temp += points.charAt(i);
-            } else {
-                array.add(Double.parseDouble(temp));
-                temp = "";
+    @FXML
+    private void saveSettings(ActionEvent actionEvent) {
+        writeSettings();
+    }
+
+    @FXML
+    private void clearBuffer(ActionEvent actionEvent) {
+        capture.clear();
+    }
+
+    @FXML
+    private void applySettings(ActionEvent actionEvent) {
+        try {
+            tableDetector = SettingsParser.fromSettings(settingsManager, tableDetector);
+        } catch (IllegalAccessException e) {
+            // TODO: вывести ошибку.
+            System.out.println("Ошибка парсера настроек");
+            e.printStackTrace();
+        }
+    }
+
+
+    private void loadSettings() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Open Settings File");
+        String settingsFileName = fileChooser.showOpenDialog(null).getAbsolutePath();
+        String json = readFile(settingsFileName);
+        settingsManager.fromJson(json);
+        updateSettingsFields();
+    }
+
+    private void writeSettings() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Settings to File");
+        File settingsFile = fileChooser.showOpenDialog(null);
+        saveTextFile(settingsFile, settingsManager.toJson());
+    }
+
+    private void updateSettingsFields() {
+        settingsBox.getChildren().clear();
+        SettingsFieldCreator.bind(settingsBox, settingsManager);
+    }
+
+    private void saveTextFile(File file, String content) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+            bw.write(content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String readFile(String path) {
+        String string = null;
+        try {
+            byte[] encoded = Files.readAllBytes(Paths.get(path));
+            string = new String(encoded, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return string;
+    }
+
+    private void updateSettingsFromObjects(List<Object> objects) {
+        for (Object object : objects) {
+            try {
+                SettingsParser.toSettings(object, settingsManager);
+            } catch (IllegalAccessException e) {
+                // TODO: вывести ошибку.
+                System.out.println("Ошибка парсера настроек");
+                e.printStackTrace();
             }
         }
-        array.add(Double.parseDouble(temp));
-        Point[] pointsOfTable = new Point[array.size() / 2];
-        for (int i = 0; i < pointsOfTable.length; i++) {
-            pointsOfTable[i] = new Point(frame.width() * array.poll(), frame.height() * array.poll());
-        }
-        tableDetectorMock.setPoints(new MatOfPoint(pointsOfTable));
+        updateSettingsFields();
     }
 }
