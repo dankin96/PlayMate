@@ -173,6 +173,7 @@ public class PlayerController implements Initializable {
                 setValue("na");
 
         // Обновляем поля с настройками.
+        // TODO: дописать новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector));
     }
 
@@ -224,6 +225,7 @@ public class PlayerController implements Initializable {
     @FXML
     private void applySettings(ActionEvent actionEvent) {
         try {
+            // TODO: дописать новые объекты если будут.
             tableDetector = SettingsParser.fromSettings(settingsManager, tableDetector);
             capture = SettingsParser.fromSettings(settingsManager, capture);
         } catch (IllegalAccessException e) {
@@ -233,6 +235,21 @@ public class PlayerController implements Initializable {
         }
     }
 
+    /**
+     * Загружает настройки из перечисленных объектов.
+     */
+    private void updateSettingsFromObjects(List<Object> objects) {
+        for (Object object : objects) {
+            try {
+                SettingsParser.toSettings(object, settingsManager);
+            } catch (IllegalAccessException e) {
+                // TODO: вывести ошибку.
+                System.out.println("Ошибка парсера настроек");
+                e.printStackTrace();
+            }
+        }
+        updateSettingsFields();
+    }
 
     private void loadSettings() {
         FileChooser fileChooser = new FileChooser();
@@ -274,19 +291,4 @@ public class PlayerController implements Initializable {
         return string;
     }
 
-    /**
-     * Загружает настройки из перечисленных объектов.
-     */
-    private void updateSettingsFromObjects(List<Object> objects) {
-        for (Object object : objects) {
-            try {
-                SettingsParser.toSettings(object, settingsManager);
-            } catch (IllegalAccessException e) {
-                // TODO: вывести ошибку.
-                System.out.println("Ошибка парсера настроек");
-                e.printStackTrace();
-            }
-        }
-        updateSettingsFields();
-    }
 }
