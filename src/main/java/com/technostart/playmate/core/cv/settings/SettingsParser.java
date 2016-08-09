@@ -20,7 +20,7 @@ public class SettingsParser {
         List<Field> fields = Arrays.asList(clazz.getDeclaredFields());
         for (Field field : fields) {
             field.setAccessible(true);
-            if (!field.isAnnotationPresent(Cfg.class)) return;
+            if (!field.isAnnotationPresent(Cfg.class)) continue;
 
             Type type = field.getType();
             switch (type.getTypeName()) {
