@@ -201,6 +201,12 @@ public class PlayerController implements Initializable {
         capture.clear();
     }
 
+    @FXML
+    private void reloadFrame() {
+        capture.clear();
+        createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
+    }
+
     /**
      * Применяет настройки.
      */
