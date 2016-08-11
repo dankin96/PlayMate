@@ -51,29 +51,8 @@ public class TableDetector extends FieldDetector {
         processingFrame = frameFilter(inputFrame, threshold);
         //поиск контуров и их сортировка
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-        Collections.sort(contours, new Comparator<Mat>() {
-            @Override
-            public int compare(Mat o1, Mat o2) {
-                double area_1 = Imgproc.contourArea(o1);
-                double area_2 = Imgproc.contourArea(o2);
-                if (area_1 < area_2) {
-                    return 1;
-                } else if (area_1 > area_2) {
-                    return -1;
-                }
-                return 0;
-            }
-        });
-        //фильтрация по площади
-        int counter = 0;
-        for (int i = 0; i < contours.size(); i++) {
-            double area = Imgproc.contourArea(contours.get(i));
-            if (area < min_area) {
-                counter = i + 1;
-                break;
-            }
-        }
-        System.out.println("Counter = " + counter);
+        contours = contourFilter(contours, min_area);
+        System.out.println("Counter = " + contours.size());
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
         hullmop = convexHull(contours);
@@ -152,8 +131,7 @@ public class TableDetector extends FieldDetector {
                             listOfPoints.add(min_index, newPoint);
                         else
                             listOfPoints.add(newPoint);
-                    }
-                    else
+                    } else
                         listOfPoints.remove(min_index);
                 }
                 temp.fromList(listOfPoints);
@@ -175,15 +153,45 @@ public class TableDetector extends FieldDetector {
         return processingFrame;
     }
 
+    private List<MatOfPoint> contourFilter(List<MatOfPoint> contours, int min_area) {
+        Collections.sort(contours, new Comparator<Mat>() {
+            @Override
+            public int compare(Mat o1, Mat o2) {
+                double area_1 = Imgproc.contourArea(o1);
+                double area_2 = Imgproc.contourArea(o2);
+                if (area_1 < area_2) {
+                    return 1;
+                } else if (area_1 > area_2) {
+                    return -1;
+                }
+                return 0;
+            }
+        });
+        //фильтрация по площади
+        int counter = 0;
+        for (int i = 0; i < contours.size(); i++) {
+            double area = Imgproc.contourArea(contours.get(i));
+            if (area < min_area) {
+                counter = i + 1;
+                break;
+            }
+        }
+        int temp = contours.size();
+        for (int i = 0; i < temp - counter; i++) {
+            contours.remove(temp - 1 - i);
+        }
+        return contours;
+    }
+
     private Mat print(Mat cntImg) {
         for (int i = 0; i < approxContours.size(); i++) {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
             System.out.println("size = " + approxContours.get(i).size());
         }
-/*        for (int i = 0; i < hullmop.size(); i++) {
-            Imgproc.drawContours(cntImg, hullmop, i, Palette.getNextColor(), -1);
+        for (int i = 0; i < hullmop.size(); i++) {
+            Imgproc.drawContours(cntImg, hullmop, i, Palette.getNextColor(), 3);
         }
-        for (int i = 0; i < contours.size(); i++) {
+/*        for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
         }*/
         System.out.println("\nsize contours = " + contours.size());
