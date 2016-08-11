@@ -75,11 +75,9 @@ public class TableDetector extends FieldDetector {
 
     private List<MatOfPoint> approximation(List<MatOfPoint> hullmop, int edges) {
         List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
-        MatOfPoint2f approx = new MatOfPoint2f();
         for (int i = 0; i < hullmop.size(); i++) {
             MatOfPoint temp = new MatOfPoint();
-            hullmop.get(i).convertTo(approx, CvType.CV_32FC2);
-            approx.convertTo(temp, CvType.CV_32S);
+            hullmop.get(i).convertTo(temp, CvType.CV_32S);
             System.out.println("size = " + temp.size());
             //если сторон больше нужного количества, то аппроксимируем
             if (temp.rows() <= edges) {
@@ -195,11 +193,11 @@ public class TableDetector extends FieldDetector {
             System.out.println("size = " + approxContours.get(i).size());
         }
         for (int i = 0; i < hullmop.size(); i++) {
-            Imgproc.drawContours(cntImg, hullmop, i, Palette.getNextColor(), 3);
+            Imgproc.drawContours(cntImg, hullmop, i, Palette.WHITE, 3);
         }
-        for (int i = 0; i < contours.size(); i++) {
+/*        for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
-        }
+        }*/
         System.out.println("\nsize contours = " + contours.size());
         System.out.println("\nsize hull = " + hullmop.size());
         System.out.println("\nsize approxcontours = " + approxContours.size());
