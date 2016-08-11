@@ -101,6 +101,10 @@ public class Utils {
         return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
     }
 
+    public static double getDistanceSqrt(Point p1, Point p2) {
+        return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2);
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Центры масс.
     ///////////////////////////////////////////////////////////////////////////
@@ -286,7 +290,7 @@ public class Utils {
     }
 
 
-//  Finds the intersection of two lines, or returns false.
+    //  Finds the intersection of two lines, or returns false.
 //  The lines are defined by (o1, p1) and (o2, p2).
     static public Point intersection(Point o1, Point o2, Point p1, Point p2) {
         double d = (o1.x - o2.x) * (p1.y - p2.y) - (o1.y - o2.y) * (p1.x - p2.x);

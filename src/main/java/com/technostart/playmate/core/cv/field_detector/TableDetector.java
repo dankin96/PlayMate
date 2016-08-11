@@ -73,20 +73,20 @@ public class TableDetector extends FieldDetector {
         return hullmop;
     }
 
-    private List<MatOfPoint> approximation(List<MatOfPoint> hullmop, int edges) {
+    private List<MatOfPoint> approximation(List<MatOfPoint> hullmop, int edgesNumber) {
         List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
         for (int i = 0; i < hullmop.size(); i++) {
             MatOfPoint temp = new MatOfPoint();
             hullmop.get(i).convertTo(temp, CvType.CV_32S);
             System.out.println("size = " + temp.size());
             //если сторон больше нужного количества, то аппроксимируем
-            if (temp.rows() <= edges) {
+            if (temp.rows() <= edgesNumber) {
                 approxContours.add(temp);
             } else {
                 List<Point> listOfPoints = temp.toList();
                 listOfPoints = new LinkedList<>(listOfPoints);
                 // убираем итеративно стороны
-                while (listOfPoints.size() != edges) {
+                while (listOfPoints.size() != edgesNumber) {
                     double min_distance = Double.MAX_VALUE;
                     int min_index = -1;
                     for (int j = 0; j < listOfPoints.size(); j++) {
@@ -99,7 +99,7 @@ public class TableDetector extends FieldDetector {
                         }
                         System.out.println("x = " + beginPoint.x);
                         System.out.println("y = " + beginPoint.y);
-                        double distance = (endPoint.x - beginPoint.x) * (endPoint.x - beginPoint.x) + (endPoint.y - beginPoint.y) * (endPoint.y - beginPoint.y);
+                        double distance = Utils.getDistanceSqrt(beginPoint, endPoint);
                         //ищем индекс начальной точки отрезка с минимальной длиной
                         if (distance < min_distance) {
                             min_distance = distance;
