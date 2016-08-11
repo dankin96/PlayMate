@@ -17,6 +17,8 @@ public class TableDetector extends FieldDetector {
     static int ksize = 5;
     @Cfg
     static int diameter = 5;
+    @Cfg
+    private int threshold = 100;
 
     private List<MatOfPoint> contours;
     private List<MatOfPoint> hullmop;
@@ -24,8 +26,6 @@ public class TableDetector extends FieldDetector {
     private Mat processingFrame;
     private Mat structeredElement;
     private int min_area;
-    @Cfg
-    private int threshold = 100;
 
     public TableDetector(Size frameSize) {
         super(frameSize);
@@ -49,8 +49,9 @@ public class TableDetector extends FieldDetector {
         min_area = inputFrame.height() * inputFrame.width() / 250;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
-        //поиск контуров и их сортировка
+        //поиск контуров на картинке
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+        //фильтрация контуров
         contours = contourFilter(contours, min_area);
         System.out.println("Counter = " + contours.size());
         //построение нового изображения
@@ -58,8 +59,6 @@ public class TableDetector extends FieldDetector {
         hullmop = convexHull(contours);
         approxContours = approximation(hullmop, 4);
         print(cntImg);
-//      добавление найденного контура к текущей картинке
-//      Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
         hullmop.clear();
         contours.clear();
         approxContours.clear();
@@ -82,13 +81,13 @@ public class TableDetector extends FieldDetector {
             hullmop.get(i).convertTo(approx, CvType.CV_32FC2);
             approx.convertTo(temp, CvType.CV_32S);
             System.out.println("size = " + temp.size());
+            //если сторон больше нужного количества, то аппроксимируем
             if (temp.rows() <= edges) {
                 approxContours.add(temp);
             } else {
-                //если сторон больше нужного количетсва, то аппроксимируем
                 List<Point> listOfPoints = temp.toList();
                 listOfPoints = new LinkedList<>(listOfPoints);
-                // убираем итеративно точки
+                // убираем итеративно стороны
                 while (listOfPoints.size() != edges) {
                     double min_distance = Double.MAX_VALUE;
                     int min_index = -1;
@@ -103,11 +102,11 @@ public class TableDetector extends FieldDetector {
                         System.out.println("x = " + beginPoint.x);
                         System.out.println("y = " + beginPoint.y);
                         double distance = (endPoint.x - beginPoint.x) * (endPoint.x - beginPoint.x) + (endPoint.y - beginPoint.y) * (endPoint.y - beginPoint.y);
+                        //ищем индекс начальной точки отрезка с минимальной длиной
                         if (distance < min_distance) {
                             min_distance = distance;
                             min_index = j;
                         }
-                        // знаем индекс начальной точки отрезка с минимальной длиной
                     }
                     //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
                     int[] index = new int[4];
@@ -123,7 +122,7 @@ public class TableDetector extends FieldDetector {
                         index[3] = 0;
                     }
                     Point newPoint = Utils.intersection(listOfPoints.get(index[0]), listOfPoints.get(index[1]), listOfPoints.get(index[2]), listOfPoints.get(index[3]));
-                    //точка не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
+                    //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
                     if (newPoint != null) {
                         //сохраняем нужный порядок удаления точек
                         if (index[2] > index[1]) {
@@ -152,7 +151,8 @@ public class TableDetector extends FieldDetector {
         Mat processingFrame = new Mat();
         //обработка кадра различными фильтрами
         Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace); //фильтр лучше для краев
+        //bilateral фильтр лучше для краев
+        Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
@@ -197,9 +197,9 @@ public class TableDetector extends FieldDetector {
         for (int i = 0; i < hullmop.size(); i++) {
             Imgproc.drawContours(cntImg, hullmop, i, Palette.getNextColor(), 3);
         }
-/*        for (int i = 0; i < contours.size(); i++) {
+        for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
-        }*/
+        }
         System.out.println("\nsize contours = " + contours.size());
         System.out.println("\nsize hull = " + hullmop.size());
         System.out.println("\nsize approxcontours = " + approxContours.size());
