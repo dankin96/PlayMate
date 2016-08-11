@@ -85,8 +85,10 @@ public class TableDetector extends FieldDetector {
             if (temp.rows() <= edges) {
                 approxContours.add(temp);
             } else {
+                //если сторон больше нужного количетсва, то аппроксимируем
                 List<Point> listOfPoints = temp.toList();
                 listOfPoints = new LinkedList<>(listOfPoints);
+                // убираем итеративно точки
                 while (listOfPoints.size() != edges) {
                     double min_distance = Double.MAX_VALUE;
                     int min_index = -1;
@@ -105,7 +107,9 @@ public class TableDetector extends FieldDetector {
                             min_distance = distance;
                             min_index = j;
                         }
+                        // знаем индекс начальной точки отрезка с минимальной длиной
                     }
+                    //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
                     int[] index = new int[4];
                     for (int j = 0; j < index.length; j++) {
                         index[j] = min_index + j - 1;
@@ -119,7 +123,9 @@ public class TableDetector extends FieldDetector {
                         index[3] = 0;
                     }
                     Point newPoint = Utils.intersection(listOfPoints.get(index[0]), listOfPoints.get(index[1]), listOfPoints.get(index[2]), listOfPoints.get(index[3]));
+                    //точка не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
                     if (newPoint != null) {
+                        //сохраняем нужный порядок удаления точек
                         if (index[2] > index[1]) {
                             listOfPoints.remove(index[2]);
                             listOfPoints.remove(index[1]);
