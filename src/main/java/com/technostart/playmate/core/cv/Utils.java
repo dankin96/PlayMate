@@ -8,6 +8,7 @@ import org.opencv.imgproc.Moments;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
@@ -269,6 +270,63 @@ public class Utils {
         return hullContour;
     }
 
+    public static List<Point> approximate(MatOfPoint temp, int edgesNumber) {
+        List<Point> listOfPoints = temp.toList();
+        listOfPoints = new LinkedList<>(listOfPoints);
+        // убираем итеративно стороны
+        while (listOfPoints.size() != edgesNumber) {
+            double minDistance = Double.MAX_VALUE;
+            int min_index = -1;
+            for (int j = 0; j < listOfPoints.size(); j++) {
+                Point beginPoint = listOfPoints.get(j);
+                Point endPoint = new Point();
+                if (j != listOfPoints.size() - 1) {
+                    endPoint = listOfPoints.get(j + 1);
+                } else {
+                    endPoint = listOfPoints.get(0);
+                }
+                System.out.println("x = " + beginPoint.x);
+                System.out.println("y = " + beginPoint.y);
+                double distance = Utils.getDistanceSqrt(beginPoint, endPoint);
+                //ищем индекс начальной точки отрезка с минимальной длиной
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    min_index = j;
+                }
+            }
+            //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
+            int[] index = new int[4];
+            for (int j = 0; j < index.length; j++) {
+                index[j] = min_index + j - 1;
+            }
+            if (index[0] < 0) {
+                index[0] = listOfPoints.size() - 1;
+            } else if (index[2] > listOfPoints.size() - 1) {
+                index[2] = 0;
+                index[3] = 1;
+            } else if (index[3] > listOfPoints.size() - 1) {
+                index[3] = 0;
+            }
+            Point newPoint = Utils.intersection(listOfPoints.get(index[0]), listOfPoints.get(index[1]), listOfPoints.get(index[2]), listOfPoints.get(index[3]));
+            //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
+            if (newPoint != null) {
+                //сохраняем нужный порядок удаления точек
+                if (index[2] > index[1]) {
+                    listOfPoints.remove(index[2]);
+                    listOfPoints.remove(index[1]);
+                } else {
+                    listOfPoints.remove(index[1]);
+                    listOfPoints.remove(index[2]);
+                }
+                if (min_index < listOfPoints.size())
+                    listOfPoints.add(min_index, newPoint);
+                else
+                    listOfPoints.add(newPoint);
+            } else
+                listOfPoints.remove(min_index);
+        }
+        return listOfPoints;
+    }
 
     static public Image mat2Image(Mat frame) {
         int[] params = new int[2];

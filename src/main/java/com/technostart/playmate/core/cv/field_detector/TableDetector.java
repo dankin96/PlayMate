@@ -16,12 +16,16 @@ public class TableDetector extends FieldDetector {
     @Cfg
     static int ksize = 5;
     @Cfg
+    static int areaCoef = 250;
+    @Cfg
+    static int edgesNumber = 4;
+    @Cfg
     static int diameter = 5;
     @Cfg
     private int threshold = 100;
 
     private List<MatOfPoint> contours;
-    private List<MatOfPoint> hullmop;
+    private List<MatOfPoint> convexHull;
     private List<MatOfPoint> approxContours;
     private Mat processingFrame;
     private Mat structeredElement;
@@ -32,7 +36,7 @@ public class TableDetector extends FieldDetector {
         processingFrame = new Mat();
         structeredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
         contours = new ArrayList<MatOfPoint>();
-        hullmop = new ArrayList<MatOfPoint>();
+        convexHull = new ArrayList<MatOfPoint>();
         approxContours = new ArrayList<MatOfPoint>();
         min_area = 0;
     }
@@ -46,7 +50,7 @@ public class TableDetector extends FieldDetector {
 
     public Mat getFrame(Mat inputFrame) {
         getField(inputFrame);
-        min_area = inputFrame.height() * inputFrame.width() / 250;
+        min_area = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
         //поиск контуров на картинке
@@ -56,10 +60,10 @@ public class TableDetector extends FieldDetector {
         System.out.println("Counter = " + contours.size());
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-        hullmop = convexHull(contours);
-        approxContours = approximation(hullmop, 4);
+        convexHull = convexHull(contours);
+        approxContours = approximateContours(convexHull, edgesNumber);
         print(cntImg);
-        hullmop.clear();
+        convexHull.clear();
         contours.clear();
         approxContours.clear();
         return cntImg;
@@ -73,70 +77,17 @@ public class TableDetector extends FieldDetector {
         return hullmop;
     }
 
-    private List<MatOfPoint> approximation(List<MatOfPoint> hullmop, int edgesNumber) {
+    private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHull, int edgesNumber) {
         List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
-        for (int i = 0; i < hullmop.size(); i++) {
+        for (int i = 0; i < convexHull.size(); i++) {
             MatOfPoint temp = new MatOfPoint();
-            hullmop.get(i).convertTo(temp, CvType.CV_32S);
+            convexHull.get(i).convertTo(temp, CvType.CV_32S);
             System.out.println("size = " + temp.size());
             //если сторон больше нужного количества, то аппроксимируем
             if (temp.rows() <= edgesNumber) {
                 approxContours.add(temp);
             } else {
-                List<Point> listOfPoints = temp.toList();
-                listOfPoints = new LinkedList<>(listOfPoints);
-                // убираем итеративно стороны
-                while (listOfPoints.size() != edgesNumber) {
-                    double min_distance = Double.MAX_VALUE;
-                    int min_index = -1;
-                    for (int j = 0; j < listOfPoints.size(); j++) {
-                        Point beginPoint = listOfPoints.get(j);
-                        Point endPoint = new Point();
-                        if (j != listOfPoints.size() - 1) {
-                            endPoint = listOfPoints.get(j + 1);
-                        } else {
-                            endPoint = listOfPoints.get(0);
-                        }
-                        System.out.println("x = " + beginPoint.x);
-                        System.out.println("y = " + beginPoint.y);
-                        double distance = Utils.getDistanceSqrt(beginPoint, endPoint);
-                        //ищем индекс начальной точки отрезка с минимальной длиной
-                        if (distance < min_distance) {
-                            min_distance = distance;
-                            min_index = j;
-                        }
-                    }
-                    //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
-                    int[] index = new int[4];
-                    for (int j = 0; j < index.length; j++) {
-                        index[j] = min_index + j - 1;
-                    }
-                    if (index[0] < 0) {
-                        index[0] = listOfPoints.size() - 1;
-                    } else if (index[2] > listOfPoints.size() - 1) {
-                        index[2] = 0;
-                        index[3] = 1;
-                    } else if (index[3] > listOfPoints.size() - 1) {
-                        index[3] = 0;
-                    }
-                    Point newPoint = Utils.intersection(listOfPoints.get(index[0]), listOfPoints.get(index[1]), listOfPoints.get(index[2]), listOfPoints.get(index[3]));
-                    //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
-                    if (newPoint != null) {
-                        //сохраняем нужный порядок удаления точек
-                        if (index[2] > index[1]) {
-                            listOfPoints.remove(index[2]);
-                            listOfPoints.remove(index[1]);
-                        } else {
-                            listOfPoints.remove(index[1]);
-                            listOfPoints.remove(index[2]);
-                        }
-                        if (min_index < listOfPoints.size())
-                            listOfPoints.add(min_index, newPoint);
-                        else
-                            listOfPoints.add(newPoint);
-                    } else
-                        listOfPoints.remove(min_index);
-                }
+                List<Point> listOfPoints = Utils.approximate(temp, edgesNumber);
                 temp.fromList(listOfPoints);
                 approxContours.add(temp);
             }
@@ -192,14 +143,14 @@ public class TableDetector extends FieldDetector {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
             System.out.println("size = " + approxContours.get(i).size());
         }
-        for (int i = 0; i < hullmop.size(); i++) {
-            Imgproc.drawContours(cntImg, hullmop, i, Palette.WHITE, 3);
+        for (int i = 0; i < convexHull.size(); i++) {
+            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 3);
         }
 /*        for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
         }*/
         System.out.println("\nsize contours = " + contours.size());
-        System.out.println("\nsize hull = " + hullmop.size());
+        System.out.println("\nsize hull = " + convexHull.size());
         System.out.println("\nsize approxcontours = " + approxContours.size());
         return cntImg;
     }
