@@ -6,10 +6,7 @@ import com.technostart.playmate.core.cv.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class TableDetector extends FieldDetector {
     @Cfg
@@ -22,7 +19,6 @@ public class TableDetector extends FieldDetector {
     static int diameter = 5;
 
     private List<MatOfPoint> contours;
-    private List<MatOfInt> hull;
     private List<MatOfPoint> hullmop;
     private List<MatOfPoint> approxContours;
     private Mat processingFrame;
@@ -30,15 +26,12 @@ public class TableDetector extends FieldDetector {
     private int min_area;
     @Cfg
     private int threshold = 100;
-    @Cfg
-    private double approxCoef = 0.01;
 
     public TableDetector(Size frameSize) {
         super(frameSize);
         processingFrame = new Mat();
         structeredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
         contours = new ArrayList<MatOfPoint>();
-        hull = new ArrayList<MatOfInt>();
         hullmop = new ArrayList<MatOfPoint>();
         approxContours = new ArrayList<MatOfPoint>();
         min_area = 0;
@@ -53,12 +46,12 @@ public class TableDetector extends FieldDetector {
 
     public Mat getFrame(Mat inputFrame) {
         getField(inputFrame);
-        min_area = inputFrame.height() * inputFrame.width() / 1000;
+        min_area = inputFrame.height() * inputFrame.width() / 250;
         //предварительная обработка изображения фильтрами
-        frameFilter(inputFrame, threshold);
+        processingFrame = frameFilter(inputFrame, threshold);
         //поиск контуров и их сортировка
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-        Collections.sort(this.contours, new Comparator<Mat>() {
+        Collections.sort(contours, new Comparator<Mat>() {
             @Override
             public int compare(Mat o1, Mat o2) {
                 double area_1 = Imgproc.contourArea(o1);
@@ -80,83 +73,119 @@ public class TableDetector extends FieldDetector {
                 break;
             }
         }
-        counter = 3;
         System.out.println("Counter = " + counter);
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-        convexHull(counter);
-        approximation(counter, approxCoef);
-        print(cntImg, counter);
-//        cntImg = lineSegmentDetect(cntImg);
-//        Imgproc.resize(cntImg, cntImg, inputFrame.size());
-//        добавление найденного контура к текущей картинке
-        // Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
-        hull.clear();
+        hullmop = convexHull(contours);
+        approxContours = approximation(hullmop, 4);
+        print(cntImg);
+//      добавление найденного контура к текущей картинке
+//      Core.addWeighted(inputFrame, 0.5, cntImg, 0.5, 0, inputFrame);
         hullmop.clear();
         contours.clear();
         approxContours.clear();
         return cntImg;
     }
 
-    private void convexHull(int counter) {
-        for (int i = 0; i < counter; i++) {
+    private List<MatOfPoint> convexHull(List<MatOfPoint> contours) {
+        List<MatOfPoint> hullmop = new ArrayList<MatOfPoint>();
+        for (int i = 0; i < contours.size(); i++) {
             hullmop.add(Utils.convexHull(contours.get(i)));
         }
+        return hullmop;
     }
 
-    private void approximation(int counter, double approxCoef) {
+    private List<MatOfPoint> approximation(List<MatOfPoint> hullmop, int edges) {
+        List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
         MatOfPoint2f approx = new MatOfPoint2f();
-        MatOfPoint2f approxCurve = new MatOfPoint2f();
-        for (int i = 0; i < counter; i++) {
+        for (int i = 0; i < hullmop.size(); i++) {
             MatOfPoint temp = new MatOfPoint();
             hullmop.get(i).convertTo(approx, CvType.CV_32FC2);
-            double approxDistance = Imgproc.arcLength(approx, true) * approxCoef;
-            Imgproc.approxPolyDP(approx, approxCurve, approxDistance, true);
-            approxCurve.convertTo(temp, CvType.CV_32S);
-            approxContours.add(temp);
+            approx.convertTo(temp, CvType.CV_32S);
+            System.out.println("size = " + temp.size());
+            if (temp.rows() <= edges) {
+                approxContours.add(temp);
+            } else {
+                List<Point> listOfPoints = temp.toList();
+                listOfPoints = new LinkedList<>(listOfPoints);
+                while (listOfPoints.size() != edges) {
+                    double min_distance = Double.MAX_VALUE;
+                    int min_index = -1;
+                    for (int j = 0; j < listOfPoints.size(); j++) {
+                        Point beginPoint = listOfPoints.get(j);
+                        Point endPoint = new Point();
+                        if (j != listOfPoints.size() - 1) {
+                            endPoint = listOfPoints.get(j + 1);
+                        } else {
+                            endPoint = listOfPoints.get(0);
+                        }
+                        System.out.println("x = " + beginPoint.x);
+                        System.out.println("y = " + beginPoint.y);
+                        double distance = (endPoint.x - beginPoint.x) * (endPoint.x - beginPoint.x) + (endPoint.y - beginPoint.y) * (endPoint.y - beginPoint.y);
+                        if (distance < min_distance) {
+                            min_distance = distance;
+                            min_index = j;
+                        }
+                    }
+                    int[] index = new int[4];
+                    for (int j = 0; j < index.length; j++) {
+                        index[j] = min_index + j - 1;
+                    }
+                    if (index[0] < 0) {
+                        index[0] = listOfPoints.size() - 1;
+                    } else if (index[2] > listOfPoints.size() - 1) {
+                        index[2] = 0;
+                        index[3] = 1;
+                    } else if (index[3] > listOfPoints.size() - 1) {
+                        index[3] = 0;
+                    }
+                    Point newPoint = Utils.intersection(listOfPoints.get(index[0]), listOfPoints.get(index[1]), listOfPoints.get(index[2]), listOfPoints.get(index[3]));
+                    if (newPoint != null) {
+                        if (index[2] > index[1]) {
+                            listOfPoints.remove(index[2]);
+                            listOfPoints.remove(index[1]);
+                        } else {
+                            listOfPoints.remove(index[1]);
+                            listOfPoints.remove(index[2]);
+                        }
+                        if (min_index < listOfPoints.size())
+                            listOfPoints.add(min_index, newPoint);
+                        else
+                            listOfPoints.add(newPoint);
+                    }
+                    else
+                        listOfPoints.remove(min_index);
+                }
+                temp.fromList(listOfPoints);
+                approxContours.add(temp);
+            }
         }
+        return approxContours;
     }
 
-    private void frameFilter(Mat inputFrame, int threshold) {
+    private Mat frameFilter(Mat inputFrame, int threshold) {
         Mat tempFrame = inputFrame;
+        Mat processingFrame = new Mat();
         //обработка кадра различными фильтрами
         Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
         Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace); //фильтр лучше для краев
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
+        return processingFrame;
     }
 
-    private Mat lineSegmentDetect(Mat inputFrame) {
-        Mat lines = new Mat();
-        if (inputFrame.type() != CvType.CV_8UC1) {
-            Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_BGR2GRAY);
-        }
-        int minLineLength = 20;
-        int maxLineGap = 700;
-        Imgproc.HoughLinesP(inputFrame, lines, 1, Math.PI / 720, 100, minLineLength, maxLineGap);
-        Mat linesImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-        for (int x = 0; x < lines.rows(); x++) {
-            double[] vec = lines.get(x, 0);
-            double x1 = vec[0],
-                    y1 = vec[1],
-                    x2 = vec[2],
-                    y2 = vec[3];
-            Point start = new Point(x1, y1);
-            Point end = new Point(x2, y2);
-            Imgproc.line(linesImg, start, end, Palette.getRandomColor(), 3);
-        }
-        System.out.println("lines = " + lines.rows());
-        return linesImg;
-    }
-
-    private Mat print(Mat cntImg, int counter) {
-        for (int i = 0; i < counter; i++) {
+    private Mat print(Mat cntImg) {
+        for (int i = 0; i < approxContours.size(); i++) {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
-            Imgproc.drawContours(cntImg, hullmop, i, Palette.WHITE, 3);
-            Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
+            System.out.println("size = " + approxContours.get(i).size());
         }
-//        Imgproc.drawContours(cntImg, hullmop, 1, Palette.WHITE, 2);
+/*        for (int i = 0; i < hullmop.size(); i++) {
+            Imgproc.drawContours(cntImg, hullmop, i, Palette.getNextColor(), -1);
+        }
+        for (int i = 0; i < contours.size(); i++) {
+            Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
+        }*/
         System.out.println("\nsize contours = " + contours.size());
         System.out.println("\nsize hull = " + hullmop.size());
         System.out.println("\nsize approxcontours = " + approxContours.size());
