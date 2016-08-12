@@ -105,7 +105,7 @@ public class SettingsManager {
             String annotateName = field.getAnnotation(Cfg.class).name();
             String name = annotateName.equals(" defaultName") ? field.getName() : annotateName;
             Type type = field.getType();
-            switch (type.getTypeName()) {
+            switch (type.toString()) {
                 case "int":
                 case "java.lang.Integer":
                     putInt(name, (int) field.get(obj));
@@ -137,7 +137,8 @@ public class SettingsManager {
                 String annotateName = field.getAnnotation(Cfg.class).name();
                 String key = annotateName.equals(" defaultName") ? field.getName() : annotateName;
                 Type type = field.getType();
-                switch (type.getTypeName()) {
+
+                switch (type.toString()) {
                     case "int":
                     case "java.lang.Integer":
                         field.setInt(obj, getInt(key));
