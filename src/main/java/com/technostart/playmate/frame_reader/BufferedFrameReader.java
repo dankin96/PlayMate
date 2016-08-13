@@ -13,7 +13,7 @@ public class BufferedFrameReader<T> implements FrameReader<T> {
     List<Integer> keyList;
     int cursor;
     @Cfg(name = "BuffFrameReaderInterval")
-    int interval = 10;
+    int interval = 1;
     @Cfg(name = "BuffFrameReaderCapacity")
     int capacity = 400;
 

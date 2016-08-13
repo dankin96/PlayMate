@@ -125,14 +125,11 @@ public class PlayerController implements Initializable {
         // Инициализация слайдера.
         frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (capture != null) {
-                System.out.print("\nFrame\n");
                 int frameNumber = capture.getFramesNumber();
                 double pos = frameSlider.getValue() * frameNumber / 1000;
                 pos = pos < 0 ? 0 : pos;
                 pos = frameNumber <= pos ? frameNumber - 2 : pos;
                 frameNumberToShow = (int) pos;
-                System.out.print(pos + "\n");
-                System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
             }
         });
     }
@@ -156,7 +153,6 @@ public class PlayerController implements Initializable {
         tracker = new Tracker(firstFrame.size(), 5, 0.5f);
         tableDetector = new TableDetector(firstFrame.size());
 //        tableDetectorMock = new TableDetectorMock(capture.get(frameNumberToShow).size());
-        System.out.print("\nname" + videoFileName);
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader);
@@ -231,7 +227,6 @@ public class PlayerController implements Initializable {
             capture = settingsManager.fromSettings(capture);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
-            System.out.println("Ошибка парсера настроек");
             e.printStackTrace();
         }
     }
@@ -245,7 +240,6 @@ public class PlayerController implements Initializable {
                 settingsManager.toSettings(object);
             } catch (IllegalAccessException e) {
                 // TODO: вывести ошибку.
-                System.out.println("Ошибка парсера настроек");
                 e.printStackTrace();
             }
         }

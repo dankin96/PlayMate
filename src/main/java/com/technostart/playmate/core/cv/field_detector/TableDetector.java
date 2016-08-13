@@ -57,7 +57,6 @@ public class TableDetector extends FieldDetector {
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
         //фильтрация контуров
         contours = contourFilter(contours, min_area);
-        System.out.println("Counter = " + contours.size());
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
         convexHull = convexHull(contours);
@@ -82,7 +81,6 @@ public class TableDetector extends FieldDetector {
         for (int i = 0; i < convexHull.size(); i++) {
             MatOfPoint temp = new MatOfPoint();
             convexHull.get(i).convertTo(temp, CvType.CV_32S);
-            System.out.println("size = " + temp.size());
             //если сторон больше нужного количества, то аппроксимируем
             if (temp.rows() <= edgesNumber) {
                 approxContours.add(temp);
@@ -141,7 +139,6 @@ public class TableDetector extends FieldDetector {
     private Mat print(Mat cntImg) {
         for (int i = 0; i < approxContours.size(); i++) {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
-            System.out.println("size = " + approxContours.get(i).size());
         }
         for (int i = 0; i < convexHull.size(); i++) {
             Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 3);
@@ -149,9 +146,6 @@ public class TableDetector extends FieldDetector {
 /*        for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
         }*/
-        System.out.println("\nsize contours = " + contours.size());
-        System.out.println("\nsize hull = " + convexHull.size());
-        System.out.println("\nsize approxcontours = " + approxContours.size());
         return cntImg;
     }
 }
