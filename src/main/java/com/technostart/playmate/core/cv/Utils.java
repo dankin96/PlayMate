@@ -8,6 +8,7 @@ import org.opencv.imgproc.Moments;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
@@ -99,6 +100,10 @@ public class Utils {
 
     public static double getDistance(Point p1, Point p2) {
         return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    public static double getDistanceSqrt(Point p1, Point p2) {
+        return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -265,16 +270,78 @@ public class Utils {
         return hullContour;
     }
 
+    public static List<Point> approximate(MatOfPoint temp, int edgesNumber) {
+        List<Point> listOfPoints = temp.toList();
+        listOfPoints = new LinkedList<>(listOfPoints);
+        // убираем итеративно стороны
+        while (listOfPoints.size() != edgesNumber) {
+            int listOfPointsSize = listOfPoints.size();
+            int lastIdx = listOfPointsSize - 1;
+            double min_distance = Double.MAX_VALUE;
+            int beginPointIdx = -1;
+            int endPointIdx = -1;
+            for (int j = 0; j < listOfPoints.size(); j++) {
+                int curBeginPointIdx = j;
+                int curEndPointIdx = j < lastIdx ? j + 1 : 0;
 
-    static public Image mat2Image(Mat frame) {
+                Point beginPoint = listOfPoints.get(curBeginPointIdx);
+                Point endPoint = listOfPoints.get(curEndPointIdx);
+
+                double distance = Utils.getDistanceSqrt(beginPoint, endPoint);
+                //ищем индекс начальной точки отрезка с минимальной длиной
+                if (distance < min_distance) {
+                    min_distance = distance;
+                    beginPointIdx = curBeginPointIdx;
+                    endPointIdx = curEndPointIdx;
+                }
+            }
+            //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
+            Point p1 = listOfPoints.get(beginPointIdx);
+            Point p2 = listOfPoints.get(beginPointIdx > 0 ? beginPointIdx - 1 : lastIdx);
+            Point p3 = listOfPoints.get(endPointIdx);
+            Point p4 = listOfPoints.get(endPointIdx < lastIdx ? endPointIdx + 1 : 0);
+            Point newPoint = Utils.intersection(p1, p2, p3, p4);
+            //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
+            if (newPoint != null) {
+                listOfPoints.set(beginPointIdx, newPoint);
+                listOfPoints.remove(endPointIdx);
+            } else {
+                listOfPoints.remove(beginPointIdx);
+            }
+        }
+        return listOfPoints;
+    }
+
+    static public Image mat2Image(Mat frame, int jpgQuality) {
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
-        params[1] = 70;
+        params[1] = jpgQuality;
         MatOfInt matOfParams = new MatOfInt();
         matOfParams.fromArray(params);
         MatOfByte buffer = new MatOfByte();
         Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
         return new Image(new ByteArrayInputStream(buffer.toArray()));
+    }
+
+    static public Mat createHomography(Mat inputFrame, Mat srcPoints, Mat dstPoints) {
+        Mat perspectiveTransform = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
+        Mat cropped_image = inputFrame.clone();
+        Mat homographyImg = new Mat();
+        Imgproc.warpPerspective(homographyImg, cropped_image, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        return homographyImg;
+    }
+
+
+    //  Finds the intersection of two lines, or returns null.
+    //  The lines are defined by (o1, p1) and (o2, p2).
+    static public Point intersection(Point o1, Point o2, Point p1, Point p2) {
+        double d = (o1.x - o2.x) * (p1.y - p2.y) - (o1.y - o2.y) * (p1.x - p2.x);
+        if (d == 0) return null;
+
+        double xi = ((p1.x - p2.x) * (o1.x * o2.y - o1.y * o2.x) - (o1.x - o2.x) * (p1.x * p2.y - p1.y * p2.x)) / d;
+        double yi = ((p1.y - p2.y) * (o1.x * o2.y - o1.y * o2.x) - (o1.y - o2.y) * (p1.x * p2.y - p1.y * p2.x)) / d;
+
+        return new Point(xi, yi);
     }
 
     ///////////////////////////////////////////////////////////////////////////
