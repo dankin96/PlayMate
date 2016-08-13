@@ -49,7 +49,8 @@ public class SettingsFieldCreator {
                     propertyBox.getChildren().add(checkBox);
                     break;
                 case Property.STRING: {
-                    TextField textField = new TextField(property.getValue().toString());
+                    String value = (String) property.getValue();
+                    TextField textField = new TextField(value);
                     textField.setOnKeyReleased(event -> {
                         settingsManager.putString(key, textField.getText());
                         mListener.onUpdate();

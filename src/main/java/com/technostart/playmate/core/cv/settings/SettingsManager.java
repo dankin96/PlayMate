@@ -105,20 +105,22 @@ public class SettingsManager {
             String annotateName = field.getAnnotation(Cfg.class).name();
             String name = annotateName.equals(" defaultName") ? field.getName() : annotateName;
             Type type = field.getType();
-            switch (type.toString()) {
+            String typeName = type.toString();
+            typeName = typeName.substring(typeName.lastIndexOf(".") + 1);
+            switch (typeName) {
                 case "int":
-                case "java.lang.Integer":
+                case "Integer":
                     putInt(name, (int) field.get(obj));
                     break;
                 case "double":
-                case "java.lang.Double":
+                case "Double":
                     putDouble(name, (double) field.get(obj));
                     break;
-                case "java.lang.String":
+                case "String":
                     putString(name, (String) field.get(obj));
                     break;
                 case "boolean":
-                case "java.lang.Boolean":
+                case "Boolean":
                     putBoolean(name, (boolean) field.get(obj));
                     break;
             }
@@ -137,21 +139,22 @@ public class SettingsManager {
                 String annotateName = field.getAnnotation(Cfg.class).name();
                 String key = annotateName.equals(" defaultName") ? field.getName() : annotateName;
                 Type type = field.getType();
-
-                switch (type.toString()) {
+                String typeName = type.toString();
+                typeName = typeName.substring(typeName.lastIndexOf(".") + 1);
+                switch (typeName) {
                     case "int":
-                    case "java.lang.Integer":
+                    case "Integer":
                         field.setInt(obj, getInt(key));
                         break;
                     case "double":
-                    case "java.lang.Double":
+                    case "Double":
                         field.setDouble(obj, getDouble(key));
                         break;
-                    case "java.lang.String":
+                    case "String":
                         field.set(obj, getString(key));
                         break;
                     case "boolean":
-                    case "java.lang.Boolean":
+                    case "Boolean":
                         field.setBoolean(obj, getBoolean(key));
                         break;
                 }
