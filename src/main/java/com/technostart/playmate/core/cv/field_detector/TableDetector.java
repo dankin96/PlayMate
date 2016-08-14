@@ -141,11 +141,11 @@ public class TableDetector extends FieldDetector {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
         }
         for (int i = 0; i < convexHull.size(); i++) {
-            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 3);
+            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 1);
         }
-/*        for (int i = 0; i < contours.size(); i++) {
-            Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
-        }*/
+        for (int i = 0; i < contours.size(); i++) {
+            Imgproc.drawContours(cntImg, contours, i, Palette.ORANGE, 1);
+        }
         return cntImg;
     }
 }
