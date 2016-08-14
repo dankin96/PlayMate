@@ -87,7 +87,7 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable;
         @Cfg
-        boolean isFieldDetectorEnable;
+        boolean isFieldDetectorEnable = true;
 
         @Override
         public Image process(Mat inputFrame) {

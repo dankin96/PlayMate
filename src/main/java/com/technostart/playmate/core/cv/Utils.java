@@ -1,5 +1,7 @@
 package com.technostart.playmate.core.cv;
 
+import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.settings.Cfg;
 import javafx.scene.image.Image;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -341,6 +343,30 @@ public class Utils {
         double yi = ((p1.y - p2.y) * (o1.x * o2.y - o1.y * o2.x) - (o1.y - o2.y) * (p1.x * p2.y - p1.y * p2.x)) / d;
 
         return new Point(xi, yi);
+    }
+
+    static public List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
+        double matchingRatio = Double.MAX_VALUE;
+        int indexOfFirstTableContour = -1;
+        int indexOfSecondTableContour = -1;
+        for (int i = 0; i < contours.size() - 1; i++) {
+            for (int j = i + 1; j < contours.size(); j++) {
+                double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 3, 0.0);
+                if (curMatchingRatio < matchingRatio) {
+                    double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
+                    if (areaRatio > TableDetector.minRatio && areaRatio < TableDetector.maxRatio) {
+                        matchingRatio = curMatchingRatio;
+                        indexOfFirstTableContour = i;
+                        indexOfSecondTableContour = j;
+                    }
+                }
+
+            }
+        }
+        List<MatOfPoint> matchedContours = new LinkedList<MatOfPoint>();
+        matchedContours.add(contours.get(indexOfFirstTableContour));
+        matchedContours.add(contours.get(indexOfSecondTableContour));
+        return matchedContours;
     }
 
     ///////////////////////////////////////////////////////////////////////////

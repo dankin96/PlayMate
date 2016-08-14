@@ -23,6 +23,10 @@ public class TableDetector extends FieldDetector {
     static int diameter = 5;
     @Cfg
     private int threshold = 100;
+    @Cfg
+    static public double minRatio = 0.95;
+    @Cfg
+    static public double maxRatio = 1.05;
 
     private List<MatOfPoint> contours;
     private List<MatOfPoint> convexHull;
@@ -60,7 +64,7 @@ public class TableDetector extends FieldDetector {
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
         convexHull = convexHull(contours);
-        approxContours = approximateContours(convexHull, edgesNumber);
+        approxContours = Utils.findTwoMatchingShapes(approximateContours(convexHull, edgesNumber));
         print(cntImg);
         convexHull.clear();
         contours.clear();
@@ -144,9 +148,9 @@ public class TableDetector extends FieldDetector {
         for (int i = 0; i < convexHull.size(); i++) {
             Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 2);
         }
-            /*        for (int i = 0; i < contours.size(); i++) {
+        /*for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
-             }*/
+        }*/
         return cntImg;
     }
 }
