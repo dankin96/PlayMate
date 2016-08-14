@@ -6,11 +6,12 @@ import org.opencv.core.Core;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
 
 public class UtilsTest {
     @Before
@@ -95,5 +96,35 @@ public class UtilsTest {
         assertEquals(p0, Utils.getWeightedCentroid(squarePoints, weights10));
         assertEquals(p5, Utils.getWeightedCentroid(squarePoints, weights10_2));
         // TODO: Проверка точек на пямой линии.
+    }
+
+    @Test
+    public void approximate() throws Exception {
+        Point p0 = new Point(0, 0);
+        Point p1 = new Point(-2, 2);
+        Point p2 = new Point(2, 2);
+        Point p3 = new Point(2, -2);
+        Point p4 = new Point(-2, -2);
+        Point p5 = new Point(2, -4);
+        Point p6 = new Point(-2, -4);
+
+        Point p7 = new Point(0, 3);
+        Point p8 = new Point(4, 3);
+        Point p9 = new Point(5, 2);
+        Point p10 = new Point(5, 0);
+        Point p11 = new Point(5, 3);
+
+        // Квадрат.
+        List<Point> squarePoints = Arrays.asList(p1, p2, p3, p4);
+        // Прямоугольник.
+        List<Point> rectPoints = Arrays.asList(p1, p2, p5, p6);
+        // Прямоугольник со срезанным правым верхним углом.
+        List<Point> cutRect1 = Arrays.asList(p0, p7, p8, p9, p10);
+        List<Point> cutRectApprox = Arrays.asList(p0, p7, p11, p10);
+
+        assertEquals(squarePoints, Utils.approximate(squarePoints, 4));
+        assertEquals(rectPoints, Utils.approximate(rectPoints, 4));
+        assertNotEquals(rectPoints, Utils.approximate(squarePoints, 4));
+        assertEquals(cutRectApprox, Utils.approximate(cutRect1, 4));
     }
 }

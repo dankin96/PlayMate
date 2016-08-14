@@ -76,18 +76,18 @@ public class TableDetector extends FieldDetector {
         return hullmop;
     }
 
-    private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHull, int edgesNumber) {
+    private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHullList, int edgesNumber) {
         List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
-        for (int i = 0; i < convexHull.size(); i++) {
-            MatOfPoint temp = new MatOfPoint();
-            convexHull.get(i).convertTo(temp, CvType.CV_32S);
+        for (int i = 0; i < convexHullList.size(); i++) {
+            MatOfPoint contour = new MatOfPoint();
+            convexHullList.get(i).convertTo(contour, CvType.CV_32S);
             //если сторон больше нужного количества, то аппроксимируем
-            if (temp.rows() <= edgesNumber) {
-                approxContours.add(temp);
+            if (contour.rows() <= edgesNumber) {
+                approxContours.add(contour);
             } else {
-                List<Point> listOfPoints = Utils.approximate(temp, edgesNumber);
-                temp.fromList(listOfPoints);
-                approxContours.add(temp);
+                List<Point> listOfPoints = Utils.approximate(contour.toList(), edgesNumber);
+                contour.fromList(listOfPoints);
+                approxContours.add(contour);
             }
         }
         return approxContours;
@@ -141,7 +141,7 @@ public class TableDetector extends FieldDetector {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
         }
         for (int i = 0; i < convexHull.size(); i++) {
-            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 3);
+            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 2);
         }
 /*        for (int i = 0; i < contours.size(); i++) {
             Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);

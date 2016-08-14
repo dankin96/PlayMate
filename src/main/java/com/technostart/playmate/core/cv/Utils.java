@@ -270,8 +270,7 @@ public class Utils {
         return hullContour;
     }
 
-    public static List<Point> approximate(MatOfPoint temp, int edgesNumber) {
-        List<Point> listOfPoints = temp.toList();
+    public static List<Point> approximate(List<Point> listOfPoints, int edgesNumber) {
         listOfPoints = new LinkedList<>(listOfPoints);
         // убираем итеративно стороны
         while (listOfPoints.size() != edgesNumber) {
