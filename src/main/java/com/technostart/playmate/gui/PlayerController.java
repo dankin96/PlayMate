@@ -1,7 +1,10 @@
 package com.technostart.playmate.gui;
 
 import com.technostart.playmate.core.cv.Utils;
+import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
+import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.cv.settings.Cfg;
 import com.technostart.playmate.core.cv.settings.SettingsManager;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
@@ -66,16 +69,34 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private LineSegmentDetector tableDetector;
+    private FieldDetector tableDetector;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
+        @Cfg
+        int jpgQuality = 100;
+        @Cfg(name = "bgrToGrayConversion")
+        boolean isGray = false;
+        @Cfg
+        double resizeRate = 0.6;
+        @Cfg
+        boolean isTrackerEnable;
+        @Cfg
+        boolean isFieldDetectorEnable;
+
         @Override
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
-            Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
-            Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = tableDetector.getFrame(newFrame);
-            return Utils.mat2Image(newFrame);
+            if (isGray) {
+                Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
+            }
+            Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
+            if (isFieldDetectorEnable) {
+                newFrame = tableDetector.getFrame(newFrame);
+            }
+            if (isTrackerEnable) {
+                newFrame = tracker.getFrame(newFrame);
+            }
+            return Utils.mat2Image(newFrame, jpgQuality);
         }
     };
 
@@ -87,7 +108,9 @@ public class PlayerController implements Initializable {
 
     private Observable<Image> createFrameObservable(Command<Image> command) {
         return Observable.create(subscriber -> {
-            subscriber.onNext(command.execute());
+            if (capture != null) {
+                subscriber.onNext(command.execute());
+            }
             subscriber.onCompleted();
         });
     }
@@ -115,16 +138,16 @@ public class PlayerController implements Initializable {
         // Инициализация слайдера.
         frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (capture != null) {
-                System.out.print("\nFrame\n");
                 int frameNumber = capture.getFramesNumber();
                 double pos = frameSlider.getValue() * frameNumber / 1000;
                 pos = pos < 0 ? 0 : pos;
                 pos = frameNumber <= pos ? frameNumber - 2 : pos;
                 frameNumberToShow = (int) pos;
-                System.out.print(pos + "\n");
-                System.out.print("Slider Value Changed (newValue: " + newValue.intValue() + ")\n");
             }
         });
+
+        // TODO: добавить новые объекты если будут.
+        updateSettingsFromObjects(Arrays.asList(frameHandler));
     }
 
     private void showFrame(Image imageToShow) {
@@ -144,7 +167,7 @@ public class PlayerController implements Initializable {
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), 5, 0.5f);
-        tableDetector = new LineSegmentDetector(firstFrame.size());
+        tableDetector = new TableDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
@@ -216,6 +239,7 @@ public class PlayerController implements Initializable {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
             capture = settingsManager.fromSettings(capture);
+            frameHandler = settingsManager.fromSettings(frameHandler);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -260,6 +284,10 @@ public class PlayerController implements Initializable {
         SettingsFieldCreator fieldCreator = new SettingsFieldCreator();
         fieldCreator.setOnUpdateListener(this::applySettings);
         fieldCreator.bind(settingsBox, settingsManager);
+    }
+
+    private void saveImage(Image image) {
+        
     }
 
     private void saveTextFile(File file, String content) {
