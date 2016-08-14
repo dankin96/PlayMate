@@ -125,9 +125,6 @@ public class PlayerController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // FIXME: перенести в fxml
-        settingsBox.setPadding(new Insets(10, 10, 0, 10));
-        settingsBox.setSpacing(10);
 
         // Менеджер настроек.
         settingsManager = new SettingsManager();
