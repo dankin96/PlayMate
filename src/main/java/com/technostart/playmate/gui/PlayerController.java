@@ -2,10 +2,9 @@ package com.technostart.playmate.gui;
 
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
-import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.core.cv.settings.Cfg;
-import com.technostart.playmate.core.cv.settings.SettingsManager;
+import com.technostart.playmate.core.settings.Cfg;
+import com.technostart.playmate.core.settings.SettingsManager;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.frame_reader.CvFrameReader;
@@ -191,6 +190,11 @@ public class PlayerController implements Initializable {
 
         if (event.getCode() == KeyCode.COMMA) {
             showPreviousFrame();
+        }
+
+        if (event.getCode() == KeyCode.ENTER) {
+            nextFrameBtn.requestFocus();
+
         }
     }
 

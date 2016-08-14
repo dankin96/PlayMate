@@ -1,7 +1,7 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.settings.Property;
-import com.technostart.playmate.core.cv.settings.SettingsManager;
+import com.technostart.playmate.core.settings.Property;
+import com.technostart.playmate.core.settings.SettingsManager;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;

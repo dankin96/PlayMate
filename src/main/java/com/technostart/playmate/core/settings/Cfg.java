@@ -1,4 +1,4 @@
-package com.technostart.playmate.core.cv.settings;
+package com.technostart.playmate.core.settings;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
