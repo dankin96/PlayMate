@@ -64,7 +64,8 @@ public class TableDetector extends FieldDetector {
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
         convexHull = convexHull(contours);
-        approxContours = Utils.findTwoMatchingShapes(approximateContours(convexHull, edgesNumber));
+        convexHull = Utils.findTwoMatchingShapes(convexHull);
+        approxContours = approximateContours(convexHull, edgesNumber);
         print(cntImg);
         convexHull.clear();
         contours.clear();

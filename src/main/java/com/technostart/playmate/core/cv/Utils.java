@@ -351,22 +351,25 @@ public class Utils {
         int indexOfSecondTableContour = -1;
         for (int i = 0; i < contours.size() - 1; i++) {
             for (int j = i + 1; j < contours.size(); j++) {
-                double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 3, 0.0);
+                double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
                 if (curMatchingRatio < matchingRatio) {
                     double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
                     if (areaRatio > TableDetector.minRatio && areaRatio < TableDetector.maxRatio) {
                         matchingRatio = curMatchingRatio;
                         indexOfFirstTableContour = i;
                         indexOfSecondTableContour = j;
+                        System.out.println("area ratio - " + areaRatio + " i - " + i + " j - " + j);
                     }
                 }
-
             }
         }
         List<MatOfPoint> matchedContours = new LinkedList<MatOfPoint>();
-        matchedContours.add(contours.get(indexOfFirstTableContour));
-        matchedContours.add(contours.get(indexOfSecondTableContour));
-        return matchedContours;
+        if (indexOfFirstTableContour != -1 && indexOfSecondTableContour != -1) {
+            matchedContours.add(contours.get(indexOfFirstTableContour));
+            matchedContours.add(contours.get(indexOfSecondTableContour));
+            return matchedContours;
+        } else
+            return null;
     }
 
     ///////////////////////////////////////////////////////////////////////////
