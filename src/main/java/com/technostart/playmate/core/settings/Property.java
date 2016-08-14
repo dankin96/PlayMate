@@ -1,4 +1,4 @@
-package com.technostart.playmate.core.cv.settings;
+package com.technostart.playmate.core.settings;
 
 @SuppressWarnings("WeakerAccess")
 public class Property<T> {

@@ -1,17 +1,12 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.*;
+
+import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetectorMock;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.*;
-import com.technostart.playmate.core.cv.field_detector.LineSegmentDetector;
-import com.technostart.playmate.core.cv.settings.SettingsManager;
+import com.technostart.playmate.core.settings.Cfg;
+import com.technostart.playmate.core.settings.SettingsManager;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.frame_reader.CvFrameReader;
@@ -79,16 +74,35 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private TableDetectorMock tableDetectorMock;
-    private TableDetector tableDetector;
     private Tracker tracker;
+    private FieldDetector tableDetector;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
+        @Cfg
+        int jpgQuality = 100;
+        @Cfg(name = "bgrToGrayConversion")
+        boolean isGray = false;
+        @Cfg
+        double resizeRate = 0.6;
+        @Cfg
+        boolean isTrackerEnable;
+        @Cfg
+        boolean isFieldDetectorEnable;
+
         @Override
         public Image process(Mat inputFrame) {
             Mat newFrame = inputFrame.clone();
-            Imgproc.resize(newFrame, newFrame, new Size(), 0.6, 0.6, Imgproc.INTER_LINEAR);
-            newFrame = tableDetector.getFrame(newFrame);
-            return Utils.mat2Image(newFrame);
+            if (isGray) {
+                Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
+            }
+            Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
+            if (isFieldDetectorEnable) {
+                newFrame = tableDetector.getFrame(newFrame);
+            }
+            if (isTrackerEnable) {
+                newFrame = tracker.getFrame(newFrame);
+            }
+            return Utils.mat2Image(newFrame, jpgQuality);
         }
     };
 
@@ -100,7 +114,11 @@ public class PlayerController implements Initializable {
 
     private Observable<Image> createFrameObservable(Command<Image> command) {
         return Observable.create(subscriber -> {
-            subscriber.onNext(command.execute());
+            if (capture != null) {
+                subscriber.onNext(command.execute());
+                frameSlider.setValue(capture.getCurrentFrameNumber());
+                capture.getCurrentFrameNumber();
+            }
             subscriber.onCompleted();
         });
     }
@@ -126,12 +144,15 @@ public class PlayerController implements Initializable {
         frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (capture != null) {
                 int frameNumber = capture.getFramesNumber();
-                double pos = frameSlider.getValue() * frameNumber / 1000;
+                double pos = frameSlider.getValue();
                 pos = pos < 0 ? 0 : pos;
                 pos = frameNumber <= pos ? frameNumber - 2 : pos;
                 frameNumberToShow = (int) pos;
             }
         });
+
+        // TODO: добавить новые объекты если будут.
+        updateSettingsFromObjects(Arrays.asList(frameHandler));
     }
 
     private void showFrame(Image imageToShow) {
@@ -152,16 +173,16 @@ public class PlayerController implements Initializable {
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), 5, 0.5f);
         tableDetector = new TableDetector(firstFrame.size());
-//        tableDetectorMock = new TableDetectorMock(capture.get(frameNumberToShow).size());
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader);
 
         showFrame(capture.read());
 
-        positionLabel.textProperty().
 
-                setValue("na");
+        positionLabel.textProperty().setValue("na");
+        // Обновление слайдера.
+        frameSlider.setMax(capture.getFramesNumber());
 
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
@@ -177,6 +198,11 @@ public class PlayerController implements Initializable {
 
         if (event.getCode() == KeyCode.COMMA) {
             showPreviousFrame();
+        }
+
+        if (event.getCode() == KeyCode.ENTER) {
+            nextFrameBtn.requestFocus();
+
         }
     }
 
@@ -225,6 +251,7 @@ public class PlayerController implements Initializable {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
             capture = settingsManager.fromSettings(capture);
+            frameHandler = settingsManager.fromSettings(frameHandler);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             e.printStackTrace();
@@ -267,6 +294,10 @@ public class PlayerController implements Initializable {
         SettingsFieldCreator fieldCreator = new SettingsFieldCreator();
         fieldCreator.setOnUpdateListener(this::applySettings);
         fieldCreator.bind(settingsBox, settingsManager);
+    }
+
+    private void saveImage(Image image) {
+
     }
 
     private void saveTextFile(File file, String content) {

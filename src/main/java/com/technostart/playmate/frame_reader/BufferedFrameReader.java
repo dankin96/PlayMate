@@ -1,6 +1,6 @@
 package com.technostart.playmate.frame_reader;
 
-import com.technostart.playmate.core.cv.settings.Cfg;
+import com.technostart.playmate.core.settings.Cfg;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

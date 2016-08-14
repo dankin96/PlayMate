@@ -312,10 +312,10 @@ public class Utils {
         return listOfPoints;
     }
 
-    static public Image mat2Image(Mat frame) {
+    static public Image mat2Image(Mat frame, int jpgQuality) {
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
-        params[1] = 70;
+        params[1] = jpgQuality;
         MatOfInt matOfParams = new MatOfInt();
         matOfParams.fromArray(params);
         MatOfByte buffer = new MatOfByte();
@@ -331,9 +331,8 @@ public class Utils {
         return homographyImg;
     }
 
-
-    //  Finds the intersection of two lines, or returns false.
-//  The lines are defined by (o1, p1) and (o2, p2).
+    //  Finds the intersection of two lines, or returns null.
+    //  The lines are defined by (o1, p1) and (o2, p2).
     static public Point intersection(Point o1, Point o2, Point p1, Point p2) {
         double d = (o1.x - o2.x) * (p1.y - p2.y) - (o1.y - o2.y) * (p1.x - p2.x);
         if (d == 0) return null;
@@ -353,6 +352,4 @@ public class Utils {
             Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
         }
     }
-
-
 }

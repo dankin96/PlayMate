@@ -1,7 +1,7 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.settings.Property;
-import com.technostart.playmate.core.cv.settings.SettingsManager;
+import com.technostart.playmate.core.settings.Property;
+import com.technostart.playmate.core.settings.SettingsManager;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -51,7 +51,8 @@ public class SettingsFieldCreator {
                     propertyBox.getChildren().add(checkBox);
                     break;
                 case Property.STRING: {
-                    TextField textField = new TextField(property.getValue().toString());
+                    String value = (String) property.getValue();
+                    TextField textField = new TextField(value);
                     textField.setOnKeyReleased(event -> {
                         settingsManager.putString(key, textField.getText());
                         mListener.onUpdate();

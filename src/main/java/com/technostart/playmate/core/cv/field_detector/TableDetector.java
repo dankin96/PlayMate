@@ -2,7 +2,7 @@ package com.technostart.playmate.core.cv.field_detector;
 
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
-import com.technostart.playmate.core.cv.settings.Cfg;
+import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
@@ -76,6 +76,7 @@ public class TableDetector extends FieldDetector {
         return hullmop;
     }
 
+
     private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHull, int edgesNumber) {
         List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
         for (int i = 0; i < convexHull.size(); i++) {
@@ -141,11 +142,11 @@ public class TableDetector extends FieldDetector {
             Imgproc.drawContours(cntImg, approxContours, i, Palette.getNextColor(), -1);
         }
         for (int i = 0; i < convexHull.size(); i++) {
-            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 1);
+            Imgproc.drawContours(cntImg, convexHull, i, Palette.WHITE, 2);
         }
-        for (int i = 0; i < contours.size(); i++) {
-            Imgproc.drawContours(cntImg, contours, i, Palette.ORANGE, 1);
-        }
+            /*        for (int i = 0; i < contours.size(); i++) {
+            Imgproc.drawContours(cntImg, contours, i, Palette.GREEN, 3);
+             }*/
         return cntImg;
     }
 }

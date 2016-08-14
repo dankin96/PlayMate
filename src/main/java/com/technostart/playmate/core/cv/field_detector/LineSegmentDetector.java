@@ -1,7 +1,7 @@
 package com.technostart.playmate.core.cv.field_detector;
 
 import com.technostart.playmate.core.cv.Palette;
-import com.technostart.playmate.core.cv.settings.Cfg;
+import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
