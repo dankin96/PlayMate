@@ -109,6 +109,8 @@ public class PlayerController implements Initializable {
         return Observable.create(subscriber -> {
             if (capture != null) {
                 subscriber.onNext(command.execute());
+                frameSlider.setValue(capture.getCurrentFrameNumber());
+                capture.getCurrentFrameNumber();
             }
             subscriber.onCompleted();
         });
@@ -138,7 +140,7 @@ public class PlayerController implements Initializable {
         frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (capture != null) {
                 int frameNumber = capture.getFramesNumber();
-                double pos = frameSlider.getValue() * frameNumber / 1000;
+                double pos = frameSlider.getValue();
                 pos = pos < 0 ? 0 : pos;
                 pos = frameNumber <= pos ? frameNumber - 2 : pos;
                 frameNumberToShow = (int) pos;
@@ -175,6 +177,8 @@ public class PlayerController implements Initializable {
         showFrame(capture.read());
 
         positionLabel.textProperty().setValue("na");
+        // Обновление слайдера.
+        frameSlider.setMax(capture.getFramesNumber());
 
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
