@@ -3,6 +3,7 @@ package com.technostart.playmate.core.cv;
 import org.junit.Before;
 import org.junit.Test;
 import org.opencv.core.Core;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
