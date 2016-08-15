@@ -8,14 +8,20 @@ import java.util.List;
 import java.util.Map;
 
 public class BufferedFrameReader<T> implements FrameReader<T> {
+    public static final int DEFAULT_INTERVAL = 1;
+    public static final int DEFAULT_CAPACITY = 400;
     FrameReader<T> frameReader;
     Map<Integer, T> buffer;
     List<Integer> keyList;
     int cursor;
     @Cfg(name = "BuffFrameReaderInterval")
-    int interval;
+    int interval = DEFAULT_INTERVAL;
     @Cfg(name = "BuffFrameReaderCapacity")
-    int capacity;
+    int capacity = DEFAULT_CAPACITY;
+
+    public BufferedFrameReader(FrameReader<T> frameReader) {
+        this(frameReader, DEFAULT_INTERVAL, DEFAULT_CAPACITY);
+    }
 
     public BufferedFrameReader(FrameReader<T> frameReader, int interval, int capacity) {
         this.frameReader = frameReader;

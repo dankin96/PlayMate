@@ -169,7 +169,7 @@ public class PlayerController implements Initializable {
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
-        capture = new BufferedFrameReader<>(mat2ImgReader, 10, 400);
+        capture = new BufferedFrameReader<>(mat2ImgReader);
 
         showFrame(capture.read());
 

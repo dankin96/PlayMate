@@ -1,5 +1,7 @@
 package com.technostart.playmate.core.cv;
 
+import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.settings.Cfg;
 import javafx.scene.image.Image;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -270,7 +272,8 @@ public class Utils {
         return hullContour;
     }
 
-    public static List<Point> approximate(List<Point> listOfPoints, int edgesNumber) {
+    public static List<Point> approximate(MatOfPoint temp, int edgesNumber) {
+        List<Point> listOfPoints = temp.toList();
         listOfPoints = new LinkedList<>(listOfPoints);
         // убираем итеративно стороны
         while (listOfPoints.size() != edgesNumber) {
@@ -330,7 +333,6 @@ public class Utils {
         return homographyImg;
     }
 
-
     //  Finds the intersection of two lines, or returns null.
     //  The lines are defined by (o1, p1) and (o2, p2).
     public static Point intersection(Point o1, Point o2, Point p1, Point p2) {
@@ -343,6 +345,50 @@ public class Utils {
         return new Point(xi, yi);
     }
 
+    static public List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
+        double matchingRatio = Double.MAX_VALUE;
+        for (int i = 0; i < contours.size(); i++) {
+            Mat line = new Mat();
+            double[] angle = new double[2];
+            Imgproc.fitLine(contours.get(i), line, 1, 0.0, 0.1, 0.1);
+            for (int counter = 0; counter < line.rows(); counter++) {
+                double[] array = line.get(counter, 0);
+                if (counter < 2)
+                    angle[counter] = array[0];
+            }
+            double tempAngle = Math.toDegrees(Math.atan(angle[1] / angle[0]));
+            if (tempAngle > TableDetector.maxAngle || tempAngle < TableDetector.minAngle) {
+                contours.remove(i);
+                i--;
+            }
+        }
+        int indexOfFirstTableContour = -1;
+        int indexOfSecondTableContour = -1;
+        int counter = 0;
+        for (int i = 0; i < contours.size() - 1 && counter == 0; i++) {
+            for (int j = i + 1; j < contours.size(); j++) {
+                double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
+                if (curMatchingRatio < matchingRatio) {
+                    double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
+                    if (areaRatio > TableDetector.minRatio && areaRatio < TableDetector.maxRatio) {
+                        matchingRatio = curMatchingRatio;
+                        indexOfFirstTableContour = i;
+                        indexOfSecondTableContour = j;
+                        counter++;
+                        break;
+                    }
+                }
+            }
+        }
+        List<MatOfPoint> matchedContours = new LinkedList<MatOfPoint>();
+        if (indexOfFirstTableContour != -1 && indexOfSecondTableContour != -1) {
+            matchedContours.add(contours.get(indexOfFirstTableContour));
+            matchedContours.add(contours.get(indexOfSecondTableContour));
+            return matchedContours;
+        } else
+            return null;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Методы отрисовки.
     ///////////////////////////////////////////////////////////////////////////
@@ -352,6 +398,4 @@ public class Utils {
             Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
         }
     }
-
-
 }

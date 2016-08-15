@@ -4,11 +4,9 @@ import com.technostart.playmate.core.cv.Palette;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class TableDetectorMock extends FieldDetector {
     private MatOfPoint tableContour;
+
     public TableDetectorMock(Size frameSize) {
         super(frameSize);
         tableContour = new MatOfPoint();
@@ -30,4 +28,6 @@ public class TableDetectorMock extends FieldDetector {
     public void setPoints(MatOfPoint points) {
         this.tableContour = points;
     }
+
 }
+
