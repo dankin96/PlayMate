@@ -70,9 +70,11 @@ public class TableDetector extends FieldDetector {
         convexHull = convexHull(contours);
         print(cntImg, convexHull, 3, false);
         convexHull = Utils.findTwoMatchingShapes(convexHull);
-        approxContours = approximateContours(convexHull, edgesNumber);
-        print(cntImg, approxContours, -1, true);
-        convexHull.clear();
+        if (convexHull != null) {
+            approxContours = approximateContours(convexHull, edgesNumber);
+            print(cntImg, approxContours, -1, true);
+            convexHull.clear();
+        }
         contours.clear();
         approxContours.clear();
         return cntImg;
