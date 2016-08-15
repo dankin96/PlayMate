@@ -347,9 +347,25 @@ public class Utils {
 
     static public List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
         double matchingRatio = Double.MAX_VALUE;
+        for (int i = 0; i < contours.size(); i++) {
+            Mat line = new Mat();
+            double[] angle = new double[2];
+            Imgproc.fitLine(contours.get(i), line, 1, 0.0, 0.1, 0.1);
+            for (int counter = 0; counter < line.rows(); counter++) {
+                double[] array = line.get(counter, 0);
+                if (counter < 2)
+                    angle[counter] = array[0];
+            }
+            double tempAngle = Math.toDegrees(Math.atan(angle[1] / angle[0]));
+            if (tempAngle > TableDetector.maxAngle || tempAngle < TableDetector.minAngle) {
+                contours.remove(i);
+                i--;
+            }
+        }
         int indexOfFirstTableContour = -1;
         int indexOfSecondTableContour = -1;
-        for (int i = 0; i < contours.size() - 1; i++) {
+        int counter = 0;
+        for (int i = 0; i < contours.size() - 1 && counter == 0; i++) {
             for (int j = i + 1; j < contours.size(); j++) {
                 double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
                 if (curMatchingRatio < matchingRatio) {
@@ -358,7 +374,8 @@ public class Utils {
                         matchingRatio = curMatchingRatio;
                         indexOfFirstTableContour = i;
                         indexOfSecondTableContour = j;
-                        System.out.println("area ratio - " + areaRatio + " i - " + i + " j - " + j);
+                        counter++;
+                        break;
                     }
                 }
             }
