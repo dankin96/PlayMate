@@ -1,7 +1,6 @@
 package com.technostart.playmate.core.cv;
 
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.core.settings.Cfg;
 import javafx.scene.image.Image;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -345,7 +344,7 @@ public class Utils {
         return new Point(xi, yi);
     }
 
-    static public List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
+    public static List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
         double matchingRatio = Double.MAX_VALUE;
         for (int i = 0; i < contours.size(); i++) {
             Mat line = new Mat();
