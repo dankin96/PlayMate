@@ -283,7 +283,7 @@ public class Utils {
             int endPointIdx = -1;
             for (int j = 0; j < listOfPoints.size(); j++) {
                 int curBeginPointIdx = j;
-                int curEndPointIdx = j < lastIdx ? j + 1 : 0;
+                int curEndPointIdx = j + 1 <= lastIdx ? j + 1 : 0;
 
                 Point beginPoint = listOfPoints.get(curBeginPointIdx);
                 Point endPoint = listOfPoints.get(curEndPointIdx);
@@ -298,9 +298,11 @@ public class Utils {
             }
             //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
             Point p1 = listOfPoints.get(beginPointIdx);
-            Point p2 = listOfPoints.get(beginPointIdx > 0 ? beginPointIdx - 1 : lastIdx);
+            int secondIdx = beginPointIdx - 1 >= 0 ? beginPointIdx - 1 : lastIdx;
+            Point p2 = listOfPoints.get(secondIdx);
             Point p3 = listOfPoints.get(endPointIdx);
-            Point p4 = listOfPoints.get(endPointIdx < lastIdx ? endPointIdx + 1 : 0);
+            int fourthIdx = endPointIdx + 1 <= lastIdx ? endPointIdx + 1 : 0;
+            Point p4 = listOfPoints.get(fourthIdx);
             Point newPoint = Utils.intersection(p1, p2, p3, p4);
             //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
             if (newPoint != null) {
