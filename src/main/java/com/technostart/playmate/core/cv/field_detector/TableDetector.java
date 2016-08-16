@@ -22,7 +22,7 @@ public class TableDetector extends FieldDetector {
     @Cfg
     static int diameter = 5;
     @Cfg
-    private int threshold = 100;
+    private int threshold = 80;
     @Cfg
     static public double minRatio = 0.85;
     @Cfg

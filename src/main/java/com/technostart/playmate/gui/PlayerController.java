@@ -25,6 +25,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -80,7 +81,7 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable;
         @Cfg
-        boolean isFieldDetectorEnable;
+        boolean isFieldDetectorEnable = true;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -90,7 +91,10 @@ public class PlayerController implements Initializable {
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
+                Mat originalFrame = newFrame;
                 newFrame = tableDetector.getFrame(newFrame);
+                Imgproc.cvtColor(originalFrame, originalFrame, Imgproc.COLOR_GRAY2BGR);
+                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
@@ -292,7 +296,7 @@ public class PlayerController implements Initializable {
     }
 
     private void saveImage(Image image) {
-        
+
     }
 
     private void saveTextFile(File file, String content) {
