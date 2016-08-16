@@ -279,12 +279,12 @@ public class Utils {
         return angle >= 0 ? angle : -angle;
     }
 
-    public static List<Point> approximate(MatOfPoint temp, int edgesNumber) {
+    public static List<Point> approximate(MatOfPoint temp, int edgesNumber, double angleThreshold) {
         List<Point> listOfPoints = temp.toList();
         listOfPoints = new LinkedList<>(listOfPoints);
         // убираем итеративно стороны
-        for (int i = 0; i < listOfPoints.size() - edgesNumber || listOfPoints.size() == edgesNumber; i++) {
-//        while (listOfPoints.size() != edgesNumber) {
+//        for (int i = 0; i < listOfPoints.size() - edgesNumber || listOfPoints.size() == edgesNumber; i++) {
+        while (listOfPoints.size() != edgesNumber) {
             int listOfPointsSize = listOfPoints.size();
             int lastIdx = listOfPointsSize - 1;
             double min_distance = Double.MAX_VALUE;
@@ -313,7 +313,7 @@ public class Utils {
                 double secondAngle = getAngle(p2, p3, p4);
 
                 //ищем индекс начальной точки отрезка с минимальной длиной
-                if (distance < min_distance && 180 < (firstAngle + secondAngle)) {
+                if (distance < min_distance && angleThreshold < (firstAngle + secondAngle)) {
                     min_distance = distance;
 
                     point2idx = idx2;
@@ -331,7 +331,7 @@ public class Utils {
                 listOfPoints.set(point2idx, newPoint);
                 listOfPoints.remove(point3idx);
             } else {
-                listOfPoints.remove(point2);
+                listOfPoints.remove(point2idx);
             }
         }
         return listOfPoints;
