@@ -31,6 +31,8 @@ public class TableDetector extends FieldDetector {
     static public double minAngle = -15.0;
     @Cfg
     static public double maxAngle = 15.0;
+    @Cfg
+    private double approxAngleThreshold = 200;
 
     private List<MatOfPoint> contours;
     private List<MatOfPoint> convexHull;
@@ -98,7 +100,7 @@ public class TableDetector extends FieldDetector {
             if (temp.rows() <= edgesNumber) {
                 approxContours.add(temp);
             } else {
-                List<Point> listOfPoints = Utils.approximate(temp, edgesNumber);
+                List<Point> listOfPoints = Utils.approximate(temp, edgesNumber, approxAngleThreshold);
                 temp.fromList(listOfPoints);
                 approxContours.add(temp);
             }

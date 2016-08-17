@@ -100,6 +100,19 @@ public class UtilsTest {
     }
 
     @Test
+    public void getAngle() throws Exception {
+        Point p0 = new Point(0, 0);
+        Point p1 = new Point(1, 0);
+        Point p2 = new Point(0, 1);
+
+        Point p3 = new Point(-1, 0);
+        assertEquals(0, Utils.getAngle(p1, p0, p1), 0);
+        assertEquals(45, Utils.getAngle(p2, p1, p0), 0);
+        assertEquals(90, Utils.getAngle(p1, p0, p2), 0);
+        assertEquals(180, Utils.getAngle(p1, p0, p3), 0);
+    }
+
+    /*@Test
     public void approximate() throws Exception {
         Point p0 = new Point(0, 0);
         Point p1 = new Point(-2, 2);
@@ -127,5 +140,5 @@ public class UtilsTest {
         assertEquals(rectPoints, Utils.approximate(rectPoints, 4));
         assertNotEquals(rectPoints, Utils.approximate(squarePoints, 4));
         assertEquals(cutRectApprox, Utils.approximate(cutRect1, 4));
-    }
+    }*/
 }

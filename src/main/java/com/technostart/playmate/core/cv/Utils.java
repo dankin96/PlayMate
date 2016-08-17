@@ -271,10 +271,19 @@ public class Utils {
         return hullContour;
     }
 
-    public static List<Point> approximate(MatOfPoint temp, int edgesNumber) {
+    public static double getAngle(Point a, Point b, Point c, Point d) {
+        Point ab = new Point(b.x - a.x, b.y - a.y);
+        Point cd = new Point(c.x - d.x, c.y - d.y);
+        //  a.x*b.y - a.y*b.x, a.x*b.x + a.y*b.y
+        double angle = Math.toDegrees(Math.atan2(ab.x * cd.y - ab.y * cd.x, ab.x * cd.x + ab.y * cd.y));
+        return angle >= 0 ? angle : -angle;
+    }
+
+    public static List<Point> approximate(MatOfPoint temp, int edgesNumber, double angleThreshold) {
         List<Point> listOfPoints = temp.toList();
         listOfPoints = new LinkedList<>(listOfPoints);
         // убираем итеративно стороны
+//        for (int i = 0; i < listOfPoints.size() - edgesNumber || listOfPoints.size() == edgesNumber; i++) {
         while (listOfPoints.size() != edgesNumber) {
             int listOfPointsSize = listOfPoints.size();
             int lastIdx = listOfPointsSize - 1;
@@ -283,43 +292,49 @@ public class Utils {
             }
             System.out.println("next step \n");
             double min_distance = Double.MAX_VALUE;
-            int delBeginPointIdx = -1;
-            int delEndPointIdx = -1;
+            Point point1 = null;
+            Point point2 = null;
+            Point point3 = null;
+            Point point4 = null;
+
+            int point2idx = -1;
+            int point3idx = -1;
+
             for (int j = 0; j < listOfPoints.size(); j++) {
-                //инициализация точек для проверки углов
-                int beginPointIdx = j;
-                Point beginPoint = listOfPoints.get(beginPointIdx);
-                int endPointIdx = j + 1 <= lastIdx ? j + 1 : 0;
-                Point endPoint = listOfPoints.get(endPointIdx);
-                int beginPointHelperIdx = beginPointIdx - 1 >= 0 ? beginPointIdx - 1 : lastIdx;
-                Point beginPointHelper = listOfPoints.get(beginPointHelperIdx);
-                int endPointHelperIdx = endPointIdx + 1 <= lastIdx ? endPointIdx + 1 : 0;
-                Point endPointHelper = listOfPoints.get(endPointHelperIdx);
-                double firstAngle = Math.toDegrees(Math.atan2((beginPoint.x - beginPointHelper.x) * (endPoint.y - beginPoint.y) - (beginPoint.y - beginPointHelper.y) * (endPoint.x - beginPoint.x), (beginPoint.x - beginPointHelper.x) * (endPoint.y - beginPoint.y) + (beginPoint.y - beginPointHelper.y) * (endPoint.x - beginPoint.x)));
-                double secondAngle = Math.toDegrees(Math.atan2((endPoint.x - beginPoint.x) * (endPointHelper.y - endPoint.y) - (endPoint.y - beginPoint.y) * (endPointHelper.x - endPoint.x), (endPoint.x - beginPoint.x) * (endPointHelper.y - endPoint.y) + (endPoint.y - beginPoint.y) * (endPointHelper.x - endPoint.x)));
-                System.out.println("angle1 - " + firstAngle + " angle2 - " + secondAngle);
-                double distance = Utils.getDistanceSqrt(beginPoint, endPoint);
-                //ищем индекс начальной точки отрезка с минимальной длиной и тупыми углами
-                if (distance < min_distance && (firstAngle + secondAngle) >= 200) {
+                int idx1 = j - 1 >= 0 ? j - 1 : lastIdx;
+                int idx2 = j;
+                int idx3 = j + 1 <= lastIdx ? j + 1 : 0;
+                int idx4 = idx3 + 1 <= lastIdx ? idx3 + 1 : 0;
+
+                Point p1 = listOfPoints.get(idx1);
+                Point p2 = listOfPoints.get(idx2);
+                Point p3 = listOfPoints.get(idx3);
+                Point p4 = listOfPoints.get(idx4);
+
+                double distance = getDistanceSqrt(p2, p3);
+                double firstAngle = getAngle(p1, p2, p2, p3);
+                double secondAngle = getAngle(p2, p3, p3, p4);
+
+                //ищем индекс начальной точки отрезка с минимальной длиной
+                if (distance < min_distance && angleThreshold < (firstAngle + secondAngle)) {
                     min_distance = distance;
-                    delBeginPointIdx = beginPointIdx;
-                    delEndPointIdx = endPointIdx;
+
+                    point2idx = idx2;
+                    point3idx = idx3;
+
+                    point1 = p1;
+                    point2 = p2;
+                    point3 = p3;
+                    point4 = p4;
                 }
             }
-            //выделяем точки необходимые для нахождения пересечения, с учетом граничных случаев
-            Point p1 = listOfPoints.get(delBeginPointIdx);
-            int secondIdx = delBeginPointIdx - 1 >= 0 ? delBeginPointIdx - 1 : lastIdx;
-            Point p2 = listOfPoints.get(secondIdx);
-            Point p3 = listOfPoints.get(delEndPointIdx);
-            int fourthIdx = delEndPointIdx + 1 <= lastIdx ? delEndPointIdx + 1 : 0;
-            Point p4 = listOfPoints.get(fourthIdx);
-            Point newPoint = Utils.intersection(p1, p2, p3, p4);
+            Point newPoint = Utils.intersection(point1, point2, point3, point4);
             //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
             if (newPoint != null) {
-                listOfPoints.set(delBeginPointIdx, newPoint);
-                listOfPoints.remove(delEndPointIdx);
+                listOfPoints.set(point2idx, newPoint);
+                listOfPoints.remove(point3idx);
             } else {
-                listOfPoints.remove(delBeginPointIdx);
+                listOfPoints.remove(point2idx);
             }
         }
         for (int i = 0; i < listOfPoints.size(); i++) {
