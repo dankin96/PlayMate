@@ -370,52 +370,6 @@ public class Utils {
         return new Point(xi, yi);
     }
 
-    public static List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
-        double matchingRatio = Double.MAX_VALUE;
-        //отсев по аппроксимируемым контурам с помощью линии, которые должны быть близки к параллельности
-        for (int i = 0; i < contours.size(); i++) {
-            Mat line = new Mat();
-            double[] angle = new double[2];
-            Imgproc.fitLine(contours.get(i), line, 1, 0.0, 0.1, 0.1);
-            for (int counter = 0; counter < line.rows(); counter++) {
-                double[] array = line.get(counter, 0);
-                if (counter < 2)
-                    angle[counter] = array[0];
-            }
-            double tempAngle = Math.toDegrees(Math.atan(angle[1] / angle[0]));
-            if (tempAngle > TableDetector.maxAngle || tempAngle < TableDetector.minAngle) {
-                contours.remove(i);
-                i--;
-            }
-        }
-        //поиск похожих половин стола, с помощью отношения площади и функции opencv
-        int indexOfFirstTableContour = -1;
-        int indexOfSecondTableContour = -1;
-        int counter = 0;
-        for (int i = 0; i < contours.size() - 1 && counter == 0; i++) {
-            for (int j = i + 1; j < contours.size(); j++) {
-                double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
-                if (curMatchingRatio < matchingRatio) {
-                    double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
-                    if (areaRatio > TableDetector.minRatio && areaRatio < TableDetector.maxRatio) {
-                        matchingRatio = curMatchingRatio;
-                        indexOfFirstTableContour = i;
-                        indexOfSecondTableContour = j;
-                        counter++;
-                        break;
-                    }
-                }
-            }
-        }
-        List<MatOfPoint> matchedContours = new LinkedList<MatOfPoint>();
-        if (indexOfFirstTableContour != -1 && indexOfSecondTableContour != -1) {
-            matchedContours.add(contours.get(indexOfFirstTableContour));
-            matchedContours.add(contours.get(indexOfSecondTableContour));
-            return matchedContours;
-        } else
-            return null;
-    }
-
     ///////////////////////////////////////////////////////////////////////////
     // Методы отрисовки.
     ///////////////////////////////////////////////////////////////////////////
