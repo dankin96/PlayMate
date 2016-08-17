@@ -274,7 +274,6 @@ public class Utils {
     public static double getAngle(Point a, Point b, Point c, Point d) {
         Point ab = new Point(b.x - a.x, b.y - a.y);
         Point cd = new Point(c.x - d.x, c.y - d.y);
-        //  a.x*b.y - a.y*b.x, a.x*b.x + a.y*b.y
         double angle = Math.toDegrees(Math.atan2(ab.x * cd.y - ab.y * cd.x, ab.x * cd.x + ab.y * cd.y));
         return angle >= 0 ? angle : -angle;
     }
@@ -287,10 +286,6 @@ public class Utils {
         while (listOfPoints.size() != edgesNumber) {
             int listOfPointsSize = listOfPoints.size();
             int lastIdx = listOfPointsSize - 1;
-            for (int i = 0; i < listOfPoints.size(); i++) {
-                System.out.println("(" + listOfPoints.get(i).x + ";" + listOfPoints.get(i).y + ")");
-            }
-            System.out.println("next step \n");
             double min_distance = Double.MAX_VALUE;
             Point point1 = null;
             Point point2 = null;
@@ -337,11 +332,6 @@ public class Utils {
                 listOfPoints.remove(point2idx);
             }
         }
-        for (int i = 0; i < listOfPoints.size(); i++) {
-            System.out.println("(" + listOfPoints.get(i).x + ";" + listOfPoints.get(i).y + ")");
-        }
-        System.out.println("next step \n");
-        System.out.println("new cont \n");
         return listOfPoints;
     }
 
@@ -382,6 +372,7 @@ public class Utils {
 
     public static List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
         double matchingRatio = Double.MAX_VALUE;
+        //отсев по аппроксимируемым контурам с помощью линии, которые должны быть близки к параллельности
         for (int i = 0; i < contours.size(); i++) {
             Mat line = new Mat();
             double[] angle = new double[2];
@@ -397,6 +388,7 @@ public class Utils {
                 i--;
             }
         }
+        //поиск похожих половин стола, с помощью отношения площади и функции opencv
         int indexOfFirstTableContour = -1;
         int indexOfSecondTableContour = -1;
         int counter = 0;
