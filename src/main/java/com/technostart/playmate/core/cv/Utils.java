@@ -300,7 +300,7 @@ public class Utils {
                 System.out.println("angle1 - " + firstAngle + " angle2 - " + secondAngle);
                 double distance = Utils.getDistanceSqrt(beginPoint, endPoint);
                 //ищем индекс начальной точки отрезка с минимальной длиной и тупыми углами
-                if (distance < min_distance && firstAngle >= 90 && secondAngle >= 90) {
+                if (distance < min_distance && (firstAngle + secondAngle) >= 200) {
                     min_distance = distance;
                     delBeginPointIdx = beginPointIdx;
                     delEndPointIdx = endPointIdx;
