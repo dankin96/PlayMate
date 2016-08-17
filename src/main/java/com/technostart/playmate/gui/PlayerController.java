@@ -92,8 +92,8 @@ public class PlayerController implements Initializable {
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
                 Mat originalFrame = newFrame;
-                newFrame = tableDetector.getFrame(newFrame);
-                Imgproc.cvtColor(originalFrame, originalFrame, Imgproc.COLOR_GRAY2BGR);
+                newFrame = tableDetector.getField(newFrame);
+//                Imgproc.cvtColor(originalFrame, originalFrame, Imgproc.COLOR_GRAY2BGR);
                 Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
             }
             if (isTrackerEnable) {

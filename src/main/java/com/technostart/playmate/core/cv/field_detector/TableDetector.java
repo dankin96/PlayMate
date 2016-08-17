@@ -52,14 +52,30 @@ public class TableDetector extends FieldDetector {
     }
 
     @Override
-    public Mat getField(Mat frame) {
-        // TODO: тут вся обработка без отрисовки.
-        // возвращает маску стола
-        return null;
+    public Mat getField(Mat inputFrame) {
+        min_area = inputFrame.height() * inputFrame.width() / areaCoef;
+        //предварительная обработка изображения фильтрами
+        processingFrame = frameFilter(inputFrame, threshold);
+        //поиск контуров на картинке
+        Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+        //фильтрация контуров
+        contours = contourFilter(contours, min_area);
+        //построение нового изображения
+        Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
+        convexHull = convexHull(contours);
+        convexHull = findTwoMatchingShapes(convexHull);
+        if (convexHull != null) {
+            approxContours = approximateContours(convexHull, edgesNumber);
+            print(cntImg, approxContours, -1, false);
+//            print(cntImg, convexHull, 3, false);
+            convexHull.clear();
+        }
+        contours.clear();
+        approxContours.clear();
+        return cntImg;
     }
 
     public Mat getFrame(Mat inputFrame) {
-        getField(inputFrame);
         min_area = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
