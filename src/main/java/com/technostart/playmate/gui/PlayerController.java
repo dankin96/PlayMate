@@ -1,6 +1,9 @@
 package com.technostart.playmate.gui;
 
 import com.technostart.playmate.core.cv.Utils;
+import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
+import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.settings.Cfg;
@@ -70,6 +73,7 @@ public class PlayerController implements Initializable {
 
     private Tracker tracker;
     private FieldDetector tableDetector;
+    private BackgroundExtractor bgSubstr;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -79,9 +83,9 @@ public class PlayerController implements Initializable {
         @Cfg
         double resizeRate = 0.6;
         @Cfg
-        boolean isTrackerEnable;
+        boolean isTrackerEnable = false;
         @Cfg
-        boolean isFieldDetectorEnable = true;
+        boolean isFieldDetectorEnable = false;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -147,9 +151,10 @@ public class PlayerController implements Initializable {
                 frameNumberToShow = (int) pos;
             }
         });
-
+        bgSubstr = new SimpleBackgroundSubtractor();
+//        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
         // TODO: добавить новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(frameHandler));
+        updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
 
     private void showFrame(Image imageToShow) {
@@ -168,7 +173,7 @@ public class PlayerController implements Initializable {
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
-        tracker = new Tracker(firstFrame.size(), 5, 0.5f);
+        tracker = new Tracker(firstFrame.size(), bgSubstr);
         tableDetector = new TableDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
@@ -249,6 +254,7 @@ public class PlayerController implements Initializable {
             tableDetector = settingsManager.fromSettings(tableDetector);
             capture = settingsManager.fromSettings(capture);
             frameHandler = settingsManager.fromSettings(frameHandler);
+            bgSubstr = settingsManager.fromSettings(bgSubstr);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
