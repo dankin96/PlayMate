@@ -103,7 +103,7 @@ public class PlayerController implements Initializable {
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
             }
-            return Utils.mat2Image(newFrame, jpgQuality);
+            return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
     };
 

@@ -1,13 +1,10 @@
 package com.technostart.playmate.core.cv;
 
-import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import javafx.scene.image.Image;
+
 import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -333,17 +330,6 @@ public class Utils {
             }
         }
         return listOfPoints;
-    }
-
-    public static Image mat2Image(Mat frame, int jpgQuality) {
-        int[] params = new int[2];
-        params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
-        params[1] = jpgQuality;
-        MatOfInt matOfParams = new MatOfInt();
-        matOfParams.fromArray(params);
-        MatOfByte buffer = new MatOfByte();
-        Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
-        return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
 
     public static Mat createHomography(Mat inputFrame, Mat srcPoints, Mat dstPoints) {
