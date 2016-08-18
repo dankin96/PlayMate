@@ -169,7 +169,7 @@ public class Tracker {
          * Композиция исходного изображения с данными трекера.
          */
         // Конвертируем исходное изображение в BGR для отрисовки цветных контуров.
-        if (inputFrame.type() != CvType.CV_8UC3) {
+        if (inputFrame.type() == CvType.CV_8UC1) {
             Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
         }
         // Матрица для отрисовки контуров, треков и т.д.

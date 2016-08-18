@@ -20,7 +20,7 @@ public class SimpleBackgroundSubtractor implements BackgroundExtractor {
     public void apply(Mat image, Mat fgMask) {
         if (prevFrame == null) {
             prevFrame = image;
-            return;
+//            return;
         }
 
         Core.absdiff(prevFrame, image, fgMask);
@@ -29,6 +29,10 @@ public class SimpleBackgroundSubtractor implements BackgroundExtractor {
         if (fgMask.type() == CvType.CV_8UC3) {
             Imgproc.cvtColor(fgMask, fgMask, Imgproc.COLOR_BGR2GRAY);
         }
+        if (fgMask.type() == CvType.CV_8UC4) {
+            Imgproc.cvtColor(fgMask, fgMask, Imgproc.COLOR_BGRA2GRAY);
+        }
+
         Imgproc.threshold(fgMask, fgMask, 1, 255, Imgproc.THRESH_BINARY);
     }
 }
