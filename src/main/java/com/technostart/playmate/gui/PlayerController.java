@@ -25,9 +25,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.Subscription;
@@ -40,9 +38,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class PlayerController implements Initializable {
 
@@ -81,7 +77,9 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable;
         @Cfg
-        boolean isFieldDetectorEnable = true;
+        boolean isFieldDetectorEnable = false;
+        @Cfg
+        boolean warpPerspective = true;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -93,11 +91,33 @@ public class PlayerController implements Initializable {
             if (isFieldDetectorEnable) {
                 Mat originalFrame = newFrame;
                 newFrame = tableDetector.getField(newFrame);
-//                Imgproc.cvtColor(originalFrame, originalFrame, Imgproc.COLOR_GRAY2BGR);
                 Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
+            }
+            if (warpPerspective) {
+                List<Point> srcPoints = new ArrayList<Point>();
+                //координаты правой половины стола 1 дубля захордкоженные
+                Point srcP1 = new Point(403.50083892617465, 241.15520134228194);
+                Point srcP2 = new Point(597.7818181818185, 247.85454545454544);
+                Point srcP3 = new Point(398.76898763595807, 305.8238356419075);
+                Point srcP4 = new Point(693.163064833006, 311.442043222004);
+                srcPoints.add(srcP1);
+                srcPoints.add(srcP2);
+                srcPoints.add(srcP3);
+                srcPoints.add(srcP4);
+                List<Point> dstPoints = new ArrayList<Point>();
+                Point dstP1 = new Point(0, 0);
+                Point dstP2 = new Point(newFrame.width() - 1, 0);
+                Point dstP3 = new Point(0, newFrame.height() - 1);
+                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);
+                dstPoints.add(dstP1);
+                dstPoints.add(dstP2);
+                dstPoints.add(dstP3);
+                dstPoints.add(dstP4);
+
+                newFrame = Utils.createHomography(newFrame, srcPoints, dstPoints);
             }
             return Utils.mat2Image(newFrame, jpgQuality);
         }

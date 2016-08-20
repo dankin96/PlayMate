@@ -18,8 +18,6 @@ public class TableDetector extends FieldDetector {
     @Cfg
     static int areaCoef = 250;
     @Cfg
-    static int edgesNumber = 4;
-    @Cfg
     static int diameter = 5;
     @Cfg
     private int threshold = 80;
@@ -32,6 +30,12 @@ public class TableDetector extends FieldDetector {
     @Cfg
     static public double maxAngle = 15.0;
     @Cfg
+    static int blurSigmaX = 3;
+    @Cfg
+    static int multiplierThreshold = 3;
+
+    static int cannyApertureSize = 3;
+    static int edgesNumber = 4;
     private double approxAngleThreshold = 200;
 
     private List<MatOfPoint> contours;
@@ -67,7 +71,6 @@ public class TableDetector extends FieldDetector {
         if (convexHull != null) {
             approxContours = approximateContours(convexHull, edgesNumber);
             print(cntImg, approxContours, -1, false);
-//            print(cntImg, convexHull, 3, false);
             convexHull.clear();
         }
         contours.clear();
@@ -131,8 +134,8 @@ public class TableDetector extends FieldDetector {
         Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
         //bilateral фильтр лучше для краев
         Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
-        Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
-        Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
+        Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * multiplierThreshold, cannyApertureSize, false);
+        Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), blurSigmaX);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
         return processingFrame;
     }
@@ -212,7 +215,6 @@ public class TableDetector extends FieldDetector {
         } else
             return null;
     }
-
 
     private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean random) {
         for (int i = 0; i < contours.size(); i++) {

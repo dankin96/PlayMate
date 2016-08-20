@@ -1,11 +1,11 @@
 package com.technostart.playmate.core.cv;
 
-import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import javafx.scene.image.Image;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
+import org.opencv.utils.Converters;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -281,8 +281,6 @@ public class Utils {
     public static List<Point> approximate(MatOfPoint temp, int edgesNumber, double angleThreshold) {
         List<Point> listOfPoints = temp.toList();
         listOfPoints = new LinkedList<>(listOfPoints);
-        // убираем итеративно стороны
-//        for (int i = 0; i < listOfPoints.size() - edgesNumber || listOfPoints.size() == edgesNumber; i++) {
         while (listOfPoints.size() != edgesNumber) {
             int listOfPointsSize = listOfPoints.size();
             int lastIdx = listOfPointsSize - 1;
@@ -323,6 +321,9 @@ public class Utils {
                     point4 = p4;
                 }
             }
+            if (point1 == null || point2 == null || point3 == null || point4 == null) {
+                return null;
+            }
             Point newPoint = Utils.intersection(point1, point2, point3, point4);
             //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
             if (newPoint != null) {
@@ -332,6 +333,10 @@ public class Utils {
                 listOfPoints.remove(point2idx);
             }
         }
+        for (int i = 0; i < listOfPoints.size(); i++) {
+            System.out.println("(" + listOfPoints.get(i).x + ";" + listOfPoints.get(i).y + ")");
+        }
+        System.out.println("\n");
         return listOfPoints;
     }
 
@@ -346,11 +351,10 @@ public class Utils {
         return new Image(new ByteArrayInputStream(buffer.toArray()));
     }
 
-    public static Mat createHomography(Mat inputFrame, Mat srcPoints, Mat dstPoints) {
-        Mat perspectiveTransform = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
-        Mat cropped_image = inputFrame.clone();
+    public static Mat createHomography(Mat inputFrame, List<Point> srcPoints, List<Point> dstPoints) {
+        Mat perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPoints), Converters.vector_Point2f_to_Mat(dstPoints));
         Mat homographyImg = new Mat();
-        Imgproc.warpPerspective(homographyImg, cropped_image, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        Imgproc.warpPerspective(inputFrame, homographyImg, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
         return homographyImg;
     }
 
