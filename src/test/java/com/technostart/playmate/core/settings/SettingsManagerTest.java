@@ -18,9 +18,10 @@ public class SettingsManagerTest {
     @Test
     public void toSettings() throws Exception {
         manager.toSettings(testClass);
-        assertEquals(123, manager.getInt("int123"));
-        assertEquals(12.34, manager.getDouble("double1"), 0);
-        assertEquals(true, manager.getBoolean("bool1"));
+        assertEquals(123, manager.getInt("int123", 0));
+        assertEquals(12.34, manager.getDouble("double1", 0.0), 0);
+        assertEquals(true, manager.getBoolean("bool1", false));
+        assertEquals(null, manager.getString("emptyString", null));
     }
 
     @Test
@@ -32,28 +33,27 @@ public class SettingsManagerTest {
     public void intFromJson() throws Exception {
         String json = "{\"i1\":{\"type\":\"Integer\",\"value\":1},\"i2\":{\"type\":\"Integer\",\"value\":2}}";
         manager.fromJson(json);
-        assertEquals(manager.getInt("i1"), 1);
-        assertEquals(manager.getInt("i2"), 2);
+        assertEquals(manager.getInt("i1", 0), 1);
+        assertEquals(manager.getInt("i2", 0), 2);
     }
 
     @Test
     public void boolFromJson() throws Exception {
         String json = "{\"b1\":{\"type\":\"Boolean\",\"value\":true}}";
         manager.fromJson(json);
-        assertEquals(manager.getBoolean("b1"), true);
+        assertEquals(true, manager.getBoolean("b1", false));
     }
 
     @Test
     public void stringFromJson() throws Exception {
         String json = "{\"s1\":{\"type\":\"String\",\"value\":\"hello\"}}";
         manager.fromJson(json);
-        assertEquals(manager.getString("s1"), "hello");
+        assertEquals("hello", manager.getString("s1", ""));
     }
 
     @Test
     public void toJson() throws Exception {
         manager.mockProperty();
         String json = manager.toJson();
-        System.out.println(json);
     }
 }

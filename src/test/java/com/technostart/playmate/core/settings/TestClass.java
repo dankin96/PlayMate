@@ -28,12 +28,12 @@ class TestClass {
     ///////////////////////////////////////////////////////////////////////////
     // Поля без инициализации.
     ///////////////////////////////////////////////////////////////////////////
-    @Cfg
+/*    @Cfg
     Integer emptyInteger;
     @Cfg
     Double emptyDouble;
     @Cfg
-    Boolean emptyBoolean;
+    Boolean emptyBoolean;*/
     @Cfg
     String emptyString;
 

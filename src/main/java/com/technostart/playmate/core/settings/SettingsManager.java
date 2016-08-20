@@ -3,7 +3,9 @@ package com.technostart.playmate.core.settings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 
+import java.io.Reader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -26,12 +28,12 @@ public class SettingsManager {
         properties = gson.fromJson(json, type);
     }
 
-    public void mockProperty() {
-        properties.put("i1", new Property<Integer>(Property.INTEGER, 1));
-        properties.put("i2", new Property<Integer>(Property.INTEGER, 2));
-        properties.put("d1", new Property<Double>(Property.DOUBLE, 1.5));
-        properties.put("s1", new Property<String>(Property.STRING, "hello"));
-        properties.put("b1", new Property<Boolean>(Property.BOOLEAN, true));
+    public void fromJson(Reader reader) {
+        JsonReader jsonReader = new JsonReader(reader);
+        Gson gson = new Gson();
+        Type type = new TypeToken<Map<String, Property>>() {
+        }.getType();
+        properties = gson.fromJson(jsonReader, type);
     }
 
     public String toJson() {
@@ -43,11 +45,30 @@ public class SettingsManager {
         return properties;
     }
 
+    public void mockProperty() {
+        properties.put("int1", new Property<Integer>(Property.INTEGER, 1));
+        properties.put("int2", new Property<Integer>(Property.INTEGER, 2));
+        properties.put("double1", new Property<Double>(Property.DOUBLE, 1.5));
+        properties.put("string1", new Property<String>(Property.STRING, "hello"));
+        properties.put("bool1", new Property<Boolean>(Property.BOOLEAN, true));
+        properties.put("bool0", new Property<Boolean>(Property.BOOLEAN, false));
+        properties.put("SomeLongName_______________qwrty", new Property<Boolean>(Property.BOOLEAN, true));
+        properties.put("Name1", new Property<String>(Property.STRING, "SomeString"));
+        properties.put("Name2", new Property<Double>(Property.DOUBLE, 123.456));
+        properties.put("Name3", new Property<Integer>(Property.INTEGER, -1234));
+    }
+
+
+    public boolean containKey(String key) {
+        return properties.containsKey(key);
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Получение настроек.
     ///////////////////////////////////////////////////////////////////////////
 
-    public int getInt(String key) {
+    public int getInt(String key, int defaultValue) {
+        if (!properties.containsKey(key)) return defaultValue;
         Property property = properties.get(key);
         assert property.type.equals(Property.INTEGER);
         Object value = property.value;
@@ -55,19 +76,22 @@ public class SettingsManager {
         return (int) value;
     }
 
-    public double getDouble(String key) {
+    public double getDouble(String key, double defaultValue) {
+        if (!properties.containsKey(key)) return defaultValue;
         Property property = properties.get(key);
         assert property.type.equals(Property.DOUBLE);
         return (double) property.value;
     }
 
-    public String getString(String key) {
+    public String getString(String key, String defaultValue) {
+        if (!properties.containsKey(key)) return defaultValue;
         Property property = properties.get(key);
         assert property.type.equals(Property.STRING);
         return (String) property.value;
     }
 
-    public boolean getBoolean(String key) {
+    public boolean getBoolean(String key, boolean defaultValue) {
+        if (!properties.containsKey(key)) return defaultValue;
         Property property = properties.get(key);
         assert property.type.equals(Property.BOOLEAN);
         return (boolean) property.value;
@@ -144,18 +168,18 @@ public class SettingsManager {
                 switch (typeName) {
                     case "int":
                     case "Integer":
-                        field.setInt(obj, getInt(key));
+                        field.setInt(obj, getInt(key, 0));
                         break;
                     case "double":
                     case "Double":
-                        field.setDouble(obj, getDouble(key));
+                        field.setDouble(obj, getDouble(key, 0));
                         break;
                     case "String":
-                        field.set(obj, getString(key));
+                        field.set(obj, getString(key, ""));
                         break;
                     case "boolean":
                     case "Boolean":
-                        field.setBoolean(obj, getBoolean(key));
+                        field.setBoolean(obj, getBoolean(key, false));
                         break;
                 }
             }
