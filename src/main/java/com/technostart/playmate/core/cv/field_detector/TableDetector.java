@@ -214,12 +214,10 @@ public class TableDetector extends FieldDetector {
     }
 
 
-    private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean random) {
+    private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
         for (int i = 0; i < contours.size(); i++) {
-            if (random)
-                Imgproc.drawContours(cntImg, contours, i, Palette.getNextColor(), thickness);
-            else
-                Imgproc.drawContours(cntImg, contours, i, Palette.WHITE, thickness);
+            Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
+            Imgproc.drawContours(cntImg, contours, i, color, thickness);
         }
         return cntImg;
     }
