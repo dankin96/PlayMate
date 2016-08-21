@@ -120,7 +120,7 @@ public class SettingsManager {
     /**
      * Добавляет поля с настройками из аннотированных полей объекта.
      */
-    public void toSettings(Object obj) throws IllegalAccessException {
+    public void toSettings(Object obj) {
         Class clazz = obj.getClass();
         List<Field> fields = Arrays.asList(clazz.getDeclaredFields());
         for (Field field : fields) {
@@ -131,22 +131,26 @@ public class SettingsManager {
             Type type = field.getType();
             String typeName = type.toString();
             typeName = typeName.substring(typeName.lastIndexOf(".") + 1);
-            switch (typeName) {
-                case "int":
-                case "Integer":
-                    putInt(name, (int) field.get(obj));
-                    break;
-                case "double":
-                case "Double":
-                    putDouble(name, (double) field.get(obj));
-                    break;
-                case "String":
-                    putString(name, (String) field.get(obj));
-                    break;
-                case "boolean":
-                case "Boolean":
-                    putBoolean(name, (boolean) field.get(obj));
-                    break;
+            try {
+                switch (typeName) {
+                    case "int":
+                    case "Integer":
+                        putInt(name, (int) field.get(obj));
+                        break;
+                    case "double":
+                    case "Double":
+                        putDouble(name, (double) field.get(obj));
+                        break;
+                    case "String":
+                        putString(name, (String) field.get(obj));
+                        break;
+                    case "boolean":
+                    case "Boolean":
+                        putBoolean(name, (boolean) field.get(obj));
+                        break;
+                }
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
             }
         }
     }
