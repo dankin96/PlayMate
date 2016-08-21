@@ -30,10 +30,9 @@ import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.Subscription;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import javax.json.*;
+import javax.json.stream.JsonGenerator;
+import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -63,6 +62,7 @@ public class PlayerController implements Initializable {
     private BufferedFrameReader<Image> capture;
     private String videoFileName;
     private int frameNumberToShow;
+    private List<Point> pointsForTesting;
 
     private Tracker tracker;
     private FieldDetector tableDetector;
@@ -77,9 +77,9 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable;
         @Cfg
-        boolean isFieldDetectorEnable = false;
+        boolean isFieldDetectorEnable = true;
         @Cfg
-        boolean warpPerspective = true;
+        boolean warpPerspective = false;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -100,7 +100,7 @@ public class PlayerController implements Initializable {
                 List<Point> srcPoints = new ArrayList<Point>();
                 //координаты правой половины стола 1 дубля захордкоженные
                 Point srcP1 = new Point(403.50083892617465, 241.15520134228194);
-                Point srcP2 = new Point(597.7818181818185, 247.85454545454544);
+                Point srcP2 = new Point(590.7818181818185, 244.85454545454544);
                 Point srcP3 = new Point(398.76898763595807, 305.8238356419075);
                 Point srcP4 = new Point(693.163064833006, 311.442043222004);
                 srcPoints.add(srcP1);
@@ -108,10 +108,14 @@ public class PlayerController implements Initializable {
                 srcPoints.add(srcP3);
                 srcPoints.add(srcP4);
                 List<Point> dstPoints = new ArrayList<Point>();
-                Point dstP1 = new Point(0, 0);
+                /*Point dstP1 = new Point(0, 0);
                 Point dstP2 = new Point(newFrame.width() - 1, 0);
                 Point dstP3 = new Point(0, newFrame.height() - 1);
-                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);
+                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);*/
+                Point dstP1 = new Point(400, 240);
+                Point dstP2 = new Point(600, 240);
+                Point dstP3 = new Point(400, 310);
+                Point dstP4 = new Point(600, 310);
                 dstPoints.add(dstP1);
                 dstPoints.add(dstP2);
                 dstPoints.add(dstP3);
@@ -152,10 +156,19 @@ public class PlayerController implements Initializable {
 
         // Менеджер настроек.
         settingsManager = new SettingsManager();
-
         videoFileName = "";
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
+        pointsForTesting = new ArrayList<Point>();
         processedFrameView.setImage(imageToShow);
+        processedFrameView.setOnMouseClicked(e -> {
+            //считывает по 8 координат с ImageView и записывает их в Json с ресурсах
+            if (pointsForTesting.size() <= 8)
+                pointsForTesting.add(new Point(e.getX() / processedFrameView.getFitWidth(), e.getY() / processedFrameView.getFitHeight()));
+            if (pointsForTesting.size() == 8) {
+                createJsonTestFile(pointsForTesting, videoFileName);
+                pointsForTesting.clear();
+            }
+        });
 
         // Инициализация слайдера.
         frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
@@ -338,5 +351,81 @@ public class PlayerController implements Initializable {
         return string;
     }
 
+    private void createJsonTestFile(List<Point> points, String fileName) {
+        try {
+            //создание нового объекта json
+            JsonObject newJsonObject = Json.createObjectBuilder()
+                    .add(fileName, Json.createObjectBuilder()
+                            .add("leftTable", Json.createObjectBuilder()
+                                    .add("x", Json.createArrayBuilder()
+                                            .add(points.get(0).x)
+                                            .add(points.get(1).x)
+                                            .add(points.get(2).x)
+                                            .add(points.get(3).x)
+                                            .build())
+                                    .add("y", Json.createArrayBuilder()
+                                            .add(points.get(0).y)
+                                            .add(points.get(1).y)
+                                            .add(points.get(2).y)
+                                            .add(points.get(3).y)
+                                            .build())
+                                    .build())
+                            .add("rightTable", Json.createObjectBuilder()
+                                    .add("x", Json.createArrayBuilder()
+                                            .add(points.get(4).x)
+                                            .add(points.get(5).x)
+                                            .add(points.get(6).x)
+                                            .add(points.get(7).x)
+                                            .build())
+                                    .add("y", Json.createArrayBuilder()
+                                            .add(points.get(4).y)
+                                            .add(points.get(5).y)
+                                            .add(points.get(6).y)
+                                            .add(points.get(7).y)
+                                            .build())
+                                    .build())
+                    )
+                    .build();
+            Map<String, Boolean> config = new HashMap<>();
+            config.put(JsonGenerator.PRETTY_PRINTING, true);
+            JsonWriterFactory jsonWriterFactory = Json.createWriterFactory(config);
+            StringWriter stringWithJson = new StringWriter();
+            FileReader file = new FileReader(System.getProperty("user.dir") + "/src/test/java/Tests/tablecoords.json");
+            //если изначально файл содержит другой json
+            if (file.read() != -1) {
+                JsonReader jsonReader = Json.createReader(file);
+                JsonObject oldJsonObject = jsonReader.readObject();
+                JsonObject result = mergeProfileSummary(oldJsonObject, newJsonObject);
+                try (JsonWriter jsonWriter = jsonWriterFactory.createWriter(stringWithJson)) {
+                    jsonWriter.write(result); //JsonObject created before
+                    System.out.println(stringWithJson.toString());
+                }
+            } else {
+                try (JsonWriter jsonWriter = jsonWriterFactory.createWriter(stringWithJson)) {
+                    jsonWriter.writeObject(newJsonObject);
+                    System.out.println(stringWithJson.toString());
+                }
+            }
+            FileWriter newFile = new FileWriter(System.getProperty("user.dir") + "/src/test/java/Tests/tablecoords.json", false);
+            newFile.write(stringWithJson.toString());
+            newFile.flush();
+            newFile.close();
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private JsonObject mergeProfileSummary(JsonObject oldJsonObject, JsonObject newJsonObject) {
+        JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
+
+        for (String key : oldJsonObject.keySet()) {
+            jsonObjectBuilder.add(key, oldJsonObject.get(key));
+        }
+        for (String key : newJsonObject.keySet()) {
+            jsonObjectBuilder.add(key, newJsonObject.get(key));
+        }
+
+        return jsonObjectBuilder.build();
+    }
 }
