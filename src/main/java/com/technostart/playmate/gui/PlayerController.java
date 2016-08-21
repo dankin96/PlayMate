@@ -1,14 +1,12 @@
 package com.technostart.playmate.gui;
 
-import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
-import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
 import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
-import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.frame_reader.CvFrameReader;
 import com.technostart.playmate.frame_reader.FrameHandler;
@@ -16,7 +14,6 @@ import com.technostart.playmate.frame_reader.Mat2ImgReader;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuBar;
@@ -267,13 +264,7 @@ public class PlayerController implements Initializable {
      */
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
-            try {
-                settingsManager.toSettings(object);
-            } catch (IllegalAccessException e) {
-                // TODO: вывести ошибку.
-                System.out.println("Ошибка парсера настроек");
-                e.printStackTrace();
-            }
+            settingsManager.toSettings(object);
         }
         updateSettingsFields();
     }

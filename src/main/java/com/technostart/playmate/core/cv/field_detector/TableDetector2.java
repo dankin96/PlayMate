@@ -9,7 +9,8 @@ import org.opencv.imgproc.Imgproc;
 
 import java.util.*;
 
-public class TableDetector extends FieldDetector {
+@SuppressWarnings("Duplicates")
+public class TableDetector2 extends FieldDetector {
     @Cfg
     static int sigmaColor = 25;
     @Cfg
@@ -35,84 +36,66 @@ public class TableDetector extends FieldDetector {
     @Cfg
     private double approxAngleThreshold = 200;
 
-    private List<MatOfPoint> contours;
-    private List<MatOfPoint> convexHull;
-    private List<MatOfPoint> approxContours;
+//    private List<MatOfPoint> contours;
+//    private List<MatOfPoint> convexHullList;
+//    private List<MatOfPoint> approxContours;
     private Mat processingFrame;
-    private Mat structeredElement;
-    private int min_area;
+    private Mat structuredElement;
+    private int minArea;
 
-    public TableDetector(Size frameSize) {
+    public TableDetector2(Size frameSize) {
         super(frameSize);
         processingFrame = new Mat();
-        structeredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
-        contours = new ArrayList<MatOfPoint>();
-        convexHull = new ArrayList<MatOfPoint>();
-        approxContours = new ArrayList<MatOfPoint>();
-        min_area = 0;
+        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
+//        convexHullList = new ArrayList<>();
+//        approxContours = new ArrayList<>();
+        minArea = 0;
     }
 
     @Override
     public Mat getField(Mat inputFrame) {
-        min_area = inputFrame.height() * inputFrame.width() / areaCoef;
+        List<MatOfPoint> contours = new ArrayList<>();
+        minArea = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
         //поиск контуров на картинке
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
         //фильтрация контуров
-        contours = contourFilter(contours, min_area);
+        contours = contourFilter(contours, minArea);
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
-        convexHull = convexHull(contours);
-        convexHull = findTwoMatchingShapes(convexHull);
-        if (convexHull != null) {
-            approxContours = approximateContours(convexHull, edgesNumber);
+        List<MatOfPoint> convexHullList = convexHull(contours);
+//        convexHullList = findTwoMatchingShapes(convexHullList);
+        if (convexHullList != null) {
+            List<MatOfPoint> approxContours = approximateContours(convexHullList, edgesNumber);
             print(cntImg, approxContours, -1, false);
-//            print(cntImg, convexHull, 3, false);
-            convexHull.clear();
+//            print(cntImg, convexHullList, 3, false);
+            convexHullList.clear();
         }
-        contours.clear();
-        approxContours.clear();
         return cntImg;
     }
 
     public Mat getFrame(Mat inputFrame) {
-        min_area = inputFrame.height() * inputFrame.width() / areaCoef;
-        //предварительная обработка изображения фильтрами
-        processingFrame = frameFilter(inputFrame, threshold);
-        //поиск контуров на картинке
-        Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-        //фильтрация контуров
-        contours = contourFilter(contours, min_area);
-        //построение нового изображения
-        Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-        convexHull = convexHull(contours);
-        convexHull = findTwoMatchingShapes(convexHull);
-        if (convexHull != null) {
-            approxContours = approximateContours(convexHull, edgesNumber);
-            print(cntImg, approxContours, -1, true);
-            print(cntImg, convexHull, 3, false);
-            convexHull.clear();
-        }
-        contours.clear();
-        approxContours.clear();
-        return cntImg;
+        Mat fieldMask = getField(inputFrame);
+        Mat newFrame = new Mat();
+        Core.addWeighted(inputFrame, 0.5, fieldMask, 0.5, 1, newFrame);
+        return newFrame;
     }
 
     private List<MatOfPoint> convexHull(List<MatOfPoint> contours) {
         List<MatOfPoint> hullmop = new ArrayList<MatOfPoint>();
-        for (int i = 0; i < contours.size(); i++) {
-            hullmop.add(Utils.convexHull(contours.get(i)));
+        for (MatOfPoint contour : contours) {
+            hullmop.add(Utils.convexHull(contour));
         }
         return hullmop;
     }
 
 
-    private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHull, int edgesNumber) {
-        List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
-        for (int i = 0; i < convexHull.size(); i++) {
+    private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHullList, int edgesNumber) {
+        List<MatOfPoint> approxContours = new ArrayList<>();
+        for (MatOfPoint convexHull : convexHullList) {
             MatOfPoint temp = new MatOfPoint();
-            convexHull.get(i).convertTo(temp, CvType.CV_32S);
+            convexHull.convertTo(temp, CvType.CV_32S);
             //если сторон больше нужного количества, то аппроксимируем
             if (temp.rows() <= edgesNumber) {
                 approxContours.add(temp);
@@ -134,7 +117,7 @@ public class TableDetector extends FieldDetector {
         Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
-        Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
+        Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structuredElement, new Point(-1, -1), 1);
         return processingFrame;
     }
 
@@ -205,7 +188,7 @@ public class TableDetector extends FieldDetector {
                 }
             }
         }
-        List<MatOfPoint> matchedContours = new LinkedList<MatOfPoint>();
+        List<MatOfPoint> matchedContours = new LinkedList<>();
         if (indexOfFirstTableContour != -1 && indexOfSecondTableContour != -1) {
             matchedContours.add(contours.get(indexOfFirstTableContour));
             matchedContours.add(contours.get(indexOfSecondTableContour));
