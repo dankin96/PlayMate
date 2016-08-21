@@ -36,9 +36,6 @@ public class TableDetector2 extends FieldDetector {
     @Cfg
     private double approxAngleThreshold = 200;
 
-//    private List<MatOfPoint> contours;
-//    private List<MatOfPoint> convexHullList;
-//    private List<MatOfPoint> approxContours;
     private Mat processingFrame;
     private Mat structuredElement;
     private int minArea;
@@ -47,8 +44,6 @@ public class TableDetector2 extends FieldDetector {
         super(frameSize);
         processingFrame = new Mat();
         structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
-//        convexHullList = new ArrayList<>();
-//        approxContours = new ArrayList<>();
         minArea = 0;
     }
 
@@ -65,11 +60,9 @@ public class TableDetector2 extends FieldDetector {
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         List<MatOfPoint> convexHullList = convexHull(contours);
-//        convexHullList = findTwoMatchingShapes(convexHullList);
         if (convexHullList != null) {
             List<MatOfPoint> approxContours = approximateContours(convexHullList, edgesNumber);
             print(cntImg, approxContours, -1, false);
-//            print(cntImg, convexHullList, 3, false);
             convexHullList.clear();
         }
         return cntImg;
