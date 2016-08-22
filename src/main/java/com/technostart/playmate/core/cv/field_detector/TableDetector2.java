@@ -47,9 +47,7 @@ public class TableDetector2 extends FieldDetector {
     public TableDetector2(Size frameSize) {
         super(frameSize);
         processingFrame = new Mat();
-        double size = frameSize.width * structElementSizeRate;
-        Size structElementSize = new Size(size, size);
-        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, structElementSize);
+        updateStructuredElement();
         frameArea = frameSize.width * frameSize.height;
     }
 
@@ -190,5 +188,11 @@ public class TableDetector2 extends FieldDetector {
         Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
         Imgproc.drawContours(cntImg, contours, -1 , color, thickness);
         return cntImg;
+    }
+
+    public void updateStructuredElement() {
+        double size = frameSize.width * structElementSizeRate;
+        Size structElementSize = new Size(size, size);
+        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, structElementSize);
     }
 }
