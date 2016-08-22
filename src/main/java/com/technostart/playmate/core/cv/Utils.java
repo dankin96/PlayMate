@@ -278,9 +278,11 @@ public class Utils {
     public static List<Point> approximate(MatOfPoint temp, int edgesNumber, double angleThreshold) {
         List<Point> listOfPoints = temp.toList();
         listOfPoints = new LinkedList<>(listOfPoints);
+        int maxIterations = listOfPoints.size();
         // убираем итеративно стороны
 //        for (int i = 0; i < listOfPoints.size() - edgesNumber || listOfPoints.size() == edgesNumber; i++) {
-        while (listOfPoints.size() != edgesNumber) {
+        while (listOfPoints.size() != edgesNumber && maxIterations > 0) {
+            maxIterations--;
             int listOfPointsSize = listOfPoints.size();
             int lastIdx = listOfPointsSize - 1;
             double min_distance = Double.MAX_VALUE;
@@ -320,6 +322,9 @@ public class Utils {
                     point4 = p4;
                 }
             }
+
+            if (point1 == null || point2 == null || point3 == null || point4 == null) continue;
+
             Point newPoint = Utils.intersection(point1, point2, point3, point4);
             //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
             if (newPoint != null) {
