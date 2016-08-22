@@ -29,10 +29,13 @@ import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.Subscription;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.stream.*;
+import com.google.gson.reflect.TypeToken;
 
-import javax.json.*;
-import javax.json.stream.JsonGenerator;
 import java.io.*;
+import java.lang.reflect.Type;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -354,78 +357,29 @@ public class PlayerController implements Initializable {
     private void createJsonTestFile(List<Point> points, String fileName) {
         try {
             //создание нового объекта json
-            JsonObject newJsonObject = Json.createObjectBuilder()
-                    .add(fileName, Json.createObjectBuilder()
-                            .add("leftTable", Json.createObjectBuilder()
-                                    .add("x", Json.createArrayBuilder()
-                                            .add(points.get(0).x)
-                                            .add(points.get(1).x)
-                                            .add(points.get(2).x)
-                                            .add(points.get(3).x)
-                                            .build())
-                                    .add("y", Json.createArrayBuilder()
-                                            .add(points.get(0).y)
-                                            .add(points.get(1).y)
-                                            .add(points.get(2).y)
-                                            .add(points.get(3).y)
-                                            .build())
-                                    .build())
-                            .add("rightTable", Json.createObjectBuilder()
-                                    .add("x", Json.createArrayBuilder()
-                                            .add(points.get(4).x)
-                                            .add(points.get(5).x)
-                                            .add(points.get(6).x)
-                                            .add(points.get(7).x)
-                                            .build())
-                                    .add("y", Json.createArrayBuilder()
-                                            .add(points.get(4).y)
-                                            .add(points.get(5).y)
-                                            .add(points.get(6).y)
-                                            .add(points.get(7).y)
-                                            .build())
-                                    .build())
-                    )
-                    .build();
-            Map<String, Boolean> config = new HashMap<>();
-            config.put(JsonGenerator.PRETTY_PRINTING, true);
-            JsonWriterFactory jsonWriterFactory = Json.createWriterFactory(config);
-            StringWriter stringWithJson = new StringWriter();
-            FileReader file = new FileReader(System.getProperty("user.dir") + "/src/test/java/Tests/tablecoords.json");
-            //если изначально файл содержит другой json
-            if (file.read() != -1) {
-                JsonReader jsonReader = Json.createReader(file);
-                JsonObject oldJsonObject = jsonReader.readObject();
-                JsonObject result = mergeProfileSummary(oldJsonObject, newJsonObject);
-                try (JsonWriter jsonWriter = jsonWriterFactory.createWriter(stringWithJson)) {
-                    jsonWriter.write(result); //JsonObject created before
-                    System.out.println(stringWithJson.toString());
-                }
-            } else {
-                try (JsonWriter jsonWriter = jsonWriterFactory.createWriter(stringWithJson)) {
-                    jsonWriter.writeObject(newJsonObject);
-                    System.out.println(stringWithJson.toString());
-                }
+            fileName = Utils.getNameOfFile(fileName);
+            HashMap<String, List<Point>> hashMapWithPoints = new HashMap<String, List<Point>>();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            String fileNameWithJson = (System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/table_tests/tablecoords.json");
+            FileReader fileReader = new FileReader(fileNameWithJson);
+            if (fileReader.read() != -1) {
+                JsonReader reader = new JsonReader(fileReader);
+                reader.beginObject();
+                Type type = new TypeToken<Map<String, List<Point>>>() {
+                }.getType();
+                hashMapWithPoints = gson.fromJson(reader.nextString(), type);
+                reader.endObject();
             }
-            FileWriter newFile = new FileWriter(System.getProperty("user.dir") + "/src/test/java/Tests/tablecoords.json", false);
-            newFile.write(stringWithJson.toString());
-            newFile.flush();
-            newFile.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
+            hashMapWithPoints.put(fileName, points);
+            String stringPoints = gson.toJson(hashMapWithPoints);
+            System.out.println(stringPoints);
+            FileWriter fileWriter = new FileWriter(fileNameWithJson);
+            fileWriter.write(stringPoints);
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (IOException ex) {
         }
+
     }
 
-    private JsonObject mergeProfileSummary(JsonObject oldJsonObject, JsonObject newJsonObject) {
-        JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
-
-        for (String key : oldJsonObject.keySet()) {
-            jsonObjectBuilder.add(key, oldJsonObject.get(key));
-        }
-        for (String key : newJsonObject.keySet()) {
-            jsonObjectBuilder.add(key, newJsonObject.get(key));
-        }
-
-        return jsonObjectBuilder.build();
-    }
 }
