@@ -1,12 +1,19 @@
 package com.technostart.playmate.gui;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import javafx.scene.image.Image;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfInt;
+import org.opencv.core.Point;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
 
 public class GuiUtils {
     public static Image mat2Image(Mat frame, int jpgQuality) {
@@ -18,5 +25,30 @@ public class GuiUtils {
         MatOfByte buffer = new MatOfByte();
         Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
         return new Image(new ByteArrayInputStream(buffer.toArray()));
+    }
+
+    //имя файла без абсолютного пути
+    public static String getNameOfFile(String absolutePath) {
+        int i = absolutePath.lastIndexOf("/");
+        int j = absolutePath.lastIndexOf(".");
+        return absolutePath.substring(i, j);
+    }
+
+    public static void createJsonTestFile(List<Point> points, String fileNameOfObject) {
+        try {
+            //создание нового объекта json
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            String fileNameWithJson = (System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/table_tests/" + getNameOfFile(fileNameOfObject) + ".json");
+            File file = new File(fileNameWithJson);
+            if (file.exists() != true) {
+                file.createNewFile();
+            }
+            String stringPoints = gson.toJson(points);
+            FileWriter fileWriter = new FileWriter(fileNameWithJson);
+            fileWriter.write(stringPoints);
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (IOException ex) {
+        }
     }
 }

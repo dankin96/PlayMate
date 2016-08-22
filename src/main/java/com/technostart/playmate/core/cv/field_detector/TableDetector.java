@@ -88,7 +88,7 @@ public class TableDetector extends FieldDetector {
         //фильтрация контуров
         contours = contourFilter(contours, min_area);
         //построение нового изображения
-        Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
+        Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
         if (convexHull != null) {
@@ -100,6 +100,10 @@ public class TableDetector extends FieldDetector {
         contours.clear();
         approxContours.clear();
         return cntImg;
+    }
+
+    public List<MatOfPoint> getPointsOfTable() {
+        return approxContours;
     }
 
     private List<MatOfPoint> convexHull(List<MatOfPoint> contours) {
