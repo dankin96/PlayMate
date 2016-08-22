@@ -2,11 +2,10 @@ package com.technostart.playmate.core.cv.tracker;
 
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
-import com.technostart.playmate.core.settings.Cfg;
+import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
+import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.video.BackgroundSubtractorMOG2;
-import org.opencv.video.Video;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,9 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
     // Параметры по умлочанию.
-    public static final int DEFAULT_HISTORY_LENGTH = 5;
-    public static final double DEFAULT_BG_THRESHOLD = 10;
-    public static final float DEFAULT_SHADOW_THRESHOLD = 0.5f;
     public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
 
     // Должна зависеть от размеров кадра.
@@ -29,11 +25,7 @@ public class Tracker {
 
     // Параметры выделения фона.
     private Mat bgMask;
-    private BackgroundSubtractorMOG2 bgSubstractor;
-
-    @Cfg
-    private int bgSubstHistoryLength = 5;
-    private double bgSubstThreshold = 10;
+    private BackgroundExtractor bgSubtractor;
 
     //
     AtomicInteger groupId = new AtomicInteger();
@@ -42,10 +34,10 @@ public class Tracker {
     private double maxDist;
 
     public Tracker(Size frameSize) {
-        this(frameSize, DEFAULT_HISTORY_LENGTH, DEFAULT_SHADOW_THRESHOLD);
+        this(frameSize, BgSubtractorFactory.createSimpleBS());
     }
 
-    public Tracker(Size frameSize, int historyLength, float shadow_threshold) {
+    public Tracker(Size frameSize, BackgroundExtractor bgSubtractor) {
         this.frameSize = frameSize;
 
         // Вычисляем значения для нормализации весов по расстоянию.
@@ -55,14 +47,9 @@ public class Tracker {
         distThreshold = maxDist / 4;
         weightThreshold = DEFAULT_WEIGHT_THRESHOLD;
 
-        this.bgSubstHistoryLength = historyLength;
-
         // Выделение фона.
         bgMask = new Mat();
-        bgSubstractor = Video.createBackgroundSubtractorMOG2(historyLength, DEFAULT_BG_THRESHOLD, false);
-        bgSubstractor.setShadowThreshold(shadow_threshold);
-        // Находим тени но не отображаем их на маске.
-        bgSubstractor.setShadowValue(0);
+        this.bgSubtractor = bgSubtractor;
 
         groups = new HashMap<>();
     }
@@ -72,7 +59,7 @@ public class Tracker {
         Utils.setResizeWidth((int) inputFrame.size().width);
         Mat frame = inputFrame;
         // Выделение фона.
-        bgSubstractor.apply(frame, bgMask);
+        bgSubtractor.apply(frame, bgMask);
         // Шумодав.
         bgMask = Utils.filterNoise(bgMask);
 
@@ -182,7 +169,7 @@ public class Tracker {
          * Композиция исходного изображения с данными трекера.
          */
         // Конвертируем исходное изображение в BGR для отрисовки цветных контуров.
-        if (inputFrame.type() != CvType.CV_8UC3) {
+        if (inputFrame.type() == CvType.CV_8UC1) {
             Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
         }
         // Матрица для отрисовки контуров, треков и т.д.

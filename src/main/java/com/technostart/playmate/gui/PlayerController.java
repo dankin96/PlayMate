@@ -1,11 +1,13 @@
 package com.technostart.playmate.gui;
 
 import com.technostart.playmate.core.cv.Utils;
+import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
+import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
-import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.frame_reader.CvFrameReader;
 import com.technostart.playmate.frame_reader.FrameHandler;
@@ -13,7 +15,6 @@ import com.technostart.playmate.frame_reader.Mat2ImgReader;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuBar;
@@ -29,13 +30,8 @@ import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.Subscription;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.stream.*;
-import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
-import java.lang.reflect.Type;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -69,6 +65,7 @@ public class PlayerController implements Initializable {
 
     private Tracker tracker;
     private FieldDetector tableDetector;
+    private BackgroundExtractor bgSubstr;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -78,7 +75,7 @@ public class PlayerController implements Initializable {
         @Cfg
         double resizeRate = 0.6;
         @Cfg
-        boolean isTrackerEnable;
+        boolean isTrackerEnable = false;
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
@@ -107,7 +104,7 @@ public class PlayerController implements Initializable {
                     if (pointsForTesting.size() <= 8)
                         pointsForTesting.add(new Point(e.getX() / processedFrameView.getFitWidth(), e.getY() / processedFrameView.getFitHeight()));
                     if (pointsForTesting.size() == 8) {
-                        createJsonTestFile(pointsForTesting, videoFileName);
+                        GuiUtils.createJsonTestFile(pointsForTesting, videoFileName);
                         pointsForTesting.clear();
                     }
                 });
@@ -139,7 +136,7 @@ public class PlayerController implements Initializable {
 
                 newFrame = Utils.createHomography(newFrame, srcPoints, dstPoints);
             }
-            return Utils.mat2Image(newFrame, jpgQuality);
+            return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
     };
 
@@ -186,9 +183,10 @@ public class PlayerController implements Initializable {
                 frameNumberToShow = (int) pos;
             }
         });
-
+        bgSubstr = new SimpleBackgroundSubtractor();
+//        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
         // TODO: добавить новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(frameHandler));
+        updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
 
     private void showFrame(Image imageToShow) {
@@ -207,7 +205,7 @@ public class PlayerController implements Initializable {
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
-        tracker = new Tracker(firstFrame.size(), 5, 0.5f);
+        tracker = new Tracker(firstFrame.size(), bgSubstr);
         tableDetector = new TableDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
@@ -288,6 +286,7 @@ public class PlayerController implements Initializable {
             tableDetector = settingsManager.fromSettings(tableDetector);
             capture = settingsManager.fromSettings(capture);
             frameHandler = settingsManager.fromSettings(frameHandler);
+            bgSubstr = settingsManager.fromSettings(bgSubstr);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -300,13 +299,7 @@ public class PlayerController implements Initializable {
      */
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
-            try {
-                settingsManager.toSettings(object);
-            } catch (IllegalAccessException e) {
-                // TODO: вывести ошибку.
-                System.out.println("Ошибка парсера настроек");
-                e.printStackTrace();
-            }
+            settingsManager.toSettings(object);
         }
         updateSettingsFields();
     }
@@ -355,23 +348,5 @@ public class PlayerController implements Initializable {
             e.printStackTrace();
         }
         return string;
-    }
-
-    private void createJsonTestFile(List<Point> points, String fileNameOfObject) {
-        try {
-            //создание нового объекта json
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String fileNameWithJson = (System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/table_tests/" + Utils.getNameOfFile(fileNameOfObject) + ".json");
-            File file = new File(fileNameWithJson);
-            if (file.exists() != true) {
-                file.createNewFile();
-            }
-            String stringPoints = gson.toJson(points);
-            FileWriter fileWriter = new FileWriter(fileNameWithJson);
-            fileWriter.write(stringPoints);
-            fileWriter.flush();
-            fileWriter.close();
-        } catch (IOException ex) {
-        }
     }
 }

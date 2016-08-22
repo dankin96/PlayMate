@@ -2,12 +2,10 @@ package com.technostart.playmate.core.cv;
 
 import javafx.scene.image.Image;
 import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
 import org.opencv.utils.Converters;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -281,7 +279,10 @@ public class Utils {
     public static List<Point> approximate(MatOfPoint temp, int edgesNumber, double angleThreshold) {
         List<Point> listOfPoints = temp.toList();
         listOfPoints = new LinkedList<>(listOfPoints);
-        while (listOfPoints.size() != edgesNumber) {
+        int maxIterations = listOfPoints.size();
+        // убираем итеративно стороны
+        while (listOfPoints.size() != edgesNumber && maxIterations > 0) {
+            maxIterations--;
             int listOfPointsSize = listOfPoints.size();
             int lastIdx = listOfPointsSize - 1;
             double min_distance = Double.MAX_VALUE;
@@ -321,9 +322,7 @@ public class Utils {
                     point4 = p4;
                 }
             }
-            if (point1 == null || point2 == null || point3 == null || point4 == null) {
-                return null;
-            }
+            if (point1 == null || point2 == null || point3 == null || point4 == null) continue;
             Point newPoint = Utils.intersection(point1, point2, point3, point4);
             //точка пересечения не лежит на одной прямой с двумя другими точками, иначе ее можно просто удалить
             if (newPoint != null) {
@@ -340,16 +339,6 @@ public class Utils {
         return listOfPoints;
     }
 
-    public static Image mat2Image(Mat frame, int jpgQuality) {
-        int[] params = new int[2];
-        params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;
-        params[1] = jpgQuality;
-        MatOfInt matOfParams = new MatOfInt();
-        matOfParams.fromArray(params);
-        MatOfByte buffer = new MatOfByte();
-        Imgcodecs.imencode(".jpg", frame, buffer, matOfParams);
-        return new Image(new ByteArrayInputStream(buffer.toArray()));
-    }
 
     public static Mat createHomography(Mat inputFrame, List<Point> srcPoints, List<Point> dstPoints) {
         Mat perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPoints), Converters.vector_Point2f_to_Mat(dstPoints));
@@ -382,12 +371,5 @@ public class Utils {
         for (int i = 0; i < points.size() - 1; i++) {
             Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
         }
-    }
-
-    //имя файла без абсолютного пути
-    public static String getNameOfFile(String absolutePath) {
-        int i = absolutePath.lastIndexOf("/");
-        int j = absolutePath.lastIndexOf(".");
-        return absolutePath.substring(i, j);
     }
 }

@@ -3,6 +3,7 @@ package com.technostart.playmate.core.cv.field_detector;
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.settings.Cfg;
+
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
@@ -216,13 +217,10 @@ public class TableDetector extends FieldDetector {
             return null;
     }
 
-    private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean random) {
-        for (int i = 0; i < contours.size(); i++) {
-            if (random)
-                Imgproc.drawContours(cntImg, contours, i, Palette.getNextColor(), thickness);
-            else
-                Imgproc.drawContours(cntImg, contours, i, Palette.WHITE, thickness);
-        }
+
+    private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
+        Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
+        Imgproc.drawContours(cntImg, contours, -1, color, thickness);
         return cntImg;
     }
 }
