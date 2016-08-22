@@ -80,9 +80,11 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable;
         @Cfg
-        boolean isFieldDetectorEnable = true;
+        boolean isFieldDetectorEnable = false;
         @Cfg
         boolean warpPerspective = false;
+        @Cfg
+        boolean createJson = true;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -98,6 +100,17 @@ public class PlayerController implements Initializable {
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
+            }
+            if (createJson) {
+                processedFrameView.setOnMouseClicked(e -> {
+                    //считывает по 8 координат с ImageView и записывает их в Json с ресурсах
+                    if (pointsForTesting.size() <= 8)
+                        pointsForTesting.add(new Point(e.getX() / processedFrameView.getFitWidth(), e.getY() / processedFrameView.getFitHeight()));
+                    if (pointsForTesting.size() == 8) {
+                        createJsonTestFile(pointsForTesting, videoFileName);
+                        pointsForTesting.clear();
+                    }
+                });
             }
             if (warpPerspective) {
                 List<Point> srcPoints = new ArrayList<Point>();
@@ -163,16 +176,6 @@ public class PlayerController implements Initializable {
         Image imageToShow = new Image("com/technostart/playmate/gui/video.png", true);
         pointsForTesting = new ArrayList<Point>();
         processedFrameView.setImage(imageToShow);
-        processedFrameView.setOnMouseClicked(e -> {
-            //считывает по 8 координат с ImageView и записывает их в Json с ресурсах
-            if (pointsForTesting.size() <= 8)
-                pointsForTesting.add(new Point(e.getX() / processedFrameView.getFitWidth(), e.getY() / processedFrameView.getFitHeight()));
-            if (pointsForTesting.size() == 8) {
-                createJsonTestFile(pointsForTesting, videoFileName);
-                pointsForTesting.clear();
-            }
-        });
-
         // Инициализация слайдера.
         frameSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (capture != null) {
@@ -354,32 +357,21 @@ public class PlayerController implements Initializable {
         return string;
     }
 
-    private void createJsonTestFile(List<Point> points, String fileName) {
+    private void createJsonTestFile(List<Point> points, String fileNameOfObject) {
         try {
             //создание нового объекта json
-            fileName = Utils.getNameOfFile(fileName);
-            HashMap<String, List<Point>> hashMapWithPoints = new HashMap<String, List<Point>>();
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String fileNameWithJson = (System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/table_tests/tablecoords.json");
-            FileReader fileReader = new FileReader(fileNameWithJson);
-            if (fileReader.read() != -1) {
-                JsonReader reader = new JsonReader(fileReader);
-                reader.beginObject();
-                Type type = new TypeToken<Map<String, List<Point>>>() {
-                }.getType();
-                hashMapWithPoints = gson.fromJson(reader.nextString(), type);
-                reader.endObject();
+            String fileNameWithJson = (System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/table_tests/" + Utils.getNameOfFile(fileNameOfObject) + ".json");
+            File file = new File(fileNameWithJson);
+            if (file.exists() != true) {
+                file.createNewFile();
             }
-            hashMapWithPoints.put(fileName, points);
-            String stringPoints = gson.toJson(hashMapWithPoints);
-            System.out.println(stringPoints);
+            String stringPoints = gson.toJson(points);
             FileWriter fileWriter = new FileWriter(fileNameWithJson);
             fileWriter.write(stringPoints);
             fileWriter.flush();
             fileWriter.close();
         } catch (IOException ex) {
         }
-
     }
-
 }

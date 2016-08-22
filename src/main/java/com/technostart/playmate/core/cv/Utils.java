@@ -383,9 +383,11 @@ public class Utils {
             Imgproc.line(img, points.get(i), points.get(i + 1), color, thickness);
         }
     }
+
     //имя файла без абсолютного пути
     public static String getNameOfFile(String absolutePath) {
-        int index = absolutePath.lastIndexOf("/");
-        return absolutePath.substring(index + 1);
+        int i = absolutePath.lastIndexOf("/");
+        int j = absolutePath.lastIndexOf(".");
+        return absolutePath.substring(i, j);
     }
 }
