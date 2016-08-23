@@ -3,7 +3,6 @@ package com.technostart.playmate.gui;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
-import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.map_of_hits.MapOfHits;
 import com.technostart.playmate.core.cv.tracker.Tracker;
@@ -67,6 +66,7 @@ public class PlayerController implements Initializable {
     private Tracker tracker;
     private TableDetector tableDetector;
     private BackgroundExtractor bgSubstr;
+    private MapOfHits map;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -78,11 +78,13 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable = false;
         @Cfg
-        boolean isFieldDetectorEnable = true;
+        boolean isFieldDetectorEnable = false;
         @Cfg
-        boolean warpPerspective = false;
+        boolean isWarpPerspectiveEnable = false;
         @Cfg
-        boolean createJson = false;
+        boolean isJsonCreateEnable = false;
+        @Cfg
+        boolean isMapOfHitsEnable = true;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -94,14 +96,20 @@ public class PlayerController implements Initializable {
             if (isFieldDetectorEnable) {
                 Mat originalFrame = newFrame;
                 newFrame = tableDetector.getField(newFrame);
-//                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
-                MapOfHits map = new MapOfHits(tableDetector.getPointsOfTable());
-                newFrame = map.getMap(originalFrame, new Point(0, 0));
+                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
             }
             if (isTrackerEnable) {
                 tracker.getFrame(newFrame);
             }
-            if (createJson) {
+            if (isMapOfHitsEnable) {
+                Mat originalFrame = newFrame;
+                newFrame = tableDetector.getField(newFrame);
+                if (newFrame != null) {
+                    map.setField(tableDetector.getPointsOfTable(), originalFrame);
+                }
+                newFrame = map.getMap(originalFrame, new Point(0, 0));
+            }
+            if (isJsonCreateEnable) {
                 processedFrameView.setOnMouseClicked(e -> {
                     //считывает по 8 координат с ImageView и записывает их в Json с ресурсах
                     if (pointsForTesting.size() <= 8)
@@ -112,7 +120,7 @@ public class PlayerController implements Initializable {
                     }
                 });
             }
-            if (warpPerspective) {
+            if (isWarpPerspectiveEnable) {
                 List<Point> srcPoints = new ArrayList<Point>();
                 //координаты правой половины стола 1 дубля захордкоженные
                 Point srcP1 = new Point(403.50083892617465, 241.15520134228194);
@@ -124,14 +132,10 @@ public class PlayerController implements Initializable {
                 srcPoints.add(srcP3);
                 srcPoints.add(srcP4);
                 List<Point> dstPoints = new ArrayList<Point>();
-                /*Point dstP1 = new Point(0, 0);
+                Point dstP1 = new Point(0, 0);
                 Point dstP2 = new Point(newFrame.width() - 1, 0);
                 Point dstP3 = new Point(0, newFrame.height() - 1);
-                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);*/
-                Point dstP1 = new Point(400, 240);
-                Point dstP2 = new Point(600, 240);
-                Point dstP3 = new Point(400, 310);
-                Point dstP4 = new Point(600, 310);
+                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);
                 dstPoints.add(dstP1);
                 dstPoints.add(dstP2);
                 dstPoints.add(dstP3);
@@ -210,6 +214,7 @@ public class PlayerController implements Initializable {
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tableDetector = new TableDetector(firstFrame.size());
+        map = new MapOfHits();
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;

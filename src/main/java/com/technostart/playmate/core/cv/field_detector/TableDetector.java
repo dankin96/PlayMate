@@ -58,7 +58,9 @@ public class TableDetector extends FieldDetector {
 
     @Override
     public Mat getField(Mat inputFrame) {
-        convexHull.clear();
+        if (convexHull != null) {
+            convexHull.clear();
+        }
         contours.clear();
         approxContours.clear();
         min_area = inputFrame.height() * inputFrame.width() / areaCoef;

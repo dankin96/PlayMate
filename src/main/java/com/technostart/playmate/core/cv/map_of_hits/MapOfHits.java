@@ -5,86 +5,88 @@ import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class MapOfHits {
     private static Mat perspectiveTransform;
-    private static List<Point> srcPointsLeftTable;
-    private static List<Point> srcPointsRightTable;
-    private static List<Point> dstPointsLeftTable;
-    private static List<Point> dstPointsRightTable;
+    private static List<Point> srcPointsTable;
+    private static List<Point> dstPointsTable;
     private static int curWidth;
     private static int curHeight;
 
-    public MapOfHits(List<MatOfPoint> contours) {
-        //проверка стороны стола
-        if (contours.get(0).toList().get(0).x > contours.get(1).toList().get(0).x) {
-            srcPointsLeftTable = contours.get(1).toList();
-            srcPointsRightTable = contours.get(0).toList();
-        } else {
-            srcPointsLeftTable = contours.get(0).toList();
-            srcPointsRightTable = contours.get(1).toList();
-        }
+    public MapOfHits() {
+        srcPointsTable = new ArrayList<Point>();
+        dstPointsTable = new ArrayList<Point>();
         perspectiveTransform = new Mat();
-        dstPointsLeftTable = new ArrayList<Point>();
-        dstPointsRightTable = new ArrayList<Point>();
         curWidth = 0;
         curHeight = 0;
     }
 
+    //для получения картинки карты попаданий
     public Mat getMap(Mat inputFrame, Point ballCoords) {
-        //установка точек для одного размера кадра
-        if (inputFrame.width() != curWidth || inputFrame.height() != curHeight) {
-            setDstPoints(inputFrame);
-        }
-        //гомография левой стороный
-        perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsLeftTable), Converters.vector_Point2f_to_Mat(dstPointsLeftTable));
-        Mat homographyImgLeftTable = new Mat();
-        Imgproc.warpPerspective(inputFrame, homographyImgLeftTable, perspectiveTransform, new Size(inputFrame.width() , inputFrame.height()));
-        //гомография правой стороны
-        perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsRightTable), Converters.vector_Point2f_to_Mat(dstPointsRightTable));
-        Mat homographyImgRightTable = new Mat();
-        Imgproc.warpPerspective(inputFrame, homographyImgRightTable, perspectiveTransform, new Size(inputFrame.width() , inputFrame.height()));
-        //склейка двух гомографий
-        Mat img = new Mat();
-        List<Mat> src = Arrays.asList(homographyImgLeftTable, homographyImgRightTable);
-        Core.hconcat(src, img);
-        return homographyImgLeftTable;
+        //гомография стола
+        perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsTable), Converters.vector_Point2f_to_Mat(dstPointsTable));
+        Mat homographyImgTable = new Mat();
+        Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        return homographyImgTable;
     }
 
-    public void setField(List<MatOfPoint> contours) {
-        //проверка стороны стола
-        if (contours.get(0).toList().get(0).x > contours.get(1).toList().get(0).x) {
-            srcPointsLeftTable = contours.get(1).toList();
-            srcPointsRightTable = contours.get(0).toList();
-        } else {
-            srcPointsLeftTable = contours.get(0).toList();
-            srcPointsRightTable = contours.get(1).toList();
+    //для разовой настройки стола и вызова при изменении этого стола на картинке
+    public void setField(List<MatOfPoint> contours, Mat inputFrame) {
+        if (contours.size() == 2) {
+            //проверка стороны стола
+            List<Point> srcPointsLeftTable;
+            List<Point> srcPointsRightTable;
+            if (contours.get(0).toList().get(0).x > contours.get(1).toList().get(0).x) {
+                srcPointsLeftTable = contours.get(1).toList();
+                srcPointsRightTable = contours.get(0).toList();
+            } else {
+                srcPointsLeftTable = contours.get(0).toList();
+                srcPointsRightTable = contours.get(1).toList();
+            }
+            //сортировка обоих половин по x
+            Comparator pointsComporator = new Comparator<Point>() {
+                @Override
+                public int compare(Point p1, Point p2) {
+                    if (p1.x > p2.x) {
+                        return 1;
+                    } else if (p1.x < p2.x) {
+                        return -1;
+                    }
+                    return 0;
+                }
+            };
+            Collections.sort(srcPointsLeftTable, pointsComporator);
+            Collections.sort(srcPointsRightTable, pointsComporator);
+            for (int i = 0; i < srcPointsLeftTable.size(); i++) {
+                System.out.println("x left - " + srcPointsLeftTable.get(i).x + " y left - " + srcPointsLeftTable.get(i).y);
+            }
+            for (int i = 0; i < srcPointsRightTable.size(); i++) {
+                System.out.println("x right - " + srcPointsRightTable.get(i).x + " y right - " + srcPointsRightTable.get(i).y);
+            }
+            //кладем финальные 4 точки в массив исходного стола
+            srcPointsTable.clear();
+            srcPointsTable.add(srcPointsLeftTable.get(0));
+            srcPointsTable.add(srcPointsLeftTable.get(1));
+            srcPointsTable.add(srcPointsRightTable.get(2));
+            srcPointsTable.add(srcPointsRightTable.get(3));
+            for (int i = 0; i < srcPointsRightTable.size(); i++) {
+                System.out.println("x src - " + srcPointsTable.get(i).x + " y src - " + srcPointsTable.get(i).y);
+            }
+            //4 точки в массив выходного стола, при другом размере картинки
+            if (curHeight != inputFrame.height() || curWidth != inputFrame.width()) {
+                curWidth = inputFrame.width();
+                curHeight = inputFrame.height();
+                dstPointsTable.clear();
+                Point dstP1 = new Point(0, 0);
+                Point dstP2 = new Point(0, curHeight - 1);
+                Point dstP3 = new Point(curWidth - 1, curHeight - 1);
+                Point dstP4 = new Point(curWidth - 1, 0);
+                dstPointsTable.add(dstP1);
+                dstPointsTable.add(dstP2);
+                dstPointsTable.add(dstP3);
+                dstPointsTable.add(dstP4);
+            }
         }
-    }
-
-    private void setDstPoints(Mat inputFrame) {
-        curWidth = inputFrame.width();
-        curHeight = inputFrame.height();
-        dstPointsLeftTable.clear();
-        dstPointsRightTable.clear();
-        Point dstP2 = new Point(0, 0);
-        Point dstP3 = new Point(curWidth / 2 - 1, 0);
-        Point dstP4 = new Point(0, curHeight - 1);
-        Point dstP1 = new Point(curWidth / 2 - 1, curHeight - 1);
-        dstPointsLeftTable.add(dstP1);
-        dstPointsLeftTable.add(dstP4);
-        dstPointsLeftTable.add(dstP2);
-        dstPointsLeftTable.add(dstP3);
-        dstP1 = new Point(0, 0);
-        dstP2 = new Point(curWidth / 2 - 1, 0);
-        dstP3 = new Point(0, curHeight - 1);
-        dstP4 = new Point(curWidth / 2 - 1, curHeight - 1);
-        dstPointsRightTable.add(dstP1);
-        dstPointsRightTable.add(dstP4);
-        dstPointsRightTable.add(dstP3);
-        dstPointsRightTable.add(dstP2);
     }
 }
