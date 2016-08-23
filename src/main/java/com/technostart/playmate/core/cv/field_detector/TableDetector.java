@@ -11,9 +11,9 @@ import java.util.*;
 
 public class TableDetector extends FieldDetector {
     @Cfg
-    static int sigmaColor = 25;
+    static int sigmaColor = 101;
     @Cfg
-    static int sigmaSpace = 25;
+    static int sigmaSpace = 101;
     @Cfg
     static int ksize = 5;
     @Cfg
@@ -58,6 +58,9 @@ public class TableDetector extends FieldDetector {
 
     @Override
     public Mat getField(Mat inputFrame) {
+        convexHull.clear();
+        contours.clear();
+        approxContours.clear();
         min_area = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
@@ -72,10 +75,7 @@ public class TableDetector extends FieldDetector {
         if (convexHull != null) {
             approxContours = approximateContours(convexHull, edgesNumber);
             print(cntImg, approxContours, -1, false);
-            convexHull.clear();
         }
-        contours.clear();
-        approxContours.clear();
         return cntImg;
     }
 

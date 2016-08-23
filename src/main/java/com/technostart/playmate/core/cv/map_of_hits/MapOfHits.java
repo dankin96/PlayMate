@@ -42,16 +42,16 @@ public class MapOfHits {
         //гомография левой стороный
         perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsLeftTable), Converters.vector_Point2f_to_Mat(dstPointsLeftTable));
         Mat homographyImgLeftTable = new Mat();
-        Imgproc.warpPerspective(inputFrame, homographyImgLeftTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        Imgproc.warpPerspective(inputFrame, homographyImgLeftTable, perspectiveTransform, new Size(inputFrame.width() , inputFrame.height()));
         //гомография правой стороны
         perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsRightTable), Converters.vector_Point2f_to_Mat(dstPointsRightTable));
         Mat homographyImgRightTable = new Mat();
-        Imgproc.warpPerspective(inputFrame, homographyImgRightTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        Imgproc.warpPerspective(inputFrame, homographyImgRightTable, perspectiveTransform, new Size(inputFrame.width() , inputFrame.height()));
         //склейка двух гомографий
         Mat img = new Mat();
         List<Mat> src = Arrays.asList(homographyImgLeftTable, homographyImgRightTable);
         Core.hconcat(src, img);
-        return img;
+        return homographyImgLeftTable;
     }
 
     public void setField(List<MatOfPoint> contours) {
@@ -70,21 +70,21 @@ public class MapOfHits {
         curHeight = inputFrame.height();
         dstPointsLeftTable.clear();
         dstPointsRightTable.clear();
-        Point dstP1 = new Point(0, 0);
-        Point dstP2 = new Point(curWidth / 2 - 1, 0);
-        Point dstP3 = new Point(0, curHeight / 2 - 1);
-        Point dstP4 = new Point(curWidth / 2 - 1, curHeight / 2 - 1);
+        Point dstP2 = new Point(0, 0);
+        Point dstP3 = new Point(curWidth / 2 - 1, 0);
+        Point dstP4 = new Point(0, curHeight - 1);
+        Point dstP1 = new Point(curWidth / 2 - 1, curHeight - 1);
         dstPointsLeftTable.add(dstP1);
+        dstPointsLeftTable.add(dstP4);
         dstPointsLeftTable.add(dstP2);
         dstPointsLeftTable.add(dstP3);
-        dstPointsLeftTable.add(dstP4);
-        dstP1 = new Point(curWidth / 2, curHeight / 2);
-        dstP2 = new Point(curWidth - 1, curHeight / 2);
-        dstP3 = new Point(curWidth / 2, curHeight - 1);
-        dstP4 = new Point(curWidth - 1, curHeight - 1);
+        dstP1 = new Point(0, 0);
+        dstP2 = new Point(curWidth / 2 - 1, 0);
+        dstP3 = new Point(0, curHeight - 1);
+        dstP4 = new Point(curWidth / 2 - 1, curHeight - 1);
         dstPointsRightTable.add(dstP1);
-        dstPointsRightTable.add(dstP2);
-        dstPointsRightTable.add(dstP3);
         dstPointsRightTable.add(dstP4);
+        dstPointsRightTable.add(dstP3);
+        dstPointsRightTable.add(dstP2);
     }
 }

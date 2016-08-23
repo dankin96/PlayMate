@@ -5,6 +5,7 @@ import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtracto
 import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.cv.map_of_hits.MapOfHits;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
@@ -64,7 +65,7 @@ public class PlayerController implements Initializable {
     private List<Point> pointsForTesting;
 
     private Tracker tracker;
-    private FieldDetector tableDetector;
+    private TableDetector tableDetector;
     private BackgroundExtractor bgSubstr;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
@@ -77,11 +78,11 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isTrackerEnable = false;
         @Cfg
-        boolean isFieldDetectorEnable = false;
+        boolean isFieldDetectorEnable = true;
         @Cfg
         boolean warpPerspective = false;
         @Cfg
-        boolean createJson = true;
+        boolean createJson = false;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -93,10 +94,12 @@ public class PlayerController implements Initializable {
             if (isFieldDetectorEnable) {
                 Mat originalFrame = newFrame;
                 newFrame = tableDetector.getField(newFrame);
-                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
+//                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
+                MapOfHits map = new MapOfHits(tableDetector.getPointsOfTable());
+                newFrame = map.getMap(originalFrame, new Point(0, 0));
             }
             if (isTrackerEnable) {
-                newFrame = tracker.getFrame(newFrame);
+                tracker.getFrame(newFrame);
             }
             if (createJson) {
                 processedFrameView.setOnMouseClicked(e -> {
