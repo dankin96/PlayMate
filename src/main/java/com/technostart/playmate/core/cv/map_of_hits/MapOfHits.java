@@ -68,6 +68,8 @@ public class MapOfHits {
     private void setDstPoints(Mat inputFrame) {
         curWidth = inputFrame.width();
         curHeight = inputFrame.height();
+        dstPointsLeftTable.clear();
+        dstPointsRightTable.clear();
         Point dstP1 = new Point(0, 0);
         Point dstP2 = new Point(curWidth / 2 - 1, 0);
         Point dstP3 = new Point(0, curHeight / 2 - 1);
