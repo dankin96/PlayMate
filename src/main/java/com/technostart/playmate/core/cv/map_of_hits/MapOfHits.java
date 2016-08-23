@@ -11,12 +11,14 @@ public class MapOfHits {
     private static Mat perspectiveTransform;
     private static List<Point> srcPointsTable;
     private static List<Point> dstPointsTable;
+    private static List<Point> ballPoints;
     private static int curWidth;
     private static int curHeight;
 
     public MapOfHits() {
         srcPointsTable = new ArrayList<Point>();
         dstPointsTable = new ArrayList<Point>();
+        ballPoints = new ArrayList<Point>();
         perspectiveTransform = new Mat();
         curWidth = 0;
         curHeight = 0;
@@ -24,8 +26,8 @@ public class MapOfHits {
 
     //для получения картинки карты попаданий
     public Mat getMap(Mat inputFrame, Point ballCoords) {
+        ballPoints.add(ballCoords);
         //гомография стола
-        perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsTable), Converters.vector_Point2f_to_Mat(dstPointsTable));
         Mat homographyImgTable = new Mat();
         Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
         return homographyImgTable;
@@ -87,6 +89,17 @@ public class MapOfHits {
                 dstPointsTable.add(dstP3);
                 dstPointsTable.add(dstP4);
             }
+            perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(srcPointsTable), Converters.vector_Point2f_to_Mat(dstPointsTable));
         }
+    }
+
+    //получить преобразования точек с известной матрицей преобразования
+    public List<Point> getNewHomoCoords(List<Point> oldCoords) {
+        MatOfPoint oldCoordsTemp = new MatOfPoint();
+        oldCoordsTemp.fromList(oldCoords);
+        MatOfPoint newCoordsTemp = new MatOfPoint();
+        Core.perspectiveTransform(oldCoordsTemp, newCoordsTemp, perspectiveTransform);
+        List<Point> newCoords = newCoordsTemp.toList();
+        return newCoords;
     }
 }
