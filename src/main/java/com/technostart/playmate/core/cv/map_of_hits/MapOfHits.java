@@ -9,6 +9,9 @@ import org.opencv.utils.Converters;
 import java.util.*;
 
 public class MapOfHits {
+    public enum Direction {UNDEFINED, LEFT_TO_RIGHT, RIGHT_TO_LEFT}
+
+    ;
     private static Mat perspectiveTransform;
     private static List<Point> srcPointsTable;
     private static List<Point> dstPointsTable;
@@ -16,6 +19,8 @@ public class MapOfHits {
     private static int curWidth;
     private static int curHeight;
     private static Mat sponsorImg;
+    private static Mat heatMap;
+    private static Direction currentDirection = Direction.UNDEFINED;
 
     public MapOfHits() {
         srcPointsTable = new ArrayList<Point>();
@@ -24,20 +29,28 @@ public class MapOfHits {
         perspectiveTransform = new Mat();
         curWidth = 0;
         curHeight = 0;
+        heatMap = new Mat();
         sponsorImg = Imgcodecs.imread(System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/gui/sponsorimg.jpg", Imgcodecs.CV_LOAD_IMAGE_COLOR);
     }
 
     //для получения картинки карты попаданий
-    public Mat getMap(Mat inputFrame, Point ballCoords) {
-        ballPoints.add(ballCoords);
+    public Mat getMap(Mat inputFrame, Point ballCoords, Direction set) {
+        currentDirection = set;
         //гомография стола
         Mat homographyImgTable = new Mat();
+        if (heatMap.empty()) {
+            heatMap = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
+//            Imgproc.cvtColor(heatMap, heatMap, Imgproc.COLOR_BGR2HSV);
+        }
         Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
         Imgproc.resize(sponsorImg, sponsorImg, new Size(homographyImgTable.width(), homographyImgTable.height()));
         Core.addWeighted(homographyImgTable, 0.4, sponsorImg, 0.5, 0, homographyImgTable);
-
+        heatMap = printBall(heatMap, currentDirection, getNewHomoCoords(ballCoords), inputFrame.width());
+        Core.addWeighted(homographyImgTable, 0.6, heatMap, 0.5, 0, homographyImgTable);
         Imgproc.circle(homographyImgTable, getNewHomoCoords(ballCoords), inputFrame.width() / 90, Palette.WHITE, -1);
-        return homographyImgTable;
+//        return homographyImgTable;
+        ballPoints.add(ballCoords);
+        return heatMap;
     }
 
     //для разовой настройки стола и вызова при изменении этого стола на картинке
@@ -117,5 +130,16 @@ public class MapOfHits {
         temp.clear();
         Converters.Mat_to_vector_Point2f(transformed, temp);
         return temp.get(0);
+    }
+
+    private Mat printBall(Mat img, Direction set, Point center, int width) {
+        if (currentDirection == Direction.LEFT_TO_RIGHT) {
+            Imgproc.circle(heatMap, center, width / 90, Palette.YELLOW, -1);
+        } else if (currentDirection == Direction.RIGHT_TO_LEFT) {
+            Imgproc.circle(heatMap, center, width / 90, Palette.RED, -1);
+        } else if (currentDirection == Direction.UNDEFINED) {
+            Imgproc.circle(heatMap, center, width / 90, Palette.WHITE, -1);
+        }
+        return heatMap;
     }
 }

@@ -45,6 +45,7 @@ public class TableDetector extends FieldDetector {
     private Mat processingFrame;
     private Mat structeredElement;
     private int min_area;
+    private Boolean isDetected = false;
 
     public TableDetector(Size frameSize) {
         super(frameSize);
@@ -77,6 +78,7 @@ public class TableDetector extends FieldDetector {
         if (convexHull != null) {
             approxContours = approximateContours(convexHull, edgesNumber);
             print(cntImg, approxContours, -1, false);
+            isDetected = true;
         }
         return cntImg;
     }
@@ -223,6 +225,9 @@ public class TableDetector extends FieldDetector {
             return null;
     }
 
+    public Boolean getIsDetected() {
+        return isDetected;
+    }
 
     private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
         Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
