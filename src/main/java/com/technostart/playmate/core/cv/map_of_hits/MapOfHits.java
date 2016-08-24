@@ -1,5 +1,6 @@
 package com.technostart.playmate.core.cv.map_of_hits;
 
+import com.technostart.playmate.core.cv.Palette;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -34,6 +35,7 @@ public class MapOfHits {
         Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
         Imgproc.resize(sponsorImg, sponsorImg, new Size(homographyImgTable.width(), homographyImgTable.height()));
         Core.addWeighted(homographyImgTable, 0.4, sponsorImg, 0.5, 0, homographyImgTable);
+        Imgproc.circle(homographyImgTable, ballCoords, inputFrame.width() / 100, Palette.WHITE, -1);
         return homographyImgTable;
     }
 
