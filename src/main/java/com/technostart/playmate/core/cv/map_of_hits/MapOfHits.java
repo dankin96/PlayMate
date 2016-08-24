@@ -1,7 +1,7 @@
 package com.technostart.playmate.core.cv.map_of_hits;
 
-import com.technostart.playmate.core.cv.Utils;
 import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
 
@@ -14,6 +14,7 @@ public class MapOfHits {
     private static List<Point> ballPoints;
     private static int curWidth;
     private static int curHeight;
+    private static Mat sponsorImg;
 
     public MapOfHits() {
         srcPointsTable = new ArrayList<Point>();
@@ -22,6 +23,7 @@ public class MapOfHits {
         perspectiveTransform = new Mat();
         curWidth = 0;
         curHeight = 0;
+        sponsorImg = Imgcodecs.imread(System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/gui/sponsorimg.jpg", Imgcodecs.CV_LOAD_IMAGE_COLOR);
     }
 
     //для получения картинки карты попаданий
@@ -30,6 +32,8 @@ public class MapOfHits {
         //гомография стола
         Mat homographyImgTable = new Mat();
         Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
+        Imgproc.resize(sponsorImg, sponsorImg, new Size(homographyImgTable.width(), homographyImgTable.height()));
+        Core.addWeighted(homographyImgTable, 0.4, sponsorImg, 0.5, 0, homographyImgTable);
         return homographyImgTable;
     }
 

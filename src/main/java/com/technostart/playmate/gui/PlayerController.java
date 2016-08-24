@@ -102,12 +102,12 @@ public class PlayerController implements Initializable {
                 tracker.getFrame(newFrame);
             }
             if (isMapOfHitsEnable) {
-                Mat originalFrame = newFrame;
-                newFrame = tableDetector.getField(newFrame);
-                if (newFrame != null) {
+                Mat originalFrame = newFrame.clone();
+                originalFrame = tableDetector.getField(originalFrame);
+                if (originalFrame != null) {
                     map.setField(tableDetector.getPointsOfTable(), originalFrame);
                 }
-                newFrame = map.getMap(originalFrame, new Point(0, 0));
+                newFrame = map.getMap(newFrame, new Point(0, 0));
             }
             if (isJsonCreateEnable) {
                 processedFrameView.setOnMouseClicked(e -> {
