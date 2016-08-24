@@ -1,9 +1,11 @@
 package com.technostart.playmate.gui;
 
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
+import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
 import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
+import com.technostart.playmate.core.cv.field_detector.TableDetector2;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
@@ -69,7 +71,7 @@ public class PlayerController implements Initializable {
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private FieldDetector tableDetector;
+    private TableDetector2 tableDetector;
     private BackgroundExtractor bgSubstr;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
@@ -93,9 +95,9 @@ public class PlayerController implements Initializable {
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
                 Mat originalFrame = newFrame;
-                newFrame = tableDetector.getField(newFrame);
+                newFrame = tableDetector.getFrame(newFrame);
 //                Imgproc.cvtColor(originalFrame, originalFrame, Imgproc.COLOR_GRAY2BGR);
-                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
+//                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
@@ -148,8 +150,8 @@ public class PlayerController implements Initializable {
                 frameNumberToShow = (int) pos;
             }
         });
-        bgSubstr = new SimpleBackgroundSubtractor();
-//        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
+//        bgSubstr = new SimpleBackgroundSubtractor();
+        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
         // TODO: добавить новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
@@ -171,7 +173,7 @@ public class PlayerController implements Initializable {
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
-        tableDetector = new TableDetector(firstFrame.size());
+        tableDetector = new TableDetector2(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
@@ -249,9 +251,10 @@ public class PlayerController implements Initializable {
         try {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
+            tableDetector.updateStructuredElement();
             capture = settingsManager.fromSettings(capture);
-            frameHandler = settingsManager.fromSettings(frameHandler);
             bgSubstr = settingsManager.fromSettings(bgSubstr);
+            frameHandler = settingsManager.fromSettings(frameHandler);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");

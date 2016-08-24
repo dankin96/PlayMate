@@ -188,39 +188,10 @@ public class Tracker {
         return inputFrame;
     }
 
-    private int getNearestGroupIdx(MatOfPoint contour, List<Group> groups, List<Integer> groupsIdx) {
-        Point contourCoord = Utils.getCentroid(contour);
-        double minDist = distThreshold;
-        int idx = -1;
-
-        for (int i : groupsIdx) {
-            Group group = groups.get(i);
-            Point lastCoord = group.getLastCoord();
-            double curDist = Utils.getDistance(contourCoord, lastCoord);
-            if (curDist < minDist) {
-                minDist = curDist;
-                idx = i;
-            }
-        }
-        return idx;
+    public void setBgSubstr(BackgroundExtractor newBgExtr) {
+        bgSubtractor = newBgExtr;
     }
 
-    private int getNearestContourIdx(Group group, List<MatOfPoint> contours) {
-        Point groupCoord = group.getLastCoord();
-        double minDist = distThreshold;
-        int idx = -1;
-
-        for (int i = 0, size = contours.size(); i < size; i++) {
-            MatOfPoint contour = contours.get(i);
-            Point centroid = Utils.getCentroid(contour);
-            double curDist = Utils.getDistance(groupCoord, centroid);
-            if (curDist < minDist) {
-                minDist = curDist;
-                idx = i;
-            }
-        }
-        return idx;
-    }
 
 
 }

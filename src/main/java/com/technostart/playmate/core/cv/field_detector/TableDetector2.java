@@ -117,7 +117,8 @@ public class TableDetector2 extends FieldDetector {
         //bilateral фильтр лучше для краев
         Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
-        Imgproc.GaussianBlur(processingFrame, processingFrame, new Size(structElementSizeRate, structElementSizeRate), 3);
+        double size = structElementSizeRate * frameSize.height;
+        Imgproc.GaussianBlur(processingFrame, processingFrame, new Size(size, size), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structuredElement, new Point(-1, -1), 1);
         return processingFrame;
     }
