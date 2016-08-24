@@ -35,7 +35,8 @@ public class MapOfHits {
         Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
         Imgproc.resize(sponsorImg, sponsorImg, new Size(homographyImgTable.width(), homographyImgTable.height()));
         Core.addWeighted(homographyImgTable, 0.4, sponsorImg, 0.5, 0, homographyImgTable);
-        Imgproc.circle(homographyImgTable, ballCoords, inputFrame.width() / 100, Palette.WHITE, -1);
+
+        Imgproc.circle(homographyImgTable, getNewHomoCoords(ballCoords), inputFrame.width() / 90, Palette.WHITE, -1);
         return homographyImgTable;
     }
 
@@ -106,5 +107,15 @@ public class MapOfHits {
         Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(oldCoords), transformed, perspectiveTransform);
         Converters.Mat_to_vector_Point2f(transformed, newCoords);
         return newCoords;
+    }
+
+    public Point getNewHomoCoords(Point oldCoord) {
+        Mat transformed = new Mat();
+        List<Point> temp = new ArrayList<Point>();
+        temp.add(oldCoord);
+        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(temp), transformed, perspectiveTransform);
+        temp.clear();
+        Converters.Mat_to_vector_Point2f(transformed, temp);
+        return temp.get(0);
     }
 }

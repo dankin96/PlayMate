@@ -107,7 +107,7 @@ public class PlayerController implements Initializable {
                 if (originalFrame != null) {
                     map.setField(tableDetector.getPointsOfTable(), originalFrame);
                 }
-                newFrame = map.getMap(newFrame, new Point(0, 0));
+                newFrame = map.getMap(newFrame, new Point(200, 300));
             }
             if (isJsonCreateEnable) {
                 processedFrameView.setOnMouseClicked(e -> {
