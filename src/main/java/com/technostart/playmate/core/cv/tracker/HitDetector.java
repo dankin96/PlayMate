@@ -42,7 +42,7 @@ public class HitDetector {
                 break;
             case TABLE_HIT:
                 Point hitPoint = track.get(1);
-                hitDetectorListener.onHitDetect(hitPoint);
+                hitDetectorListener.onHitDetect(hitPoint, getDirection());
                 break;
             case PLAYER_HIT:
                 break;
@@ -61,14 +61,32 @@ public class HitDetector {
         return Status.UNDEFINED;
     }
 
+    public Hit.Direction getDirection() {
+        if (isLeftToRight()) return Hit.Direction.LEFT_TO_RIGHT;
+        if (isRightToLeft()) return Hit.Direction.RIGHT_TO_LEFT;
+        return Hit.Direction.UNDEFINED;
+    }
+
     private boolean checkOrientation() {
         Point p1 = track.get(0);
         Point p2 = track.get(1);
         Point p3 = track.get(2);
-        boolean s1 = p1.x < p2.x && p2.x < p3.x;
-        boolean s2 = p1.x > p2.x && p2.x > p3.x;
-        boolean s3 = p1.y > p2.y && p2.y < p3.y;
-        return (s1 || s2) && s3;
+        boolean isTopDown = p1.y > p2.y && p2.y < p3.y;
+        return (isLeftToRight() || isRightToLeft()) && isTopDown;
+    }
+
+    private boolean isLeftToRight() {
+        Point p1 = track.get(0);
+        Point p2 = track.get(1);
+        Point p3 = track.get(2);
+        return p1.x < p2.x && p2.x < p3.x;
+    }
+
+    private boolean isRightToLeft() {
+        Point p1 = track.get(0);
+        Point p2 = track.get(1);
+        Point p3 = track.get(2);
+        return p1.x > p2.x && p2.x > p3.x;
     }
 
     private boolean checkAngle() {
