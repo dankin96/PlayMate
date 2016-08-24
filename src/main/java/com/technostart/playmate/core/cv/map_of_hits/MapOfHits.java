@@ -80,10 +80,10 @@ public class MapOfHits {
                 curWidth = inputFrame.width();
                 curHeight = inputFrame.height();
                 dstPointsTable.clear();
-                Point dstP1 = new Point(0, 0);
-                Point dstP2 = new Point(0, curHeight - 1);
-                Point dstP3 = new Point(curWidth - 1, curHeight - 1);
-                Point dstP4 = new Point(curWidth - 1, 0);
+                Point dstP1 = new Point(0, curHeight - 1);
+                Point dstP2 = new Point(0, 0);
+                Point dstP3 = new Point(curWidth - 1, 0);
+                Point dstP4 = new Point(curWidth - 1, curHeight - 1);
                 dstPointsTable.add(dstP1);
                 dstPointsTable.add(dstP2);
                 dstPointsTable.add(dstP3);
@@ -95,11 +95,10 @@ public class MapOfHits {
 
     //получить преобразования точек с известной матрицей преобразования
     public List<Point> getNewHomoCoords(List<Point> oldCoords) {
-        MatOfPoint oldCoordsTemp = new MatOfPoint();
-        oldCoordsTemp.fromList(oldCoords);
-        MatOfPoint newCoordsTemp = new MatOfPoint();
-        Core.perspectiveTransform(oldCoordsTemp, newCoordsTemp, perspectiveTransform);
-        List<Point> newCoords = newCoordsTemp.toList();
+        Mat transformed = new Mat();
+        List<Point> newCoords = new ArrayList<Point>();
+        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(oldCoords), transformed, perspectiveTransform);
+        Converters.Mat_to_vector_Point2f(transformed, newCoords);
         return newCoords;
     }
 }
