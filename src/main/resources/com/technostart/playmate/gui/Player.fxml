@@ -16,26 +16,28 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane fx:id="pane" onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.102-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.technostart.playmate.gui.PlayerController">
+<AnchorPane fx:id="pane" onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.65"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.technostart.playmate.gui.PlayerController">
     <children>
-        <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+              AnchorPane.topAnchor="0.0">
             <children>
                 <MenuBar fx:id="menuBar">
                     <menus>
                         <Menu text="File">
                             <items>
-                                <MenuItem accelerator="Shortcut+O" onAction="#openFile" text="Open Video" />
-                                <SeparatorMenuItem />
-                                <MenuItem onAction="#openSettings" text="Import Settings" />
-                                <MenuItem onAction="#saveSettings" text="Export Settings" />
+                                <MenuItem accelerator="Shortcut+O" onAction="#openFile" text="Open Video"/>
+                                <SeparatorMenuItem/>
+                                <MenuItem onAction="#openSettings" text="Import Settings"/>
+                                <MenuItem onAction="#saveSettings" text="Export Settings"/>
                             </items>
                         </Menu>
                         <Menu text="Edit">
                             <items>
-                                <MenuItem onAction="#clearBuffer" text="Clear Buffer" />
-                                <SeparatorMenuItem />
-                                <MenuItem accelerator="Shortcut+R" onAction="#reloadFrame" text="Reload Frame" />
-                                <MenuItem onAction="#applySettings" text="Apply Settings" />
+                                <!--<MenuItem onAction="#clearBuffer" text="Clear Buffer"/>-->
+                                <SeparatorMenuItem/>
+                                <MenuItem accelerator="Shortcut+R" onAction="#reloadFrame" text="Reload Frame"/>
+                                <MenuItem onAction="#applySettings" text="Apply Settings"/>
                             </items>
                         </Menu>
                     </menus>
@@ -44,11 +46,14 @@
                     <items>
                         <AnchorPane minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                             <children>
-                                <VBox minHeight="0.0" minWidth="0.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" SplitPane.resizableWithParent="true">
+                                <VBox minHeight="0.0" minWidth="0.0" AnchorPane.bottomAnchor="0.0"
+                                      AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                                      AnchorPane.topAnchor="0.0" SplitPane.resizableWithParent="true">
                                     <children>
-                                        <ImageView fx:id="processedFrameView" fitHeight="600.0" fitWidth="1080.0" pickOnBounds="true" preserveRatio="true">
+                                        <ImageView fx:id="processedFrameView" fitHeight="700.0" fitWidth="1080.0"
+                                                   pickOnBounds="true" preserveRatio="true">
                                             <VBox.margin>
-                                                <Insets left="10.0" top="10.0" />
+                                                <Insets left="10.0" top="10.0"/>
                                             </VBox.margin>
                                         </ImageView>
                                         <HBox prefHeight="50.0" prefWidth="900.0">
@@ -57,35 +62,39 @@
                                                     <children>
                                                         <Label text="FRAME - ">
                                                             <font>
-                                                                <Font size="18.0" />
+                                                                <Font size="18.0"/>
                                                             </font>
                                                             <HBox.margin>
-                                                                <Insets left="15.0" top="14.0" />
+                                                                <Insets left="15.0" top="14.0"/>
                                                             </HBox.margin>
                                                         </Label>
                                                         <Label fx:id="positionLabel" text="0" textFill="RED">
                                                             <HBox.margin>
-                                                                <Insets top="14.0" />
+                                                                <Insets top="14.0"/>
                                                             </HBox.margin>
                                                             <font>
-                                                                <Font size="18.0" />
+                                                                <Font size="18.0"/>
                                                             </font>
                                                         </Label>
                                                     </children>
                                                 </HBox>
-                                                <Button fx:id="previousFrameBtn" mnemonicParsing="false" onAction="#showPreviousFrame" text="&lt;">
+                                                <Button fx:id="previousFrameBtn" mnemonicParsing="false"
+                                                        onAction="#showPreviousFrame" text="&lt;">
                                                     <HBox.margin>
-                                                        <Insets left="10.0" top="10.0" />
+                                                        <Insets left="10.0" top="10.0"/>
                                                     </HBox.margin>
                                                 </Button>
-                                                <Button fx:id="nextFrameBtn" mnemonicParsing="false" onAction="#showNextFrame" text="&gt;">
+                                                <Button fx:id="nextFrameBtn" mnemonicParsing="false"
+                                                        onAction="#showNextFrame" text="&gt;">
                                                     <HBox.margin>
-                                                        <Insets left="10.0" top="10.0" />
+                                                        <Insets left="10.0" top="10.0"/>
                                                     </HBox.margin>
                                                 </Button>
-                                                <Slider fx:id="frameSlider" blockIncrement="5.0" max="500.0" onMouseReleased="#showCurrentFrame" prefHeight="38.0" prefWidth="800.0" showTickLabels="true" showTickMarks="true">
+                                                <Slider fx:id="frameSlider" blockIncrement="5.0" max="500.0"
+                                                        onMouseReleased="#showCurrentFrame" prefHeight="38.0"
+                                                        prefWidth="800.0" showTickLabels="true" showTickMarks="true">
                                                     <HBox.margin>
-                                                        <Insets left="30.0" top="15.0" />
+                                                        <Insets left="30.0" top="15.0"/>
                                                     </HBox.margin>
                                                 </Slider>
                                             </children>
@@ -96,9 +105,11 @@
                         </AnchorPane>
                         <AnchorPane minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="true">
                             <children>
-                                <ScrollPane fitToWidth="true" minHeight="0" minWidth="0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" SplitPane.resizableWithParent="true">
+                                <ScrollPane fitToWidth="true" minHeight="0" minWidth="0" AnchorPane.bottomAnchor="0.0"
+                                            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                                            AnchorPane.topAnchor="0.0" SplitPane.resizableWithParent="true">
                                     <padding>
-                                        <Insets bottom="10.0" left="15.0" right="15.0" top="15.0" />
+                                        <Insets bottom="10.0" left="15.0" right="15.0" top="15.0"/>
                                     </padding>
                                     <content>
                                         <VBox fx:id="settingsBox" minHeight="0" minWidth="0" spacing="12"/>
