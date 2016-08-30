@@ -1,17 +1,17 @@
 package com.technostart.playmate.gui;
 
+import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
-import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
-import com.technostart.playmate.core.cv.field_detector.FieldDetector;
-import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector2;
+import com.technostart.playmate.core.cv.tracker.Hit;
 import com.technostart.playmate.core.cv.tracker.Tracker;
+import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
-import com.technostart.playmate.frame_reader.BufferedFrameReader;
 import com.technostart.playmate.frame_reader.CvFrameReader;
 import com.technostart.playmate.frame_reader.FrameHandler;
+import com.technostart.playmate.frame_reader.FrameReader;
 import com.technostart.playmate.frame_reader.Mat2ImgReader;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -27,9 +27,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.Subscription;
@@ -66,13 +64,17 @@ public class PlayerController implements Initializable {
     @FXML
     ImageView processedFrameView;
 
-    private BufferedFrameReader<Image> capture;
+    private FrameReader<Image> capture;
     private String videoFileName;
     private int frameNumberToShow;
 
     private Tracker tracker;
     private TableDetector2 tableDetector;
     private BackgroundExtractor bgSubstr;
+    private Session hitMapSession;
+
+    private Hit lastHit;
+    private Mat hitMap;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -85,6 +87,10 @@ public class PlayerController implements Initializable {
         boolean isTrackerEnable = false;
         @Cfg
         boolean isFieldDetectorEnable = false;
+        @Cfg
+        boolean isHitMapSessionEnable = true;
+        @Cfg
+        boolean isDrawingHitsEnable = true;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -101,6 +107,18 @@ public class PlayerController implements Initializable {
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
+            }
+            if (isHitMapSessionEnable) {
+                hitMapSession.update(newFrame.clone());
+            }
+            if (isDrawingHitsEnable && lastHit != null) {
+                Imgproc.circle(newFrame, lastHit.point, 5, Palette.RED);
+            }
+            if (isDrawingHitsEnable) {
+                if (hitMap == null) {
+                    hitMap = Mat.zeros(newFrame.size(), newFrame.type());
+                }
+                Core.addWeighted(newFrame, 0.5, hitMap, 0.5, 0, newFrame);
             }
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
@@ -176,8 +194,19 @@ public class PlayerController implements Initializable {
         tableDetector = new TableDetector2(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-//        capture = mat2ImgReader;
-        capture = new BufferedFrameReader<>(mat2ImgReader);
+        capture = mat2ImgReader;
+//        capture = new BufferedFrameReader<>(mat2ImgReader);
+
+        // Новая сессия.
+        hitMapSession = new Session(firstFrame.size());
+        hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
+            // TODO: действие при новом попадании.
+//            lastHit = new Hit(hitPoint, direction);
+            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+            Imgproc.circle(hitMap, hitPoint, 5, color);
+        });
+
+//        hitMap = new Mat(firstFrame.size(), firstFrame.type());
 
         showFrame(capture.read());
 
@@ -234,12 +263,12 @@ public class PlayerController implements Initializable {
 
     @FXML
     private void clearBuffer(ActionEvent actionEvent) {
-        capture.clear();
+//        capture.clear();
     }
 
     @FXML
     private void reloadFrame() {
-        capture.clear();
+//        capture.clear();
         createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
     }
 

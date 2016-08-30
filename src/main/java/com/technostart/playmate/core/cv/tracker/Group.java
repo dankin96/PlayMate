@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Group {
+
+    HitDetector hitDetector;
+
     private static final int COLOR_NUMBER = 3;
     private Scalar medianColor;
     private Point lastCoord;
@@ -30,7 +33,8 @@ public class Group {
         this.lastCoord = lastCoord;
     }
 
-    public Group(MatOfPoint contour) {
+    public Group(MatOfPoint contour, HitDetectorInterface hitDetectorListener) {
+        this.hitDetector = new HitDetector(hitDetectorListener);
         init();
         add(contour);
     }
@@ -38,6 +42,7 @@ public class Group {
     private void init() {
         track = new ArrayList<>();
         contours = new ArrayList<>();
+//        hitDetector = new HitDetector();
     }
 
     public void add(MatOfPoint contour) {
@@ -73,7 +78,7 @@ public class Group {
     private void add(Point centroid) {
         lastCoord = centroid;
         track.add(centroid);
-
+        hitDetector.addNewPoint(centroid);
         idle = idle > 0 ? idle - 1 : 0;
     }
 

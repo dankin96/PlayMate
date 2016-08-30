@@ -30,6 +30,8 @@ public class Tracker {
     //
     AtomicInteger groupId = new AtomicInteger();
     private Map<Integer, Group> groups;
+    private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {};
+
     private double weightThreshold;
     private double maxDist;
 
@@ -52,6 +54,10 @@ public class Tracker {
         this.bgSubtractor = bgSubtractor;
 
         groups = new HashMap<>();
+    }
+
+    public void setHitDetectorListener(HitDetectorInterface hitDetectorListener) {
+        this.hitDetectorListener = hitDetectorListener;
     }
 
     public Mat getFrame(Mat inputFrame) {
@@ -161,7 +167,7 @@ public class Tracker {
         // FIXME: Тут надо рассматривать каждый контур как группу и сразу объединить их
         // FIXME: можно создать группы из каждого контура и потом посчитать веса для них же.
         for (Integer cntIdx : restContours) {
-            Group newGroup = new Group(contours.get(cntIdx));
+            Group newGroup = new Group(contours.get(cntIdx), hitDetectorListener);
             groups.put(groupId.incrementAndGet(), newGroup);
         }
 
@@ -191,7 +197,6 @@ public class Tracker {
     public void setBgSubstr(BackgroundExtractor newBgExtr) {
         bgSubtractor = newBgExtr;
     }
-
 
 
 }
