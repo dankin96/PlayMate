@@ -71,7 +71,7 @@ public class HitDetector {
         Point p1 = track.get(0);
         Point p2 = track.get(1);
         Point p3 = track.get(2);
-        boolean isTopDown = p1.y > p2.y && p2.y < p3.y;
+        boolean isTopDown = p1.y < p2.y && p2.y > p3.y;
         return (isLeftToRight() || isRightToLeft()) && isTopDown;
     }
 
