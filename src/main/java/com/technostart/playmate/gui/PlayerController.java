@@ -58,7 +58,8 @@ public class PlayerController implements Initializable {
     @FXML
     ImageView processedFrameView;
 
-    private BufferedFrameReader<Image> capture;
+    //    private BufferedFrameReader<Image> capture;
+    private Mat2ImgReader capture;
     private String videoFileName;
     private int frameNumberToShow;
     private List<Point> pointsForTesting;
@@ -107,7 +108,8 @@ public class PlayerController implements Initializable {
                     originalFrame = tableDetector.getField(originalFrame);
                     map.setField(tableDetector.getPointsOfTable(), originalFrame);
                 }
-                newFrame = map.getMap(newFrame, new Point(200 + 300 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.LEFT_TO_RIGHT);
+                newFrame = map.getMap(new Point(200 + 300 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.UNDEFINED);
+//                helpImageView.setImage(GuiUtils.mat2Image(copy, jpgQuality));
             }
             if (isJsonCreateEnable) {
                 processedFrameView.setOnMouseClicked(e -> {
@@ -217,8 +219,8 @@ public class PlayerController implements Initializable {
         map = new MapOfHits();
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-//        capture = mat2ImgReader;
-        capture = new BufferedFrameReader<>(mat2ImgReader);
+        capture = mat2ImgReader;
+//        capture = new BufferedFrameReader<>(mat2ImgReader);
 
         showFrame(capture.read());
 
@@ -273,14 +275,14 @@ public class PlayerController implements Initializable {
         writeSettings();
     }
 
-    @FXML
+   /* @FXML
     private void clearBuffer(ActionEvent actionEvent) {
         capture.clear();
-    }
+    }*/
 
     @FXML
     private void reloadFrame() {
-        capture.clear();
+//        capture.clear();
         createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
     }
 

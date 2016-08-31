@@ -19,6 +19,7 @@ public class Palette {
     public static final Scalar BROWN = new Scalar(19, 69, 139);
     public static final Scalar BLACK = new Scalar(0, 0, 0);
     public static final Scalar WHITE = new Scalar(255, 255, 255);
+    public static final Scalar NET = new Scalar(43, 162, 247);
 
     public static final List<Scalar> palette = Arrays.asList(BLUE, GREEN, RED, YELLOW, PURPLE, BG, ORANGE, PINK, BROWN);
     private static int colorIdx = 0;

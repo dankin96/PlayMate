@@ -12,9 +12,9 @@ import java.util.*;
 @SuppressWarnings("Duplicates")
 public class TableDetector2 extends FieldDetector {
     @Cfg
-    int sigmaColor = 25;
+    int sigmaColor = 101;
     @Cfg
-    int sigmaSpace = 25;
+    int sigmaSpace = 101;
     @Cfg
     double structElementSizeRate = 0.01;
     @Cfg
@@ -23,17 +23,16 @@ public class TableDetector2 extends FieldDetector {
     int diameter = 5;
     @Cfg
     int threshold = 80;
-//    @Cfg
-//    public double minRatio = 0.85;
-//    @Cfg
-//    public double maxRatio = 1.15;
+    @Cfg
+    public double minRatio = 0.85;
+    @Cfg
+    public double maxRatio = 1.15;
     @Cfg
     double minAngle = -15.0;
     @Cfg
     double maxAngle = 15.0;
     @Cfg
     double approxAngleThreshold = 200;
-
     @Cfg
     double minContourAreaRate = 0.1;
     @Cfg
@@ -43,13 +42,15 @@ public class TableDetector2 extends FieldDetector {
 
     private Mat processingFrame;
     private Mat structuredElement;
+    private List<MatOfPoint> approxContours;
+    private Boolean isDetected = false;
 
     public TableDetector2(Size frameSize) {
         super(frameSize);
         processingFrame = new Mat();
         double size = frameSize.width * structElementSizeRate;
-        Size structElementSize = new Size(size, size);
-        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, structElementSize);
+        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(size, size));
+        approxContours = new ArrayList<MatOfPoint>();
         frameArea = frameSize.width * frameSize.height;
     }
 
@@ -58,7 +59,7 @@ public class TableDetector2 extends FieldDetector {
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         List<MatOfPoint> convexHullList = getContours(inputFrame);
         if (convexHullList != null) {
-            List<MatOfPoint> approxContours = approximateContours(convexHullList, edgesNumber);
+            approxContours = approximateContours(convexHullList, edgesNumber);
             print(cntImg, approxContours, -1, false);
             convexHullList.clear();
         }
@@ -166,7 +167,7 @@ public class TableDetector2 extends FieldDetector {
                 double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
                 if (curMatchingRatio < matchingRatio) {
                     double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
-                    if (areaRatio > TableDetector.minRatio && areaRatio < TableDetector.maxRatio) {
+                    if (areaRatio > minRatio && areaRatio < maxRatio) {
                         matchingRatio = curMatchingRatio;
                         indexOfFirstTableContour = i;
                         indexOfSecondTableContour = j;
@@ -185,10 +186,18 @@ public class TableDetector2 extends FieldDetector {
             return null;
     }
 
+    public List<MatOfPoint> getPointsOfTable() {
+        return approxContours;
+    }
+
+    public Boolean getIsDetected() {
+        return isDetected;
+    }
+
 
     private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
         Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
-        Imgproc.drawContours(cntImg, contours, -1 , color, thickness);
+        Imgproc.drawContours(cntImg, contours, -1, color, thickness);
         return cntImg;
     }
 }

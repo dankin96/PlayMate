@@ -12,44 +12,36 @@ public class MapOfHits {
     public enum Direction {UNDEFINED, LEFT_TO_RIGHT, RIGHT_TO_LEFT}
 
     ;
-    private static Mat perspectiveTransform;
-    private static List<Point> srcPointsTable;
-    private static List<Point> dstPointsTable;
-    private static List<Point> ballPoints;
-    private static int curWidth;
-    private static int curHeight;
-    private static Mat sponsorImg;
-    private static Mat heatMap;
-    private static Direction currentDirection = Direction.UNDEFINED;
+    private Mat perspectiveTransform;
+    private List<Point> srcPointsTable;
+    private List<Point> dstPointsTable;
+    private Map<Point, Direction> ballPoints;
+    private int curWidth;
+    private int curHeight;
+    private Mat tableImg;
+    private Direction currentDirection;
 
     public MapOfHits() {
         srcPointsTable = new ArrayList<Point>();
         dstPointsTable = new ArrayList<Point>();
-        ballPoints = new ArrayList<Point>();
+        ballPoints = new HashMap<Point, Direction>();
         perspectiveTransform = new Mat();
         curWidth = 0;
         curHeight = 0;
-        heatMap = new Mat();
-        sponsorImg = Imgcodecs.imread(System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/gui/sponsorimg.jpg", Imgcodecs.CV_LOAD_IMAGE_COLOR);
+        currentDirection = Direction.UNDEFINED;
+        tableImg = Imgcodecs.imread(System.getProperty("user.dir") + "/src/main/resources/com/technostart/playmate/gui/table.png", Imgcodecs.CV_LOAD_IMAGE_COLOR);
     }
 
     //для получения картинки карты попаданий
-    public Mat getMap(Mat inputFrame, Point ballCoords, Direction set) {
-        currentDirection = set;
-        //гомография стола
-        Mat homographyImgTable = new Mat();
-        if (heatMap.empty()) {
-            heatMap = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-//            Imgproc.cvtColor(heatMap, heatMap, Imgproc.COLOR_BGR2HSV);
-        }
-        Imgproc.warpPerspective(inputFrame, homographyImgTable, perspectiveTransform, new Size(inputFrame.width(), inputFrame.height()));
-        Imgproc.resize(sponsorImg, sponsorImg, new Size(homographyImgTable.width(), homographyImgTable.height()));
-        Core.addWeighted(homographyImgTable, 0.4, sponsorImg, 0.5, 0, homographyImgTable);
-        heatMap = printBall(heatMap, currentDirection, getNewHomoCoords(ballCoords), inputFrame.width());
-        Core.addWeighted(homographyImgTable, 0.6, heatMap, 0.5, 0, homographyImgTable);
-        Imgproc.circle(homographyImgTable, getNewHomoCoords(ballCoords), inputFrame.width() / 90, Palette.WHITE, -1);
-//        return homographyImgTable;
-        ballPoints.add(ballCoords);
+    public Mat getMap(Point ballCoords, Direction set) {
+        ballPoints.put(getNewHomoCoords(ballCoords), set);
+        Mat heatMap = new Mat(new Size(curWidth, curHeight), CvType.CV_8UC3);
+        Imgproc.resize(tableImg, heatMap, new Size(curWidth, curHeight));
+        heatMap = printBall(heatMap, ballPoints, curWidth, currentDirection);
+//        Imgproc.applyColorMap(heatMap, heatMap, Imgproc.COLORMAP_RAINBOW);
+//        Core.addWeighted(heatMap, 0.5, tableImg, 1.0, 0, heatMap);
+        Imgproc.line(heatMap, new Point(0, curHeight / 2), new Point(curWidth, curHeight / 2), Palette.WHITE, 4);
+        Imgproc.line(heatMap, new Point(curWidth / 2, 0), new Point(curWidth / 2, curHeight), Palette.NET, 2);
         return heatMap;
     }
 
@@ -80,12 +72,6 @@ public class MapOfHits {
             };
             Collections.sort(srcPointsLeftTable, pointsComporator);
             Collections.sort(srcPointsRightTable, pointsComporator);
-            for (int i = 0; i < srcPointsLeftTable.size(); i++) {
-                System.out.println("x left - " + srcPointsLeftTable.get(i).x + " y left - " + srcPointsLeftTable.get(i).y);
-            }
-            for (int i = 0; i < srcPointsRightTable.size(); i++) {
-                System.out.println("x right - " + srcPointsRightTable.get(i).x + " y right - " + srcPointsRightTable.get(i).y);
-            }
             //кладем финальные 4 точки в массив исходного стола
             srcPointsTable.clear();
             srcPointsTable.add(srcPointsLeftTable.get(0));
@@ -115,30 +101,44 @@ public class MapOfHits {
 
     //получить преобразования точек с известной матрицей преобразования
     public List<Point> getNewHomoCoords(List<Point> oldCoords) {
-        Mat transformed = new Mat();
+        Mat transformedPoints = new Mat();
         List<Point> newCoords = new ArrayList<Point>();
-        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(oldCoords), transformed, perspectiveTransform);
-        Converters.Mat_to_vector_Point2f(transformed, newCoords);
+        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(oldCoords), transformedPoints, perspectiveTransform);
+        Converters.Mat_to_vector_Point2f(transformedPoints, newCoords);
         return newCoords;
     }
 
     public Point getNewHomoCoords(Point oldCoord) {
-        Mat transformed = new Mat();
+        Mat transformedPoints = new Mat();
         List<Point> temp = new ArrayList<Point>();
         temp.add(oldCoord);
-        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(temp), transformed, perspectiveTransform);
+        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(temp), transformedPoints, perspectiveTransform);
         temp.clear();
-        Converters.Mat_to_vector_Point2f(transformed, temp);
+        Converters.Mat_to_vector_Point2f(transformedPoints, temp);
         return temp.get(0);
     }
 
-    private Mat printBall(Mat img, Direction set, Point center, int width) {
-        if (currentDirection == Direction.LEFT_TO_RIGHT) {
-            Imgproc.circle(heatMap, center, width / 90, Palette.YELLOW, -1);
-        } else if (currentDirection == Direction.RIGHT_TO_LEFT) {
-            Imgproc.circle(heatMap, center, width / 90, Palette.RED, -1);
-        } else if (currentDirection == Direction.UNDEFINED) {
-            Imgproc.circle(heatMap, center, width / 90, Palette.WHITE, -1);
+    public void setCurrentDirection(Direction direction) {
+        currentDirection = direction;
+    }
+
+    private Mat printBall(Mat heatMap, Map<Point, Direction> center, int width, Direction currentDirection) {
+        if (currentDirection == Direction.UNDEFINED) {
+            for (Map.Entry<Point, Direction> entry : center.entrySet()) {
+                Imgproc.circle(heatMap, entry.getKey(), width / 90, Palette.WHITE, -1);
+            }
+        } else if (currentDirection == Direction.LEFT_TO_RIGHT) {
+            center.forEach((key, value) -> {
+                if (value == Direction.LEFT_TO_RIGHT) {
+                    Imgproc.circle(heatMap, key, width / 90, Palette.WHITE, -1);
+                }
+            });
+        } else {
+            center.forEach((key, value) -> {
+                if (value == Direction.RIGHT_TO_LEFT) {
+                    Imgproc.circle(heatMap, key, width / 90, Palette.WHITE, -1);
+                }
+            });
         }
         return heatMap;
     }
