@@ -3,11 +3,12 @@ package com.technostart.playmate.core.cv.field_detector;
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.settings.Cfg;
-
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 @SuppressWarnings("Duplicates")
 public class TableDetector2 extends FieldDetector {
@@ -23,7 +24,7 @@ public class TableDetector2 extends FieldDetector {
     int diameter = 5;
     @Cfg
     int threshold = 80;
-//    @Cfg
+    //    @Cfg
 //    public double minRatio = 0.85;
 //    @Cfg
 //    public double maxRatio = 1.15;
@@ -63,6 +64,7 @@ public class TableDetector2 extends FieldDetector {
         return cntImg;
     }
 
+    @Override
     public List<MatOfPoint> getContours(Mat inputFrame) {
         List<MatOfPoint> contours = new ArrayList<>();
         processingFrame = frameFilter(inputFrame, threshold);
@@ -111,11 +113,9 @@ public class TableDetector2 extends FieldDetector {
     }
 
     private Mat frameFilter(Mat inputFrame, int threshold) {
-        Mat tempFrame = inputFrame;
         Mat processingFrame = new Mat();
-        Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
-        //bilateral фильтр лучше для краев
-        Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
+        Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.bilateralFilter(inputFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         double size = structElementSizeRate * frameSize.height;
         Imgproc.GaussianBlur(processingFrame, processingFrame, new Size(5, 5), 3);
@@ -180,14 +180,15 @@ public class TableDetector2 extends FieldDetector {
             matchedContours.add(contours.get(indexOfFirstTableContour));
             matchedContours.add(contours.get(indexOfSecondTableContour));
             return matchedContours;
-        } else
+        } else {
             return null;
+        }
     }
 
 
     private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
         Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
-        Imgproc.drawContours(cntImg, contours, -1 , color, thickness);
+        Imgproc.drawContours(cntImg, contours, -1, color, thickness);
         return cntImg;
     }
 

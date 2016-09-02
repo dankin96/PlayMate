@@ -3,16 +3,16 @@ package com.technostart.playmate.gui;
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.cv.field_detector.FieldDetector;
+import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector2;
 import com.technostart.playmate.core.cv.tracker.Hit;
+import com.technostart.playmate.core.cv.tracker.HitDetectorFilter;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
-import com.technostart.playmate.frame_reader.CvFrameReader;
-import com.technostart.playmate.frame_reader.FrameHandler;
-import com.technostart.playmate.frame_reader.FrameReader;
-import com.technostart.playmate.frame_reader.Mat2ImgReader;
+import com.technostart.playmate.frame_reader.*;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -64,16 +64,18 @@ public class PlayerController implements Initializable {
     @FXML
     ImageView processedFrameView;
 
-    private FrameReader<Image> capture;
+    private BufferedFrameReader<Image> capture;
     private String videoFileName;
     private int frameNumberToShow;
 
     private Tracker tracker;
-    private TableDetector2 tableDetector;
+    private FieldDetector tableDetector;
     private BackgroundExtractor bgSubstr;
     private Session hitMapSession;
 
     private Hit lastHit;
+    private Mat lastFieldMask;
+    private List<MatOfPoint> lastFieldContours;
     private Mat hitMap;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
@@ -88,9 +90,9 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
-        boolean isHitMapSessionEnable = true;
+        boolean isHitMapSessionEnable = false;
         @Cfg
-        boolean isDrawingHitsEnable = true;
+        boolean isDrawingHitsEnable = false;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -100,10 +102,12 @@ public class PlayerController implements Initializable {
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-                Mat originalFrame = newFrame;
-                newFrame = tableDetector.getFrame(newFrame);
-//                Imgproc.cvtColor(originalFrame, originalFrame, Imgproc.COLOR_GRAY2BGR);
-//                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
+//                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                Mat fieldMask = tableDetector.getField(newFrame.clone());
+//                lastFieldContours = fieldContours;
+                Imgproc.cvtColor(fieldMask, fieldMask, Imgproc.COLOR_GRAY2BGR);
+                Core.addWeighted(newFrame, 0.7, fieldMask, 0.3, 0, newFrame);
+//                Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN);
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
@@ -191,19 +195,22 @@ public class PlayerController implements Initializable {
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
-        tableDetector = new TableDetector2(firstFrame.size());
+        tableDetector = new TableDetector(firstFrame.size());
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
-        capture = mat2ImgReader;
-//        capture = new BufferedFrameReader<>(mat2ImgReader);
+//        capture = mat2ImgReader;
+        capture = new BufferedFrameReader<>(mat2ImgReader);
 
         // Новая сессия.
         hitMapSession = new Session(firstFrame.size());
         hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
             // TODO: действие при новом попадании.
 //            lastHit = new Hit(hitPoint, direction);
-            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-            Imgproc.circle(hitMap, hitPoint, 5, color);
+
+            if (HitDetectorFilter.check(hitPoint, lastFieldContours)) {
+                Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+                Imgproc.circle(hitMap, hitPoint, 5, color);
+            }
         });
 
 //        hitMap = new Mat(firstFrame.size(), firstFrame.type());
@@ -263,12 +270,12 @@ public class PlayerController implements Initializable {
 
     @FXML
     private void clearBuffer(ActionEvent actionEvent) {
-//        capture.clear();
+        capture.clear();
     }
 
     @FXML
     private void reloadFrame() {
-//        capture.clear();
+        capture.clear();
         createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
     }
 
@@ -280,7 +287,7 @@ public class PlayerController implements Initializable {
         try {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
-            tableDetector.updateStructuredElement();
+//            tableDetector.updateStructuredElement();
             capture = settingsManager.fromSettings(capture);
             bgSubstr = settingsManager.fromSettings(bgSubstr);
             frameHandler = settingsManager.fromSettings(frameHandler);

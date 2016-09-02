@@ -35,13 +35,19 @@ public class Session implements HitDetectorInterface {
     }
 
     public void update(Mat frame) {
-        tracker.getFrame(frame);
-        lastFieldMask = fieldDetector.getField(frame);
+        tracker.getFrame(frame.clone());
+        // Обновляем маску стола.
+        Mat newFieldMask = fieldDetector.getField(frame.clone());
+        if (newFieldMask != null) {
+            lastFieldMask = newFieldMask;
+        }
     }
 
     @Override
     public void onHitDetect(Point hitPoint, Hit.Direction direction) {
+//        if (lastFieldMask == null) return;
 //        if (HitDetectorFilter.check(hitPoint, lastFieldMask)) {
+            // ...
             hitDetectorListener.onHitDetect(hitPoint, direction);
 //        }
     }

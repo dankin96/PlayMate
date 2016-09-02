@@ -36,7 +36,6 @@ public class TableDetector extends FieldDetector {
     private double approxAngleThreshold = 200;
 
     private List<MatOfPoint> contours;
-    private List<MatOfPoint> convexHull;
     private List<MatOfPoint> approxContours;
     private Mat processingFrame;
     private Mat structeredElement;
@@ -47,7 +46,6 @@ public class TableDetector extends FieldDetector {
         processingFrame = new Mat();
         structeredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
         contours = new ArrayList<MatOfPoint>();
-        convexHull = new ArrayList<MatOfPoint>();
         approxContours = new ArrayList<MatOfPoint>();
         min_area = 0;
     }
@@ -63,7 +61,7 @@ public class TableDetector extends FieldDetector {
         contours = contourFilter(contours, min_area);
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
-        convexHull = convexHull(contours);
+        List<MatOfPoint> convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
         if (convexHull != null) {
             approxContours = approximateContours(convexHull, edgesNumber);
@@ -76,6 +74,15 @@ public class TableDetector extends FieldDetector {
         return cntImg;
     }
 
+    @Override
+    public List<MatOfPoint> getContours(Mat inputFrame) {
+        return null;
+    }
+
+/*    public Mat getContours(Mat inputFrame) {
+
+    }*/
+
     public Mat getFrame(Mat inputFrame) {
         min_area = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
@@ -86,7 +93,7 @@ public class TableDetector extends FieldDetector {
         contours = contourFilter(contours, min_area);
         //построение нового изображения
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
-        convexHull = convexHull(contours);
+        List<MatOfPoint> convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
         if (convexHull != null) {
             approxContours = approximateContours(convexHull, edgesNumber);
@@ -100,7 +107,7 @@ public class TableDetector extends FieldDetector {
     }
 
     private List<MatOfPoint> convexHull(List<MatOfPoint> contours) {
-        List<MatOfPoint> hullmop = new ArrayList<MatOfPoint>();
+        List<MatOfPoint> hullmop = new ArrayList<>();
         for (int i = 0; i < contours.size(); i++) {
             hullmop.add(Utils.convexHull(contours.get(i)));
         }
