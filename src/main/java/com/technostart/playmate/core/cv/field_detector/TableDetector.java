@@ -37,14 +37,14 @@ public class TableDetector extends FieldDetector {
     private double approxAngleThreshold = 200;
 
     private Mat processingFrame;
-    private Mat structeredElement;
-    private int min_area;
+    private Mat structuredElement;
+    private int minArea;
 
     public TableDetector(Size frameSize) {
         super(frameSize);
         processingFrame = new Mat();
-        structeredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
-        min_area = 0;
+        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
+        minArea = 0;
     }
 
     @Override
@@ -52,32 +52,27 @@ public class TableDetector extends FieldDetector {
         List<MatOfPoint> convexHull = getContours(inputFrame);
         Mat mask = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         if (convexHull != null) {
-//            convexHull = approximateContours(convexHull, edgesNumber);
             print(mask, convexHull, -1, false);
-//            print(cntImg, convexHull, 3, false);
         }
         return mask;
     }
 
     @Override
     public List<MatOfPoint> getContours(Mat inputFrame) {
-        min_area = inputFrame.height() * inputFrame.width() / areaCoef;
+        minArea = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
         //поиск контуров на картинке
         List<MatOfPoint> contours = new ArrayList<>();
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
         //фильтрация контуров
-        contours = contourFilter(contours, min_area);
+        contours = filterContoursByArea(contours, minArea, Double.MAX_VALUE);
         //построение нового изображения
-        Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         List<MatOfPoint> convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
 
         if (convexHull != null) {
             convexHull = approximateContours(convexHull, edgesNumber);
-//            print(cntImg, convexHull, -1, false);
-//            print(cntImg, convexHull, 3, false);
         }
         return convexHull;
     }
@@ -122,7 +117,7 @@ public class TableDetector extends FieldDetector {
         Imgproc.bilateralFilter(inputFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
-        Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
+        Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structuredElement, new Point(-1, -1), 1);
         return processingFrame;
     }
 
@@ -152,6 +147,36 @@ public class TableDetector extends FieldDetector {
         int temp = contours.size();
         for (int i = 0; i < temp - counter; i++) {
             contours.remove(temp - 1 - i);
+        }
+        return contours;
+    }
+
+    private List<MatOfPoint> filterContoursByAngle(List<MatOfPoint> contours, double minAngle, double maxAngle) {
+        for (int i = 0; i < contours.size(); i++) {
+            Mat line = new Mat();
+            double[] angle = new double[2];
+            Imgproc.fitLine(contours.get(i), line, 1, 0.0, 0.1, 0.1);
+            for (int counter = 0; counter < line.rows(); counter++) {
+                double[] array = line.get(counter, 0);
+                if (counter < 2)
+                    angle[counter] = array[0];
+            }
+            double tempAngle = Math.toDegrees(Math.atan(angle[1] / angle[0]));
+            if (tempAngle > maxAngle || tempAngle < minAngle) {
+                contours.remove(i);
+                i--;
+            }
+        }
+        return contours;
+    }
+
+    private List<MatOfPoint> filterContoursByArea(List<MatOfPoint> contours, double minArea, double maxArea) {
+        for (int i = 0; i < contours.size(); i++) {
+            double area = Imgproc.contourArea(contours.get(i));
+            if (area < minArea || area > maxArea) {
+                contours.remove(i);
+                i--;
+            }
         }
         return contours;
     }
