@@ -67,6 +67,7 @@ public class TableDetector extends FieldDetector {
         Imgproc.findContours(processingFrame, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
         //фильтрация контуров
         contours = filterContoursByArea(contours, minArea, Double.MAX_VALUE);
+        contours = filterContoursByAngle(contours, minAngle, maxAngle);
         //построение нового изображения
         List<MatOfPoint> convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
@@ -84,11 +85,11 @@ public class TableDetector extends FieldDetector {
     }
 
     private List<MatOfPoint> convexHull(List<MatOfPoint> contours) {
-        List<MatOfPoint> hullmop = new ArrayList<>();
-        for (int i = 0; i < contours.size(); i++) {
-            hullmop.add(Utils.convexHull(contours.get(i)));
+        List<MatOfPoint> convexHulls = new ArrayList<>();
+        for (MatOfPoint contour : contours) {
+            convexHulls.add(Utils.convexHull(contour));
         }
-        return hullmop;
+        return convexHulls;
     }
 
 
@@ -183,22 +184,6 @@ public class TableDetector extends FieldDetector {
 
     private List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
         double matchingRatio = Double.MAX_VALUE;
-        //отсев по аппроксимируемым контурам с помощью линий, которые должны быть близки к параллельности
-        for (int i = 0; i < contours.size(); i++) {
-            Mat line = new Mat();
-            double[] angle = new double[2];
-            Imgproc.fitLine(contours.get(i), line, 1, 0.0, 0.1, 0.1);
-            for (int counter = 0; counter < line.rows(); counter++) {
-                double[] array = line.get(counter, 0);
-                if (counter < 2)
-                    angle[counter] = array[0];
-            }
-            double tempAngle = Math.toDegrees(Math.atan(angle[1] / angle[0]));
-            if (tempAngle > TableDetector.maxAngle || tempAngle < TableDetector.minAngle) {
-                contours.remove(i);
-                i--;
-            }
-        }
         //поиск похожих половин стола, с помощью отношения площади и функции opencv
         int indexOfFirstTableContour = -1;
         int indexOfSecondTableContour = -1;
