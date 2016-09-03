@@ -9,6 +9,7 @@ import org.opencv.imgproc.Imgproc;
 
 import java.util.*;
 
+@SuppressWarnings("Duplicates")
 public class TableDetector extends FieldDetector {
     @Cfg
     static int sigmaColor = 25;
@@ -35,7 +36,6 @@ public class TableDetector extends FieldDetector {
     @Cfg
     private double approxAngleThreshold = 200;
 
-    private List<MatOfPoint> approxContours;
     private Mat processingFrame;
     private Mat structeredElement;
     private int min_area;
@@ -44,7 +44,6 @@ public class TableDetector extends FieldDetector {
         super(frameSize);
         processingFrame = new Mat();
         structeredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new org.opencv.core.Size(ksize, ksize));
-        approxContours = new ArrayList<MatOfPoint>();
         min_area = 0;
     }
 
@@ -62,13 +61,13 @@ public class TableDetector extends FieldDetector {
         Mat cntImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         List<MatOfPoint> convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
+
+        List<MatOfPoint> approxContours = new ArrayList<>();
         if (convexHull != null) {
             approxContours = approximateContours(convexHull, edgesNumber);
             print(cntImg, approxContours, -1, false);
 //            print(cntImg, convexHull, 3, false);
-            convexHull.clear();
         }
-        approxContours.clear();
         return cntImg;
     }
 
@@ -194,8 +193,9 @@ public class TableDetector extends FieldDetector {
             matchedContours.add(contours.get(indexOfFirstTableContour));
             matchedContours.add(contours.get(indexOfSecondTableContour));
             return matchedContours;
-        } else
+        } else {
             return null;
+        }
     }
 
 
