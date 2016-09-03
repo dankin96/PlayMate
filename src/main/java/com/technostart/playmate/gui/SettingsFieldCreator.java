@@ -61,8 +61,13 @@ public class SettingsFieldCreator {
                 case Property.DOUBLE: {
                     TextField textField = new TextField(property.getValue().toString());
                     textField.setOnKeyReleased(event -> {
-                        settingsManager.putDouble(key, Double.parseDouble(textField.getText()));
-                        mListener.onUpdate();
+                        String text = textField.getText();
+                        try {
+                            settingsManager.putDouble(key, Double.parseDouble(text));
+                            mListener.onUpdate();
+                        } catch (NumberFormatException e) {
+                            System.out.println(String.format("Невалидное значение в поле %s: \"%s\"", key, text));
+                        }
                     });
                     propertyBox.getChildren().add(textField);
                     break;
@@ -70,8 +75,13 @@ public class SettingsFieldCreator {
                 case Property.INTEGER: {
                     TextField textField = new TextField(property.getValue().toString());
                     textField.setOnKeyReleased(event -> {
-                        settingsManager.putInt(key, Integer.parseInt(textField.getText()));
-                        mListener.onUpdate();
+                        String text = textField.getText();
+                        try {
+                            settingsManager.putInt(key, Integer.parseInt(text));
+                            mListener.onUpdate();
+                        } catch (NumberFormatException e) {
+                            System.out.println(String.format("Невалидное значение в поле %s: \"%s\"", key, text));
+                        }
                     });
                     propertyBox.getChildren().add(textField);
                     break;
