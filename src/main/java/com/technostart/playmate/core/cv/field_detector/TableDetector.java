@@ -49,6 +49,18 @@ public class TableDetector extends FieldDetector {
 
     @Override
     public Mat getField(Mat inputFrame) {
+        List<MatOfPoint> convexHull = getContours(inputFrame);
+        Mat mask = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
+        if (convexHull != null) {
+//            convexHull = approximateContours(convexHull, edgesNumber);
+            print(mask, convexHull, -1, false);
+//            print(cntImg, convexHull, 3, false);
+        }
+        return mask;
+    }
+
+    @Override
+    public List<MatOfPoint> getContours(Mat inputFrame) {
         min_area = inputFrame.height() * inputFrame.width() / areaCoef;
         //предварительная обработка изображения фильтрами
         processingFrame = frameFilter(inputFrame, threshold);
@@ -62,18 +74,12 @@ public class TableDetector extends FieldDetector {
         List<MatOfPoint> convexHull = convexHull(contours);
         convexHull = findTwoMatchingShapes(convexHull);
 
-        List<MatOfPoint> approxContours = new ArrayList<>();
         if (convexHull != null) {
-            approxContours = approximateContours(convexHull, edgesNumber);
-            print(cntImg, approxContours, -1, false);
+            convexHull = approximateContours(convexHull, edgesNumber);
+//            print(cntImg, convexHull, -1, false);
 //            print(cntImg, convexHull, 3, false);
         }
-        return cntImg;
-    }
-
-    @Override
-    public List<MatOfPoint> getContours(Mat inputFrame) {
-        return null;
+        return convexHull;
     }
 
 
@@ -109,12 +115,11 @@ public class TableDetector extends FieldDetector {
     }
 
     private Mat frameFilter(Mat inputFrame, int threshold) {
-        Mat tempFrame = inputFrame;
         Mat processingFrame = new Mat();
         //обработка кадра различными фильтрами
-        Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_BGR2GRAY);
         //bilateral фильтр лучше для краев
-        Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
+        Imgproc.bilateralFilter(inputFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structeredElement, new Point(-1, -1), 1);
@@ -188,7 +193,7 @@ public class TableDetector extends FieldDetector {
                 }
             }
         }
-        List<MatOfPoint> matchedContours = new LinkedList<MatOfPoint>();
+        List<MatOfPoint> matchedContours = new LinkedList<>();
         if (indexOfFirstTableContour != -1 && indexOfSecondTableContour != -1) {
             matchedContours.add(contours.get(indexOfFirstTableContour));
             matchedContours.add(contours.get(indexOfSecondTableContour));
