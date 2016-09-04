@@ -5,14 +5,16 @@ import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtracto
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.core.cv.field_detector.TableDetector2;
 import com.technostart.playmate.core.cv.tracker.Hit;
 import com.technostart.playmate.core.cv.tracker.HitDetectorFilter;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
-import com.technostart.playmate.frame_reader.*;
+import com.technostart.playmate.frame_reader.BufferedFrameReader;
+import com.technostart.playmate.frame_reader.CvFrameReader;
+import com.technostart.playmate.frame_reader.FrameHandler;
+import com.technostart.playmate.frame_reader.Mat2ImgReader;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -30,7 +32,8 @@ import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
-import rx.Subscription;
+import rx.schedulers.JavaFxScheduler;
+import rx.schedulers.Schedulers;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,6 +46,8 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class PlayerController implements Initializable {
 
@@ -77,6 +82,8 @@ public class PlayerController implements Initializable {
     private Mat lastFieldMask;
     private List<MatOfPoint> lastFieldContours;
     private Mat hitMap;
+
+    private volatile boolean isFrameButtonEnable = true;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -138,14 +145,18 @@ public class PlayerController implements Initializable {
                 frameSlider.setValue(capture.getCurrentFrameNumber());
                 capture.getCurrentFrameNumber();
             }
+            enableFrameButtons();
             subscriber.onCompleted();
         });
     }
 
-    private Subscription createFrameSubscription(Command<Image> command) {
-        return createFrameObservable(command)
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.io())
+    private void createFrameSubscription(Command<Image> command) {
+        if (!isFrameButtonEnable) return;
+        disableFrameButtons();
+        Executor executor = Executors.newSingleThreadExecutor();
+        createFrameObservable(command)
+                .subscribeOn(Schedulers.from(executor))
+                .observeOn(JavaFxScheduler.getInstance())
                 .subscribe(this::showFrame);
     }
 
@@ -178,6 +189,7 @@ public class PlayerController implements Initializable {
     private void showFrame(Image imageToShow) {
         positionLabel.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
         processedFrameView.setImage(imageToShow);
+        processedFrameView.requestFocus();
     }
 
     @FXML
@@ -236,7 +248,6 @@ public class PlayerController implements Initializable {
 
         if (event.getCode() == KeyCode.ENTER) {
             nextFrameBtn.requestFocus();
-
         }
     }
 
@@ -274,6 +285,20 @@ public class PlayerController implements Initializable {
     private void reloadFrame() {
         capture.clear();
         createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
+    }
+
+    private void disableFrameButtons() {
+        nextFrameBtn.setDisable(true);
+        previousFrameBtn.setDisable(true);
+        frameSlider.setDisable(true);
+        isFrameButtonEnable = false;
+    }
+
+    private void enableFrameButtons() {
+        nextFrameBtn.setDisable(false);
+        previousFrameBtn.setDisable(false);
+        frameSlider.setDisable(false);
+        isFrameButtonEnable = true;
     }
 
     /**
