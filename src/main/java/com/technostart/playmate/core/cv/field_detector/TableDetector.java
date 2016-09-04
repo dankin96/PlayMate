@@ -12,27 +12,27 @@ import java.util.*;
 @SuppressWarnings("Duplicates")
 public class TableDetector extends FieldDetector {
     @Cfg
-    static int sigmaColor = 25;
+    int sigmaColor = 25;
     @Cfg
-    static int sigmaSpace = 25;
+    int sigmaSpace = 25;
     @Cfg
-    static int ksize = 5;
+    int ksize = 5;
     @Cfg
-    static int areaCoef = 250;
+    int areaCoef = 250;
     @Cfg
-    static int edgesNumber = 4;
+    int edgesNumber = 4;
     @Cfg
-    static int diameter = 5;
+    int diameter = 5;
     @Cfg
-    private int threshold = 80;
+    int threshold = 80;
     @Cfg
-    static public double minRatio = 0.85;
+    double minRatio = 0.85;
     @Cfg
-    static public double maxRatio = 1.15;
+    double maxRatio = 1.15;
     @Cfg
-    static public double minAngle = -15.0;
+    double minAngle = -15.0;
     @Cfg
-    static public double maxAngle = 15.0;
+    double maxAngle = 15.0;
     @Cfg
     private double approxAngleThreshold = 200;
 
@@ -52,7 +52,7 @@ public class TableDetector extends FieldDetector {
         List<MatOfPoint> convexHull = getContours(inputFrame);
         Mat mask = Mat.zeros(inputFrame.size(), CvType.CV_8UC1);
         if (convexHull != null) {
-            print(mask, convexHull, -1, false);
+            Imgproc.drawContours(mask, convexHull, -1 , Palette.WHITE, -1);
         }
         return mask;
     }
@@ -94,7 +94,7 @@ public class TableDetector extends FieldDetector {
 
 
     private List<MatOfPoint> approximateContours(List<MatOfPoint> convexHull, int edgesNumber) {
-        List<MatOfPoint> approxContours = new ArrayList<MatOfPoint>();
+        List<MatOfPoint> approxContours = new ArrayList<>();
         for (int i = 0; i < convexHull.size(); i++) {
             MatOfPoint temp = new MatOfPoint();
             convexHull.get(i).convertTo(temp, CvType.CV_32S);
@@ -120,36 +120,6 @@ public class TableDetector extends FieldDetector {
         Imgproc.GaussianBlur(processingFrame, processingFrame, new org.opencv.core.Size(ksize, ksize), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structuredElement, new Point(-1, -1), 1);
         return processingFrame;
-    }
-
-    private List<MatOfPoint> contourFilter(List<MatOfPoint> contours, int min_area) {
-        Collections.sort(contours, new Comparator<Mat>() {
-            @Override
-            public int compare(Mat o1, Mat o2) {
-                double area_1 = Imgproc.contourArea(o1);
-                double area_2 = Imgproc.contourArea(o2);
-                if (area_1 < area_2) {
-                    return 1;
-                } else if (area_1 > area_2) {
-                    return -1;
-                }
-                return 0;
-            }
-        });
-        //фильтрация по площади
-        int counter = 0;
-        for (int i = 0; i < contours.size(); i++) {
-            double area = Imgproc.contourArea(contours.get(i));
-            if (area < min_area) {
-                counter = i + 1;
-                break;
-            }
-        }
-        int temp = contours.size();
-        for (int i = 0; i < temp - counter; i++) {
-            contours.remove(temp - 1 - i);
-        }
-        return contours;
     }
 
     private List<MatOfPoint> filterContoursByAngle(List<MatOfPoint> contours, double minAngle, double maxAngle) {
@@ -193,7 +163,7 @@ public class TableDetector extends FieldDetector {
                 double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
                 if (curMatchingRatio < matchingRatio) {
                     double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
-                    if (areaRatio > TableDetector.minRatio && areaRatio < TableDetector.maxRatio) {
+                    if (areaRatio > minRatio && areaRatio < maxRatio) {
                         matchingRatio = curMatchingRatio;
                         indexOfFirstTableContour = i;
                         indexOfSecondTableContour = j;
@@ -213,10 +183,4 @@ public class TableDetector extends FieldDetector {
         }
     }
 
-
-    private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
-        Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
-        Imgproc.drawContours(cntImg, contours, -1 , color, thickness);
-        return cntImg;
-    }
 }
