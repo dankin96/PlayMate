@@ -102,12 +102,9 @@ public class PlayerController implements Initializable {
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-//                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
-                Mat fieldMask = tableDetector.getField(newFrame.clone());
-//                lastFieldContours = fieldContours;
-                Imgproc.cvtColor(fieldMask, fieldMask, Imgproc.COLOR_GRAY2BGR);
-                Core.addWeighted(newFrame, 0.7, fieldMask, 0.3, 0, newFrame);
-//                Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN);
+                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                lastFieldContours = fieldContours;
+                Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
@@ -206,7 +203,7 @@ public class PlayerController implements Initializable {
         hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
             // TODO: действие при новом попадании.
 //            lastHit = new Hit(hitPoint, direction);
-
+            if (lastFieldContours == null) return;
             if (HitDetectorFilter.check(hitPoint, lastFieldContours)) {
                 Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
                 Imgproc.circle(hitMap, hitPoint, 5, color);
