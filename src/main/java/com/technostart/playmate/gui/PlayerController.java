@@ -32,6 +32,7 @@ import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
+import rx.Subscriber;
 import rx.schedulers.JavaFxScheduler;
 import rx.schedulers.Schedulers;
 
@@ -43,11 +44,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public class PlayerController implements Initializable {
 
@@ -110,8 +113,10 @@ public class PlayerController implements Initializable {
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
                 List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
-                lastFieldContours = fieldContours;
-                Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
+                if (fieldContours != null) {
+                    lastFieldContours = new ArrayList(fieldContours);
+                }
+                Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
             if (isTrackerEnable) {
                 newFrame = tracker.getFrame(newFrame);
@@ -132,32 +137,37 @@ public class PlayerController implements Initializable {
         }
     };
 
-
-    @FunctionalInterface
-    interface Command<T> {
-        T execute();
-    }
-
-    private Observable<Image> createFrameObservable(Command<Image> command) {
+    private Observable<Image> createFrameObservable(Supplier<Image> imageSupplier) {
         return Observable.create(subscriber -> {
             if (capture != null) {
-                subscriber.onNext(command.execute());
-                frameSlider.setValue(capture.getCurrentFrameNumber());
-                capture.getCurrentFrameNumber();
+                subscriber.onNext(imageSupplier.get());
             }
-            enableFrameButtons();
             subscriber.onCompleted();
         });
     }
 
-    private void createFrameSubscription(Command<Image> command) {
+    private void createFrameSubscription(Supplier<Image> imageSupplier) {
         if (!isFrameButtonEnable) return;
         disableFrameButtons();
         Executor executor = Executors.newSingleThreadExecutor();
-        createFrameObservable(command)
+        createFrameObservable(imageSupplier)
                 .subscribeOn(Schedulers.from(executor))
                 .observeOn(JavaFxScheduler.getInstance())
-                .subscribe(this::showFrame);
+                .subscribe(
+                        image -> {
+                            showFrame(image);
+                            frameSlider.setValue(capture.getCurrentFrameNumber());
+                        },
+                        throwable -> {
+                            System.out.println("Error while processing frame!");
+                            throwable.printStackTrace();
+                            processedFrameView.requestFocus();
+                            enableFrameButtons();
+                        },
+                        () -> {
+                            processedFrameView.requestFocus();
+                            enableFrameButtons();
+                        });
     }
 
     @Override
@@ -181,7 +191,7 @@ public class PlayerController implements Initializable {
             }
         });
 //        bgSubstr = new SimpleBackgroundSubtractor();
-        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
+        bgSubstr = BgSubtractorFactory.createMOG2(3, 9, false);
         // TODO: добавить новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
@@ -198,8 +208,10 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        // Очистка буфера.
+        // Очистка буфера и карты попаданий.
         if (capture != null) capture.close();
+        hitMap = null;
+
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
@@ -214,12 +226,15 @@ public class PlayerController implements Initializable {
         hitMapSession = new Session(firstFrame.size());
         hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
             // TODO: действие при новом попадании.
-//            lastHit = new Hit(hitPoint, direction);
-            if (lastFieldContours == null) return;
-            if (HitDetectorFilter.check(hitPoint, lastFieldContours)) {
-                Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-                Imgproc.circle(hitMap, hitPoint, 5, color);
+            lastHit = new Hit(hitPoint, direction);
+
+            int lineType = 1;
+            if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours)) {
+                lineType = -1;
             }
+            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+            Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
+//            Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
         });
 
 //        hitMap = new Mat(firstFrame.size(), firstFrame.type());
@@ -247,7 +262,7 @@ public class PlayerController implements Initializable {
         }
 
         if (event.getCode() == KeyCode.ENTER) {
-            nextFrameBtn.requestFocus();
+            processedFrameView.requestFocus();
         }
     }
 
@@ -318,6 +333,10 @@ public class PlayerController implements Initializable {
             System.out.println("Ошибка парсера настроек");
             e.printStackTrace();
         }
+    }
+
+    private void reloadTracker() {
+        // TODO
     }
 
     /**
