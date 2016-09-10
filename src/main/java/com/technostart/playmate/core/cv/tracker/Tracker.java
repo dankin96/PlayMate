@@ -65,7 +65,7 @@ public class Tracker {
     }
 
 
-    public Mat getFrame(long timestamp, Mat inputFrame) {
+    public void process(long timestamp, Mat inputFrame) {
         Utils.setResizeHeight((int) inputFrame.size().height);
         Utils.setResizeWidth((int) inputFrame.size().width);
         // Выделение фона.
@@ -173,13 +173,16 @@ public class Tracker {
         // FIXME: можно создать группы из каждого контура и потом посчитать веса для них же.
         for (Integer cntIdx : restContours) {
             MatOfPoint contour = contours.get(cntIdx);
-            Group newGroup = new Group(contour, hitDetectorListener);
+            Group newGroup = new Group(timestamp, contour, hitDetectorListener);
             int newGroupId = groupId.incrementAndGet();
             groups.put(newGroupId, newGroup);
             // Сообщаем о новых данных.
             contourListener.onTrackContour(newGroupId, Arrays.asList(contour));
         }
+    }
 
+    public Mat getFrame(long timestamp, Mat inputFrame, List<Long> timestamps) {
+        process(timestamp, inputFrame);
         /**
          * Композиция исходного изображения с данными трекера.
          */
@@ -193,10 +196,11 @@ public class Tracker {
         // Рисуем группы контуров и треки разными цветами.
         for (Group group : groups.values()) {
             // Группы.
-            List<MatOfPoint> contoursToDraw = group.getContourList();
+            List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
             // Треки.
-            Utils.drawLine(group.getTrack(), dataImg, Palette.getRandomColor(10), 1);
+            List<Point> trackPoints = group.getTrackPointsByTamstamp(timestamps);
+            Utils.drawLine(trackPoints, dataImg, Palette.getRandomColor(10), 1);
         }
 
         Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0.5, inputFrame);

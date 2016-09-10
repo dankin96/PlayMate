@@ -87,6 +87,9 @@ public class PlayerController implements Initializable, RawTrackerInterface {
     private Map<Integer, List<List<MatOfPoint>>> contourGropus;
     private Mat contourGroupsMat;
 
+    private List<Long> timestampList = new ArrayList<>();
+    private long lastTimestamp;
+
     private volatile boolean isFrameButtonEnable = true;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
@@ -107,10 +110,12 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         @Cfg
         boolean isDrawingContoursEnable = false;
         @Cfg
-        int trackLength = 20;
+        int trackLength = 5;
 
         @Override
         public Image process(Mat inputFrame) {
+            lastTimestamp = System.currentTimeMillis();
+            timestampList.add(lastTimestamp);
             Mat newFrame = inputFrame.clone();
             if (isGray) {
                 Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
@@ -124,7 +129,10 @@ public class PlayerController implements Initializable, RawTrackerInterface {
                 Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
             if (isTrackerEnable) {
-                newFrame = tracker.getFrame(System.currentTimeMillis(), newFrame);
+                int lastIdx = timestampList.size();
+                int diff = lastIdx - trackLength;
+                int fromIdx = diff >= 0 ? diff : 0;
+                newFrame = tracker.getFrame(lastTimestamp, newFrame, timestampList.subList(fromIdx, lastIdx));
             }
             if (isHitMapSessionEnable) {
                 hitMapSession.update(newFrame.clone());

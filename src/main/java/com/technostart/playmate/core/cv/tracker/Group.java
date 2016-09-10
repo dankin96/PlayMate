@@ -6,10 +6,11 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
+@SuppressWarnings("WeakerAccess")
 public class Group {
 
     HitDetector hitDetector;
@@ -24,7 +25,7 @@ public class Group {
     public static final int MAX_IDLE = 3;
 
     private List<Scalar> colors;
-    private List<MatOfPoint> contours;
+    private LinkedHashMap<Long, List<MatOfPoint>> timeToContours;
     private LinkedHashMap<Long, Point> track;
 
     //
@@ -35,27 +36,27 @@ public class Group {
         this.lastCoord = lastCoord;
     }
 
-    public Group(MatOfPoint contour, HitDetectorInterface hitDetectorListener) {
+    public Group(long timestamp, MatOfPoint contour, HitDetectorInterface hitDetectorListener) {
         this.hitDetector = new HitDetector(hitDetectorListener);
         init();
-        add(System.currentTimeMillis(), contour);
+        add(timestamp, contour);
     }
 
     private void init() {
         track = new LinkedHashMap<>();
-        contours = new ArrayList<>();
+        timeToContours = new LinkedHashMap<>();
 //        hitDetector = new HitDetector();
     }
 
     public void add(long timestamp, MatOfPoint contour) {
-        contours.add(contour);
+        timeToContours.put(timestamp, Arrays.asList(contour));
         Point centroid = Utils.getCentroid(contour);
         add(timestamp, centroid);
     }
 
     public void add(long timestamp, List<MatOfPoint> newContours, List<Double> weights) {
         int size = newContours.size();
-        contours.addAll(newContours);
+        timeToContours.put(timestamp, newContours);
         Point centroid = null;
         if (size == 0) {
             return;
@@ -103,10 +104,34 @@ public class Group {
     }
 
     public List<MatOfPoint> getContourList() {
+        List<MatOfPoint> allContours = new ArrayList<>();
+        for (List<MatOfPoint> contours : timeToContours.values()) {
+            allContours.addAll(contours);
+        }
+        return allContours;
+    }
+
+    public List<MatOfPoint> getContoursByTimestamp(List<Long> timestamps) {
+        List<MatOfPoint> contours = new ArrayList<>();
+        for (long timestamp : timestamps) {
+            if (track.containsKey(timestamp)) {
+                contours.addAll(timeToContours.get(timestamp));
+            }
+        }
         return contours;
     }
 
-    public void idle() {
-        idle++;
+    public List<Point> getTrackPointsByTamstamp(List<Long> timestamps) {
+        List<Point> points = new ArrayList<>();
+        for (long timestamp : timestamps) {
+            if (track.containsKey(timestamp)) {
+                points.add(track.get(timestamp));
+            }
+        }
+        return points;
     }
-}
+
+        public void idle () {
+            idle++;
+        }
+    }

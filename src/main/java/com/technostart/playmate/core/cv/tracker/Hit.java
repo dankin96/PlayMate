@@ -12,4 +12,5 @@ public class Hit {
 
     public Point point;
     public Direction direction;
+    public long timestamp;
 }
