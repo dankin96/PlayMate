@@ -35,7 +35,7 @@ public class Session implements HitDetectorInterface {
     }
 
     public void update(Mat frame) {
-        tracker.getFrame(frame.clone());
+        tracker.getFrame(System.currentTimeMillis(), frame.clone());
         // Обновляем маску стола.
         Mat newFieldMask = fieldDetector.getField(frame.clone());
         if (newFieldMask != null) {

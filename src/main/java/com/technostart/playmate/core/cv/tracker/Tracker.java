@@ -7,10 +7,7 @@ import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactor
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("WeakerAccess")
@@ -30,7 +27,10 @@ public class Tracker {
     //
     AtomicInteger groupId = new AtomicInteger();
     private Map<Integer, Group> groups;
+
+    // Listeners.
     private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {};
+    private RawTrackerInterface contourListener = (groupId, contours) -> {};
 
     private double weightThreshold;
     private double maxDist;
@@ -60,12 +60,16 @@ public class Tracker {
         this.hitDetectorListener = hitDetectorListener;
     }
 
-    public Mat getFrame(Mat inputFrame) {
+    public void setContourListener(RawTrackerInterface contourListener) {
+        this.contourListener = contourListener;
+    }
+
+
+    public Mat getFrame(long timestamp, Mat inputFrame) {
         Utils.setResizeHeight((int) inputFrame.size().height);
         Utils.setResizeWidth((int) inputFrame.size().width);
-        Mat frame = inputFrame;
         // Выделение фона.
-        bgSubtractor.apply(frame, bgMask);
+        bgSubtractor.apply(inputFrame, bgMask);
         // Шумодав.
         bgMask = Utils.filterNoise(bgMask);
 
@@ -88,7 +92,6 @@ public class Tracker {
         for (int id : groupIdToRemove) {
             groups.remove(id);
         }
-
 
         // Структура для хранения весов Map<contourIdx, Map<groupIdx, weight>>
         Map<Integer, Map<Integer, Double>> contoursWeight = new HashMap<>();
@@ -159,16 +162,22 @@ public class Tracker {
             List<MatOfPoint> contoursList = entry.getValue();
             List<Double> weightList = groupIdxToWeightList.get(groupIdx);
             Group updatedGroup = groups.get(groupIdx);
-            updatedGroup.add(contoursList, weightList);
+            updatedGroup.add(timestamp, contoursList, weightList);
             groups.put(groupIdx, updatedGroup);
+            // Сообщаем о новых данных.
+            contourListener.onTrackContour(groupIdx, contoursList);
         }
 
         // Создание новых групп из оставшихся контуров.
         // FIXME: Тут надо рассматривать каждый контур как группу и сразу объединить их
         // FIXME: можно создать группы из каждого контура и потом посчитать веса для них же.
         for (Integer cntIdx : restContours) {
-            Group newGroup = new Group(contours.get(cntIdx), hitDetectorListener);
-            groups.put(groupId.incrementAndGet(), newGroup);
+            MatOfPoint contour = contours.get(cntIdx);
+            Group newGroup = new Group(contour, hitDetectorListener);
+            int newGroupId = groupId.incrementAndGet();
+            groups.put(newGroupId, newGroup);
+            // Сообщаем о новых данных.
+            contourListener.onTrackContour(newGroupId, Arrays.asList(contour));
         }
 
         /**
@@ -179,7 +188,7 @@ public class Tracker {
             Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
         }
         // Матрица для отрисовки контуров, треков и т.д.
-        Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
+        Mat dataImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
 
         // Рисуем группы контуров и треки разными цветами.
         for (Group group : groups.values()) {

@@ -6,7 +6,9 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Group {
 
@@ -23,7 +25,7 @@ public class Group {
 
     private List<Scalar> colors;
     private List<MatOfPoint> contours;
-    private List<Point> track;
+    private LinkedHashMap<Long, Point> track;
 
     //
 
@@ -36,29 +38,29 @@ public class Group {
     public Group(MatOfPoint contour, HitDetectorInterface hitDetectorListener) {
         this.hitDetector = new HitDetector(hitDetectorListener);
         init();
-        add(contour);
+        add(System.currentTimeMillis(), contour);
     }
 
     private void init() {
-        track = new ArrayList<>();
+        track = new LinkedHashMap<>();
         contours = new ArrayList<>();
 //        hitDetector = new HitDetector();
     }
 
-    public void add(MatOfPoint contour) {
+    public void add(long timestamp, MatOfPoint contour) {
         contours.add(contour);
         Point centroid = Utils.getCentroid(contour);
-        add(centroid);
+        add(timestamp, centroid);
     }
 
-    public void add(List<MatOfPoint> newContours, List<Double> weights) {
+    public void add(long timestamp, List<MatOfPoint> newContours, List<Double> weights) {
         int size = newContours.size();
         contours.addAll(newContours);
         Point centroid = null;
         if (size == 0) {
             return;
         } else if (size == 1) {
-            add(newContours.get(0));
+            add(timestamp, newContours.get(0));
             return;
         } else if (size == 2) {
             Point c1 = Utils.getCentroid(newContours.get(0));
@@ -71,13 +73,13 @@ public class Group {
         }
 
         if (centroid != null) {
-            add(centroid);
+            add(timestamp, centroid);
         }
     }
 
-    private void add(Point centroid) {
+    private void add(long timestamp, Point centroid) {
         lastCoord = centroid;
-        track.add(centroid);
+        track.put(timestamp, centroid);
         hitDetector.addNewPoint(centroid);
         idle = idle > 0 ? idle - 1 : 0;
     }
@@ -90,14 +92,14 @@ public class Group {
         return idle;
     }
 
-    public MatOfPoint getTrackContour() {
+/*    public MatOfPoint getTrackContour() {
         MatOfPoint contour = new MatOfPoint();
         contour.fromList(track);
         return contour;
-    }
+    }*/
 
     public List<Point> getTrack() {
-        return track;
+        return new ArrayList(track.values());
     }
 
     public List<MatOfPoint> getContourList() {

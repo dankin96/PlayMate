@@ -7,6 +7,7 @@ import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.tracker.Hit;
 import com.technostart.playmate.core.cv.tracker.HitDetectorFilter;
+import com.technostart.playmate.core.cv.tracker.RawTrackerInterface;
 import com.technostart.playmate.core.cv.tracker.Tracker;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
@@ -44,15 +45,12 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-public class PlayerController implements Initializable {
+public class PlayerController implements Initializable, RawTrackerInterface {
 
     private SettingsManager settingsManager;
     @FXML
@@ -86,6 +84,9 @@ public class PlayerController implements Initializable {
     private List<MatOfPoint> lastFieldContours;
     private Mat hitMap;
 
+    private Map<Integer, List<List<MatOfPoint>>> contourGropus;
+    private Mat contourGroupsMat;
+
     private volatile boolean isFrameButtonEnable = true;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
@@ -103,6 +104,10 @@ public class PlayerController implements Initializable {
         boolean isHitMapSessionEnable = false;
         @Cfg
         boolean isDrawingHitsEnable = false;
+        @Cfg
+        boolean isDrawingContoursEnable = false;
+        @Cfg
+        int trackLength = 20;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -119,7 +124,7 @@ public class PlayerController implements Initializable {
                 Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
             if (isTrackerEnable) {
-                newFrame = tracker.getFrame(newFrame);
+                newFrame = tracker.getFrame(System.currentTimeMillis(), newFrame);
             }
             if (isHitMapSessionEnable) {
                 hitMapSession.update(newFrame.clone());
@@ -132,6 +137,9 @@ public class PlayerController implements Initializable {
                     hitMap = Mat.zeros(newFrame.size(), newFrame.type());
                 }
                 Core.addWeighted(newFrame, 0.5, hitMap, 0.5, 0, newFrame);
+            }
+            if (isDrawingContoursEnable) {
+
             }
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
@@ -172,7 +180,6 @@ public class PlayerController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
         // Менеджер настроек.
         settingsManager = new SettingsManager();
 
@@ -372,9 +379,6 @@ public class PlayerController implements Initializable {
         fieldCreator.bind(settingsBox, settingsManager);
     }
 
-    private void saveImage(Image image) {
-
-    }
 
     private void saveTextFile(File file, String content) {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
@@ -396,4 +400,15 @@ public class PlayerController implements Initializable {
     }
 
 
+    @Override
+    public void onTrackContour(int groupId, List<MatOfPoint> newContours) {
+        List<List<MatOfPoint>> contours;
+        if (contourGropus.containsKey(groupId)) {
+            contours = contourGropus.get(groupId);
+            contours.add(newContours);
+        } else {
+            contours = new ArrayList<>();
+        }
+        contourGropus.put(groupId, contours);
+    }
 }
