@@ -1,6 +1,7 @@
 package com.technostart.playmate.core.cv;
 
-import javafx.scene.image.Image;
+
+import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
@@ -15,7 +16,7 @@ public class Utils {
     // Параметры по умолчанию
 
     // Чем больше значение тем меньше радиус.
-    public static final int DEFAULT_KERNEL_RATE = 300;
+    public static final int DEFAULT_KERNEL_RATE = 250;
 
     // Resize
     private static int resizeHeight = 480;
@@ -24,6 +25,7 @@ public class Utils {
     public static int resizeInterpolation = Imgproc.INTER_LINEAR;
 
     // Параметры шумодава
+    @Cfg
     private static int kernelRate = DEFAULT_KERNEL_RATE;
     private static int kernelRadius;
     public static Mat kernelShape;
@@ -167,6 +169,14 @@ public class Utils {
         MatOfPoint newContour = new MatOfPoint();
         newContour.fromList(centers);
         return newContour;
+    }
+
+    public static double getAvgArea(List<MatOfPoint> contours) {
+        double areaSum = 0;
+        for (MatOfPoint contour : contours) {
+            areaSum += Imgproc.contourArea(contour);
+        }
+        return areaSum / contours.size();
     }
     ///////////////////////////////////////////////////////////////////////////
     //

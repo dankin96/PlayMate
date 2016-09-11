@@ -1,11 +1,18 @@
 package com.technostart.playmate.gui;
 
+
+import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
-import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
+import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.map_of_hits.MapOfHits;
+import com.technostart.playmate.core.cv.tracker.Hit;
+import com.technostart.playmate.core.cv.tracker.HitDetectorFilter;
+import com.technostart.playmate.core.cv.tracker.RawTrackerInterface;
 import com.technostart.playmate.core.cv.tracker.Tracker;
+import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
@@ -29,7 +36,9 @@ import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
-import rx.Subscription;
+import rx.Subscriber;
+import rx.schedulers.JavaFxScheduler;
+import rx.schedulers.Schedulers;
 
 import java.io.*;
 import java.net.URL;
@@ -37,8 +46,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
-public class PlayerController implements Initializable {
+public class PlayerController implements Initializable, RawTrackerInterface {
 
     private SettingsManager settingsManager;
     @FXML
@@ -59,7 +71,7 @@ public class PlayerController implements Initializable {
     ImageView processedFrameView;
 
     private BufferedFrameReader<Image> capture;
-//    private Mat2ImgReader capture;
+    //    private Mat2ImgReader capture;
     private String videoFileName;
     private int frameNumberToShow;
     private List<Point> pointsForTesting;
@@ -67,7 +79,20 @@ public class PlayerController implements Initializable {
     private Tracker tracker;
     private TableDetector tableDetector;
     private BackgroundExtractor bgSubstr;
-    private MapOfHits map;
+    private Session hitMapSession;
+
+    private Hit lastHit;
+    private Mat lastFieldMask;
+    private List<MatOfPoint> lastFieldContours;
+    private Mat hitMap;
+
+    private Map<Integer, List<List<MatOfPoint>>> contourGropus;
+    private Mat contourGroupsMat;
+
+    private List<Long> timestampList = new ArrayList<>();
+    private long lastTimestamp;
+
+    private volatile boolean isFrameButtonEnable = true;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -81,101 +106,90 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
-        boolean isWarpPerspectiveEnable = false;
+        boolean isHitMapSessionEnable = false;
         @Cfg
-        boolean isJsonCreateEnable = false;
+        boolean isDrawingHitsEnable = false;
         @Cfg
-        boolean isMapOfHitsEnable = true;
+        boolean isDrawingContoursEnable = false;
+        @Cfg
+        int trackLength = 5;
 
         @Override
         public Image process(Mat inputFrame) {
+            lastTimestamp = System.currentTimeMillis();
+            timestampList.add(lastTimestamp);
             Mat newFrame = inputFrame.clone();
             if (isGray) {
                 Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-                Mat originalFrame = newFrame.clone();
-                newFrame = tableDetector.getField(newFrame);
-                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
+                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                if (fieldContours != null) {
+                    lastFieldContours = new ArrayList(fieldContours);
+                }
+                Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
             if (isTrackerEnable) {
-                tracker.getFrame(newFrame);
+                int lastIdx = timestampList.size();
+                int diff = lastIdx - trackLength;
+                int fromIdx = diff >= 0 ? diff : 0;
+                newFrame = tracker.getFrame(lastTimestamp, newFrame, timestampList.subList(fromIdx, lastIdx));
             }
-            if (isMapOfHitsEnable) {
-                Mat originalFrame = newFrame.clone();
-                if (originalFrame != null && tableDetector.getIsDetected() != true) {
-                    originalFrame = tableDetector.getField(originalFrame);
-                    map.setField(tableDetector.getPointsOfTable(), originalFrame);
+            if (isHitMapSessionEnable) {
+                hitMapSession.update(newFrame.clone());
+            }
+            if (isDrawingHitsEnable && lastHit != null) {
+                Imgproc.circle(newFrame, lastHit.point, 5, Palette.RED);
+            }
+            if (isDrawingHitsEnable) {
+                if (hitMap == null) {
+                    hitMap = Mat.zeros(newFrame.size(), newFrame.type());
                 }
-                newFrame = map.getMap(new Point(200 + 300 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.UNDEFINED);
-//                helpImageView.setImage(GuiUtils.mat2Image(copy, jpgQuality));
+                Core.addWeighted(newFrame, 0.5, hitMap, 0.5, 0, newFrame);
             }
-            if (isJsonCreateEnable) {
-                processedFrameView.setOnMouseClicked(e -> {
-                    //считывает по 8 координат с ImageView и записывает их в Json с ресурсах
-                    if (pointsForTesting.size() <= 8)
-                        pointsForTesting.add(new Point(e.getX() / processedFrameView.getFitWidth(), e.getY() / processedFrameView.getFitHeight()));
-                    if (pointsForTesting.size() == 8) {
-                        GuiUtils.createJsonTestFile(pointsForTesting, videoFileName);
-                        pointsForTesting.clear();
-                    }
-                });
-            }
-            if (isWarpPerspectiveEnable) {
-                List<Point> srcPoints = new ArrayList<Point>();
-                //координаты правой половины стола 1 дубля захордкоженные
-                Point srcP1 = new Point(403.50083892617465, 241.15520134228194);
-                Point srcP2 = new Point(590.7818181818185, 244.85454545454544);
-                Point srcP3 = new Point(398.76898763595807, 305.8238356419075);
-                Point srcP4 = new Point(693.163064833006, 311.442043222004);
-                srcPoints.add(srcP1);
-                srcPoints.add(srcP2);
-                srcPoints.add(srcP3);
-                srcPoints.add(srcP4);
-                List<Point> dstPoints = new ArrayList<Point>();
-                Point dstP1 = new Point(0, 0);
-                Point dstP2 = new Point(newFrame.width() - 1, 0);
-                Point dstP3 = new Point(0, newFrame.height() - 1);
-                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);
-                dstPoints.add(dstP1);
-                dstPoints.add(dstP2);
-                dstPoints.add(dstP3);
-                dstPoints.add(dstP4);
+            if (isDrawingContoursEnable) {
 
-                newFrame = Utils.createHomography(newFrame, srcPoints, dstPoints);
             }
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
     };
 
-
-    @FunctionalInterface
-    interface Command<T> {
-        T execute();
-    }
-
-    private Observable<Image> createFrameObservable(Command<Image> command) {
+    private Observable<Image> createFrameObservable(Supplier<Image> imageSupplier) {
         return Observable.create(subscriber -> {
             if (capture != null) {
-                subscriber.onNext(command.execute());
-                frameSlider.setValue(capture.getCurrentFrameNumber());
-                capture.getCurrentFrameNumber();
+                subscriber.onNext(imageSupplier.get());
             }
             subscriber.onCompleted();
         });
     }
 
-    private Subscription createFrameSubscription(Command<Image> command) {
-        return createFrameObservable(command)
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.io())
-                .subscribe(this::showFrame);
+    private void createFrameSubscription(Supplier<Image> imageSupplier) {
+        if (!isFrameButtonEnable) return;
+        disableFrameButtons();
+        Executor executor = Executors.newSingleThreadExecutor();
+        createFrameObservable(imageSupplier)
+                .subscribeOn(Schedulers.from(executor))
+                .observeOn(JavaFxScheduler.getInstance())
+                .subscribe(
+                        image -> {
+                            showFrame(image);
+                            frameSlider.setValue(capture.getCurrentFrameNumber());
+                        },
+                        throwable -> {
+                            System.out.println("Error while processing frame!");
+                            throwable.printStackTrace();
+                            processedFrameView.requestFocus();
+                            enableFrameButtons();
+                        },
+                        () -> {
+                            processedFrameView.requestFocus();
+                            enableFrameButtons();
+                        });
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
         // Менеджер настроек.
         settingsManager = new SettingsManager();
         videoFileName = "";
@@ -192,8 +206,8 @@ public class PlayerController implements Initializable {
                 frameNumberToShow = (int) pos;
             }
         });
-        bgSubstr = new SimpleBackgroundSubtractor();
-//        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
+//        bgSubstr = new SimpleBackgroundSubtractor();
+        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
         // TODO: добавить новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
@@ -201,6 +215,7 @@ public class PlayerController implements Initializable {
     private void showFrame(Image imageToShow) {
         positionLabel.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
         processedFrameView.setImage(imageToShow);
+        processedFrameView.requestFocus();
     }
 
     @FXML
@@ -209,18 +224,36 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        // Очистка буфера.
+        // Очистка буфера и карты попаданий.
         if (capture != null) capture.close();
+        hitMap = null;
+
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
         Mat firstFrame = cvReader.read();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tableDetector = new TableDetector(firstFrame.size());
-        map = new MapOfHits();
 
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader);
+
+        // Новая сессия.
+        hitMapSession = new Session(firstFrame.size());
+        hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
+            // TODO: действие при новом попадании.
+            lastHit = new Hit(hitPoint, direction);
+
+            int lineType = 1;
+            if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours)) {
+                lineType = -1;
+            }
+            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+            Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
+//            Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
+        });
+
+//        hitMap = new Mat(firstFrame.size(), firstFrame.type());
 
         showFrame(capture.read());
 
@@ -230,7 +263,7 @@ public class PlayerController implements Initializable {
 
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector));
+        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector, new Utils()));
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -245,8 +278,7 @@ public class PlayerController implements Initializable {
         }
 
         if (event.getCode() == KeyCode.ENTER) {
-            nextFrameBtn.requestFocus();
-
+            processedFrameView.requestFocus();
         }
     }
 
@@ -286,6 +318,20 @@ public class PlayerController implements Initializable {
         createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
     }
 
+    private void disableFrameButtons() {
+        nextFrameBtn.setDisable(true);
+        previousFrameBtn.setDisable(true);
+        frameSlider.setDisable(true);
+        isFrameButtonEnable = false;
+    }
+
+    private void enableFrameButtons() {
+        nextFrameBtn.setDisable(false);
+        previousFrameBtn.setDisable(false);
+        frameSlider.setDisable(false);
+        isFrameButtonEnable = true;
+    }
+
     /**
      * Применяет настройки.
      */
@@ -294,14 +340,25 @@ public class PlayerController implements Initializable {
         try {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
+//            tableDetector.updateStructuredElement();
             capture = settingsManager.fromSettings(capture);
-            frameHandler = settingsManager.fromSettings(frameHandler);
             bgSubstr = settingsManager.fromSettings(bgSubstr);
+            frameHandler = settingsManager.fromSettings(frameHandler);
+            tracker = settingsManager.fromSettings(tracker);
+            int history = settingsManager.getInt("bgHistoryLength", 3);
+            int threshold = settingsManager.getInt("bgThreshold", 7);
+            BackgroundExtractor newBgExtr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            tracker.setBgSubstr(newBgExtr);
+            Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
             e.printStackTrace();
         }
+    }
+
+    private void reloadTracker() {
+        // TODO
     }
 
     /**
@@ -310,6 +367,8 @@ public class PlayerController implements Initializable {
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
             settingsManager.toSettings(object);
+            settingsManager.putInt("bgHistoryLength", 3);
+            settingsManager.putInt("bgThreshold", 7);
         }
         updateSettingsFields();
     }
@@ -337,9 +396,6 @@ public class PlayerController implements Initializable {
         fieldCreator.bind(settingsBox, settingsManager);
     }
 
-    private void saveImage(Image image) {
-
-    }
 
     private void saveTextFile(File file, String content) {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
@@ -358,5 +414,17 @@ public class PlayerController implements Initializable {
             e.printStackTrace();
         }
         return string;
+    }
+
+    @Override
+    public void onTrackContour(int groupId, List<MatOfPoint> newContours) {
+        List<List<MatOfPoint>> contours;
+        if (contourGropus.containsKey(groupId)) {
+            contours = contourGropus.get(groupId);
+            contours.add(newContours);
+        } else {
+            contours = new ArrayList<>();
+        }
+        contourGropus.put(groupId, contours);
     }
 }

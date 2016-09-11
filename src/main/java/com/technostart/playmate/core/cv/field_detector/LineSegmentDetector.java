@@ -2,11 +2,10 @@ package com.technostart.playmate.core.cv.field_detector;
 
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.settings.Cfg;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.List;
 
 public class LineSegmentDetector extends FieldDetector {
     @Cfg
@@ -37,6 +36,12 @@ public class LineSegmentDetector extends FieldDetector {
         Imgproc.HoughLinesP(tmpFrame, lines, 1, Math.PI / 180,
                 houghLinesThreshold, houghtLinesMinLength, houghtLinesMaxGap);
         return lines;
+    }
+
+    @Override
+    public List<MatOfPoint> getContours(Mat inputFrame) {
+        // TODO:
+        return null;
     }
 
     public Mat getFrame(Mat inputFrame) {
