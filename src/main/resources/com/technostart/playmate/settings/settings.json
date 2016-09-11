@@ -1,22 +1,122 @@
 {
-  "KernelRate": {
+  "jpgQuality": {
     "type": "Integer",
-    "value": 200
+    "value": 100
   },
-  "ResizeWidth": {
+  "bgrToGrayConversion": {
+    "type": "Boolean",
+    "value": false
+  },
+  "resizeRate": {
+    "type": "Double",
+    "value": 0.6
+  },
+  "isTrackerEnable": {
+    "type": "Boolean",
+    "value": true
+  },
+  "isFieldDetectorEnable": {
+    "type": "Boolean",
+    "value": false
+  },
+  "isHitMapSessionEnable": {
+    "type": "Boolean",
+    "value": false
+  },
+  "isDrawingHitsEnable": {
+    "type": "Boolean",
+    "value": false
+  },
+  "isDrawingContoursEnable": {
+    "type": "Boolean",
+    "value": false
+  },
+  "trackLength": {
     "type": "Integer",
-    "value": 640
+    "value": 7
   },
-  "TrackerBgHistoryLength": {
+  "bgHistoryLength": {
     "type": "Integer",
-    "value": 5
+    "value": 3
   },
-  "TrackerWeightThreshold": {
+  "bgThreshold": {
+    "type": "Integer",
+    "value": 100
+  },
+  "BuffFrameReaderInterval": {
+    "type": "Integer",
+    "value": 10
+  },
+  "BuffFrameReaderCapacity": {
+    "type": "Integer",
+    "value": 400
+  },
+  "weightThreshold": {
     "type": "Double",
     "value": 0.9
   },
-  "GroupMaxIdle": {
+  "distThreshold": {
+    "type": "Double",
+    "value": 0.05
+  },
+  "maxAvgDistRate": {
+    "type": "Double",
+    "value": 2.0
+  },
+  "maxAreaRate": {
+    "type": "Double",
+    "value": 2.5
+  },
+  "sigmaColor": {
     "type": "Integer",
-    "value": 3
+    "value": 25
+  },
+  "sigmaSpace": {
+    "type": "Integer",
+    "value": 25
+  },
+  "ksize": {
+    "type": "Integer",
+    "value": 5
+  },
+  "areaCoef": {
+    "type": "Integer",
+    "value": 250
+  },
+  "edgesNumber": {
+    "type": "Integer",
+    "value": 4
+  },
+  "diameter": {
+    "type": "Integer",
+    "value": 5
+  },
+  "threshold": {
+    "type": "Integer",
+    "value": 80
+  },
+  "minRatio": {
+    "type": "Double",
+    "value": 0.85
+  },
+  "maxRatio": {
+    "type": "Double",
+    "value": 1.15
+  },
+  "minAngle": {
+    "type": "Double",
+    "value": -15.0
+  },
+  "maxAngle": {
+    "type": "Double",
+    "value": 15.0
+  },
+  "approxAngleThreshold": {
+    "type": "Double",
+    "value": 200.0
+  },
+  "kernelRate": {
+    "type": "Integer",
+    "value": 250
   }
 }
