@@ -1,6 +1,7 @@
 package com.technostart.playmate.gui;
 
 import com.technostart.playmate.core.cv.Palette;
+import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
@@ -206,7 +207,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             }
         });
 //        bgSubstr = new SimpleBackgroundSubtractor();
-        bgSubstr = BgSubtractorFactory.createMOG2(3, 9, false);
+        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
         // TODO: добавить новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
@@ -262,7 +263,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
 
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector));
+        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector, new Utils()));
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -343,6 +344,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             capture = settingsManager.fromSettings(capture);
             bgSubstr = settingsManager.fromSettings(bgSubstr);
             frameHandler = settingsManager.fromSettings(frameHandler);
+            Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");

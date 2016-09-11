@@ -1,6 +1,7 @@
 package com.technostart.playmate.core.cv;
 
 
+import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.imgproc.Moments;
@@ -23,6 +24,7 @@ public class Utils {
     public static int resizeInterpolation = Imgproc.INTER_LINEAR;
 
     // Параметры шумодава
+    @Cfg
     private static int kernelRate = DEFAULT_KERNEL_RATE;
     private static int kernelRadius;
     public static Mat kernelShape;

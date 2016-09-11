@@ -16,8 +16,11 @@ public class Group {
     HitDetector hitDetector;
 
     private static final int COLOR_NUMBER = 3;
+
+
     private Scalar medianColor;
     private Point lastCoord;
+    private double avgDist;
 
     // Кол-во итераций без добавления новых элементов.
     private int idle;
