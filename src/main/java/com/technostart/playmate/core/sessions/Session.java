@@ -23,7 +23,7 @@ public class Session implements HitDetectorInterface {
 
     public Session(Size size) {
         hitDetectorListener = (hitPoint, direction) -> {};
-        BackgroundExtractor bgExtractor = BgSubtractorFactory.createMOG2(5, 16, false);
+        BackgroundExtractor bgExtractor = BgSubtractorFactory.createMOG2(3, 20, false);
         tracker = new Tracker(size, bgExtractor);
         tracker.setHitDetectorListener(this);
         fieldDetector = new TableDetector(size);
