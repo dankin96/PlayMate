@@ -229,7 +229,8 @@ public class Tracker {
 
         // Рисуем группы контуров и треки разными цветами.
         for (Group group : groups.values()) {
-            // Группы.
+            if (group.getSize() <= 2) continue;
+            // Контуры.
             List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
             // Треки.
@@ -237,7 +238,7 @@ public class Tracker {
             Utils.drawLine(trackPoints, dataImg, Palette.getRandomColor(10), 1);
         }
 
-        Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0.5, inputFrame);
+        Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0.5, inputFrame);
         return inputFrame;
     }
 

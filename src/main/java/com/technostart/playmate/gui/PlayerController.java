@@ -92,6 +92,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
     private List<Long> timestampList = new ArrayList<>();
     private long lastTimestamp;
 
+    private double polygonTestDistance = 5;
+
     private volatile boolean isFrameButtonEnable = true;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
@@ -124,9 +126,11 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
-                if (fieldContours != null) {
-                    lastFieldContours = new ArrayList(fieldContours);
+                if (lastFieldContours == null) {
+                    List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                    if (fieldContours != null) {
+                        lastFieldContours = new ArrayList(fieldContours);
+                    }
                 }
                 Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
@@ -245,11 +249,11 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             lastHit = new Hit(hitPoint, direction);
 
             int lineType = 1;
-            if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours)) {
+            if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
                 lineType = -1;
+                Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+                Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
             }
-            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-            Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
 //            Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
         });
 
@@ -350,6 +354,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             BackgroundExtractor newBgExtr = BgSubtractorFactory.createMOG2(history, threshold, false);
             tracker.setBgSubstr(newBgExtr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
+            polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -369,6 +374,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             settingsManager.toSettings(object);
             settingsManager.putInt("bgHistoryLength", 3);
             settingsManager.putInt("bgThreshold", 7);
+            settingsManager.putDouble("polygonTestDistance", 5);
         }
         updateSettingsFields();
     }

@@ -21,8 +21,11 @@ public class Group {
 
     private Scalar medianColor;
     private Point lastCoord;
+    private Point penultCoord;
     private double avgDist;
     private double avgArea;
+
+    private Point estimatePoint;
 
     // Кол-во итераций без добавления новых элементов.
     private int idle;
@@ -95,6 +98,12 @@ public class Group {
             }
         }
 
+        // Предсказание следующей координаты.
+        if (lastCoord != null && penultCoord != null) {
+
+        }
+
+        penultCoord = lastCoord;
         lastCoord = centroid;
         track.put(timestamp, centroid);
         hitDetector.addNewPoint(centroid);
@@ -115,8 +124,16 @@ public class Group {
         return lastCoord;
     }
 
+    public Point getEstimatePoint() {
+        return estimatePoint;
+    }
+
     public int getIdle() {
         return idle;
+    }
+
+    public int getSize() {
+        return timeToContours.size();
     }
 
 /*    public MatOfPoint getTrackContour() {

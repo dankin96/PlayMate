@@ -20,17 +20,17 @@ public class HitDetectorFilter {
         return value > 0;
     }
 
-    public static boolean check(Point hitPoint, MatOfPoint contour) {
+    public static boolean check(Point hitPoint, MatOfPoint contour, double distance) {
         MatOfPoint2f contour2f = new MatOfPoint2f(contour.toArray());
         // It returns positive (inside), negative (outside), or zero (on an edge) value, correspondingly.
         // When measureDist=false , the return value is +1, -1, and 0, respectively.
-        double testResult = Imgproc.pointPolygonTest(contour2f, hitPoint, false);
-        return testResult >= 0;
+        double testResult = Imgproc.pointPolygonTest(contour2f, hitPoint, true);
+        return testResult >= -distance;
     }
 
-    public static boolean check(Point hitPoint, List<MatOfPoint> contours) {
+    public static boolean check(Point hitPoint, List<MatOfPoint> contours, double distance) {
         for (MatOfPoint contour : contours) {
-            if (check(hitPoint, contour)) return true;
+            if (check(hitPoint, contour, distance)) return true;
         }
         return false;
     }
