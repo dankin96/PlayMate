@@ -344,6 +344,11 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             capture = settingsManager.fromSettings(capture);
             bgSubstr = settingsManager.fromSettings(bgSubstr);
             frameHandler = settingsManager.fromSettings(frameHandler);
+            tracker = settingsManager.fromSettings(tracker);
+            int history = settingsManager.getInt("bgHistoryLength", 3);
+            int threshold = settingsManager.getInt("bgThreshold", 7);
+            BackgroundExtractor newBgExtr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            tracker.setBgSubstr(newBgExtr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
@@ -362,6 +367,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
             settingsManager.toSettings(object);
+            settingsManager.putInt("bgHistoryLength", 3);
+            settingsManager.putInt("bgThreshold", 7);
         }
         updateSettingsFields();
     }

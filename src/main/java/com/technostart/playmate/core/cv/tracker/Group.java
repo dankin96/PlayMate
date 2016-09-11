@@ -4,6 +4,7 @@ import com.technostart.playmate.core.cv.Utils;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +22,7 @@ public class Group {
     private Scalar medianColor;
     private Point lastCoord;
     private double avgDist;
+    private double avgArea;
 
     // Кол-во итераций без добавления новых элементов.
     private int idle;
@@ -53,6 +55,7 @@ public class Group {
 
     public void add(long timestamp, MatOfPoint contour) {
         timeToContours.put(timestamp, Arrays.asList(contour));
+        avgArea = (avgArea + Imgproc.contourArea(contour)) / 2;
         Point centroid = Utils.getCentroid(contour);
         add(timestamp, centroid);
     }
@@ -75,18 +78,38 @@ public class Group {
             centroid = Utils.getContoursCentroid(newContours, weights);
 //            centroid = Utils.getContoursCentroid(newContours);
         }
-
+        avgArea = (avgArea + Utils.getAvgArea(newContours)) / 2;
         if (centroid != null) {
             add(timestamp, centroid);
         }
     }
 
     private void add(long timestamp, Point centroid) {
+        // Обновляем среднее расстояние до обновления последней координаты.
+        if (lastCoord != null) {
+            double curDist = Utils.getDistance(lastCoord, centroid);
+            if (avgDist == 0) {
+                avgDist = curDist;
+            } else {
+                avgDist = (avgDist + Utils.getDistance(lastCoord, centroid)) / 2;
+            }
+        }
+
         lastCoord = centroid;
         track.put(timestamp, centroid);
         hitDetector.addNewPoint(centroid);
         idle = idle > 0 ? idle - 1 : 0;
     }
+
+    public double getAvgDist() {
+        return avgDist;
+    }
+
+    public double getAvgArea() {
+        return avgArea;
+    }
+
+
 
     public Point getLastCoord() {
         return lastCoord;
@@ -124,7 +147,7 @@ public class Group {
         return contours;
     }
 
-    public List<Point> getTrackPointsByTamstamp(List<Long> timestamps) {
+    public List<Point> getTrackPointsByTimestamp(List<Long> timestamps) {
         List<Point> points = new ArrayList<>();
         for (long timestamp : timestamps) {
             if (track.containsKey(timestamp)) {
@@ -134,7 +157,7 @@ public class Group {
         return points;
     }
 
-        public void idle () {
-            idle++;
-        }
+    public void idle() {
+        idle++;
     }
+}

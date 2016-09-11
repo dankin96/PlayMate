@@ -4,6 +4,7 @@ import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
@@ -14,9 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Tracker {
     // Параметры по умлочанию.
     public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
-
-    // Должна зависеть от размеров кадра.
-    private double distThreshold;
 
     Size frameSize;
 
@@ -32,8 +30,34 @@ public class Tracker {
     private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {};
     private RawTrackerInterface contourListener = (groupId, contours) -> {};
 
-    private double weightThreshold;
+    //
+    // Максимальное кол-во контуров которые можно добавить в группу за раз.
+    private int maxContourNumber;
     private double maxDist;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Пороги весов.
+    ///////////////////////////////////////////////////////////////////////////
+
+    @Cfg
+    private double weightThreshold;
+    @Cfg
+    // Максимальное расстояния между последней точкой трека и текущим контуром
+    // больше которого нельзя добавлять контуры в группу
+    // (доля от максимального расстояния 0..1).
+    private double distThreshold = 0.05;
+    @Cfg
+    // Максимальное кол-во раз в которое может отличаться текущее расстояние между
+    // контуром и последней точкой трека. При большем значении
+    // контур не добавляется в группу.
+    // Принимает значения больше 1 включительно.
+    private double maxAvgDistRate = 2;
+
+    @Cfg
+    // Максимальное кол-во раз в которое может отличаться площадь текущего контура
+    // от средней по группе. При большем значении контур не добавляется в группу.
+    // Принимает значения больше 1 включительно.
+    private double maxAreaRate = 2.5;
 
     public Tracker(Size frameSize) {
         this(frameSize, BgSubtractorFactory.createSimpleBS());
@@ -46,7 +70,6 @@ public class Tracker {
         Point leftUp = new Point(0, 0);
         Point rightBottom = new Point(frameSize.width, frameSize.height);
         maxDist = Utils.getDistance(leftUp, rightBottom);
-        distThreshold = maxDist / 4;
         weightThreshold = DEFAULT_WEIGHT_THRESHOLD;
 
         // Выделение фона.
@@ -106,11 +129,22 @@ public class Tracker {
                 Point groupPoint = curGroup.getLastCoord();
                 Point cntPoint = Utils.getCentroid(curContour);
                 double dist = Utils.getDistance(groupPoint, cntPoint);
-                // TODO: Вычисление веса по форме/площади.
-                double shapeWeight = 0;
+                double normalDist = dist / maxDist;
+                if (normalDist > distThreshold) continue;
+                // TODO: Вычисление веса по среднему расстоянию.
+                double curGroupAvgDist = curGroup.getAvgDist();
+                if (curGroupAvgDist != 0) {
+                    double avgDistRate = curGroupAvgDist / dist;
+                    if (avgDistRate < 1) avgDistRate = 1 / avgDistRate;
+                    if (avgDistRate > maxAvgDistRate) continue;
+                }
+                // TODO: Вычисление веса по площади.
+                double areaRate = curGroup.getAvgArea() / Imgproc.contourArea(curContour);
+                if (areaRate < 1) areaRate = 1 / areaRate;
+                if (areaRate > maxAreaRate) continue;
                 // TODO: Нормализация и суммирование.
-                distWeight = 1 - dist / maxDist;
-                double weight = distWeight + shapeWeight;
+                distWeight = 1 - normalDist;
+                double weight = distWeight;
                 // Сохранение веса.
                 groupIdxToWeight.put(groupIdx, weight);
             }
@@ -199,7 +233,7 @@ public class Tracker {
             List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
             // Треки.
-            List<Point> trackPoints = group.getTrackPointsByTamstamp(timestamps);
+            List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
             Utils.drawLine(trackPoints, dataImg, Palette.getRandomColor(10), 1);
         }
 

@@ -15,7 +15,7 @@ public class Utils {
     // Параметры по умолчанию
 
     // Чем больше значение тем меньше радиус.
-    public static final int DEFAULT_KERNEL_RATE = 300;
+    public static final int DEFAULT_KERNEL_RATE = 250;
 
     // Resize
     private static int resizeHeight = 480;
@@ -168,6 +168,14 @@ public class Utils {
         MatOfPoint newContour = new MatOfPoint();
         newContour.fromList(centers);
         return newContour;
+    }
+
+    public static double getAvgArea(List<MatOfPoint> contours) {
+        double areaSum = 0;
+        for (MatOfPoint contour : contours) {
+            areaSum += Imgproc.contourArea(contour);
+        }
+        return areaSum / contours.size();
     }
     ///////////////////////////////////////////////////////////////////////////
     //
