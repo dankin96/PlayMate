@@ -20,7 +20,7 @@ public class TableDetector extends FieldDetector {
     @Cfg
     int areaCoef = 250;
     @Cfg
-    int edgesNumber = 4;
+    int edgesNumber = 10;
     @Cfg
     int diameter = 5;
     @Cfg

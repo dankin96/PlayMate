@@ -12,7 +12,7 @@ public class HitDetector {
     public enum Status {UNDEFINED, TABLE_HIT, PLAYER_HIT}
 
     @Cfg
-    double upperAngleThreshold = 150;
+    double upperAngleThreshold = 160;
     int bufferTrackSize = 3;
 
     List<Point> track;
