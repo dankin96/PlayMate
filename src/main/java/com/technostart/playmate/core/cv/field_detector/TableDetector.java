@@ -36,6 +36,7 @@ public class TableDetector extends FieldDetector {
     static int multiplierThreshold = 3;
 
     static int cannyApertureSize = 3;
+    @Cfg
     static int edgesNumber = 4;
     private double approxAngleThreshold = 200;
 
