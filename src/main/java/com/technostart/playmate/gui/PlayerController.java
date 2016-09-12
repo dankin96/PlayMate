@@ -6,10 +6,7 @@ import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtracto
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.core.cv.tracker.Hit;
-import com.technostart.playmate.core.cv.tracker.HitDetectorFilter;
-import com.technostart.playmate.core.cv.tracker.RawTrackerInterface;
-import com.technostart.playmate.core.cv.tracker.Tracker;
+import com.technostart.playmate.core.cv.tracker.*;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
@@ -51,7 +48,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-public class PlayerController implements Initializable, RawTrackerInterface {
+public class PlayerController implements Initializable, RawTrackerInterface, HitDetectorInterface {
 
     private SettingsManager settingsManager;
     @FXML
@@ -80,6 +77,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
     private BackgroundExtractor bgSubstr;
     private Session hitMapSession;
 
+    private Mat firstFrame;
+
     private Hit lastHit;
     private Mat lastFieldMask;
     private List<MatOfPoint> lastFieldContours;
@@ -106,8 +105,6 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         boolean isTrackerEnable = false;
         @Cfg
         boolean isFieldDetectorEnable = false;
-        @Cfg
-        boolean isHitMapSessionEnable = false;
         @Cfg
         boolean isDrawingHitsEnable = false;
         @Cfg
@@ -138,12 +135,6 @@ public class PlayerController implements Initializable, RawTrackerInterface {
                 int diff = lastIdx - trackLength;
                 int fromIdx = diff >= 0 ? diff : 0;
                 newFrame = tracker.getFrame(lastTimestamp, newFrame, timestampList.subList(fromIdx, lastIdx));
-            }
-            if (isHitMapSessionEnable) {
-                hitMapSession.update(newFrame.clone());
-            }
-            if (isDrawingHitsEnable && lastHit != null) {
-                Imgproc.circle(newFrame, lastHit.point, 5, Palette.RED);
             }
             if (isDrawingHitsEnable) {
                 if (hitMap == null) {
@@ -211,9 +202,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             }
         });
 //        bgSubstr = new SimpleBackgroundSubtractor();
-        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
         // TODO: добавить новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
+        updateSettingsFromObjects(Arrays.asList(frameHandler));
     }
 
     private void showFrame(Image imageToShow) {
@@ -234,30 +224,12 @@ public class PlayerController implements Initializable, RawTrackerInterface {
 
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
-        Mat firstFrame = cvReader.read();
-        tracker = new Tracker(firstFrame.size(), bgSubstr);
-        tableDetector = new TableDetector(firstFrame.size());
-
+        firstFrame = cvReader.read();
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader);
 
-        // Новая сессия.
-        hitMapSession = new Session(firstFrame.size());
-        hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
-            // TODO: действие при новом попадании.
-            lastHit = new Hit(hitPoint, direction);
-
-            int lineType = 1;
-            if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
-                lineType = -1;
-                Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-                Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
-            }
-//            Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
-        });
-
-//        hitMap = new Mat(firstFrame.size(), firstFrame.type());
+        initDetectors();
 
         showFrame(capture.read());
 
@@ -268,6 +240,26 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector, new Utils()));
+    }
+
+    @FXML
+    private void initDetectors() {
+        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
+        tracker = new Tracker(firstFrame.size(), bgSubstr);
+        tracker.setHitDetectorListener(this);
+        tableDetector = new TableDetector(firstFrame.size());
+    }
+
+    @Override
+    public void onHitDetect(Point hitPoint, Hit.Direction direction) {
+        lastHit = new Hit(hitPoint, direction);
+
+        int lineType;
+        if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
+            lineType = -1;
+            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+            Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
+        }
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -351,8 +343,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             tracker = settingsManager.fromSettings(tracker);
             int history = settingsManager.getInt("bgHistoryLength", 3);
             int threshold = settingsManager.getInt("bgThreshold", 7);
-            BackgroundExtractor newBgExtr = BgSubtractorFactory.createMOG2(history, threshold, false);
-            tracker.setBgSubstr(newBgExtr);
+            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            tracker.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
             polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
         } catch (IllegalAccessException e) {
@@ -373,7 +365,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         for (Object object : objects) {
             settingsManager.toSettings(object);
             settingsManager.putInt("bgHistoryLength", 3);
-            settingsManager.putInt("bgThreshold", 7);
+            settingsManager.putInt("bgThreshold", 20);
             settingsManager.putDouble("polygonTestDistance", 5);
         }
         updateSettingsFields();
@@ -422,6 +414,10 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         return string;
     }
 
+    @FXML
+    private void clearMap() {
+        hitMap = Mat.zeros(hitMap.size(), hitMap.type());
+    }
 
     @Override
     public void onTrackContour(int groupId, List<MatOfPoint> newContours) {
@@ -434,4 +430,6 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         }
         contourGropus.put(groupId, contours);
     }
+
+
 }
