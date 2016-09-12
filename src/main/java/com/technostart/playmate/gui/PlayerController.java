@@ -31,7 +31,6 @@ import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
-import rx.Subscriber;
 import rx.schedulers.JavaFxScheduler;
 import rx.schedulers.Schedulers;
 
@@ -79,10 +78,12 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
 
     private Mat firstFrame;
 
-    private Hit lastHit;
+    private List<Hit> innerHitList = new ArrayList<>();
+    private List<Hit> outerHitList = new ArrayList<>();
     private Mat lastFieldMask;
     private List<MatOfPoint> lastFieldContours;
     private Mat hitMap;
+    private Mat outerHitMap;
 
     private Map<Integer, List<List<MatOfPoint>>> contourGropus;
     private Mat contourGroupsMat;
@@ -106,9 +107,9 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
-        boolean isDrawingHitsEnable = false;
+        boolean isDrawingHitsEnable = true;
         @Cfg
-        boolean isDrawingContoursEnable = false;
+        boolean isDrawAllHitsEnable = true;
         @Cfg
         int trackLength = 5;
 
@@ -122,11 +123,9 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-                if (lastFieldContours == null) {
-                    List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
-                    if (fieldContours != null) {
-                        lastFieldContours = new ArrayList(fieldContours);
-                    }
+                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                if (fieldContours != null) {
+                    lastFieldContours = new ArrayList(fieldContours);
                 }
                 Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
@@ -137,13 +136,16 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
                 newFrame = tracker.getFrame(lastTimestamp, newFrame, timestampList.subList(fromIdx, lastIdx));
             }
             if (isDrawingHitsEnable) {
-                if (hitMap == null) {
-                    hitMap = Mat.zeros(newFrame.size(), newFrame.type());
+                for (Hit hit : innerHitList) {
+                    Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
+                    Imgproc.circle(newFrame, hit.point, 4, color, -1);
                 }
-                Core.addWeighted(newFrame, 0.5, hitMap, 0.5, 0, newFrame);
-            }
-            if (isDrawingContoursEnable) {
-
+                if (isDrawAllHitsEnable) {
+                    for (Hit hit : outerHitList) {
+                        Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
+                        Imgproc.circle(newFrame, hit.point, 4, color, 1);
+                    }
+                }
             }
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
@@ -242,24 +244,24 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector, new Utils()));
     }
 
+    @Override
+    public void onHitDetect(Point hitPoint, Hit.Direction direction) {
+        if (lastFieldContours != null) {
+            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+            if (HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
+                innerHitList.add(new Hit(hitPoint, direction));
+            } else {
+                outerHitList.add(new Hit(hitPoint, direction));
+            }
+        }
+    }
+
     @FXML
     private void initDetectors() {
         bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tracker.setHitDetectorListener(this);
         tableDetector = new TableDetector(firstFrame.size());
-    }
-
-    @Override
-    public void onHitDetect(Point hitPoint, Hit.Direction direction) {
-        lastHit = new Hit(hitPoint, direction);
-
-        int lineType;
-        if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
-            lineType = -1;
-            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-            Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
-        }
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -416,7 +418,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
 
     @FXML
     private void clearMap() {
-        hitMap = Mat.zeros(hitMap.size(), hitMap.type());
+        innerHitList.clear();
+        outerHitList.clear();
     }
 
     @Override

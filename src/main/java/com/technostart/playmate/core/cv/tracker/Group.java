@@ -20,8 +20,8 @@ public class Group {
 
 
     private Scalar medianColor;
-    private Point lastCoord;
-    private Point penultCoord;
+    private Point lastPoint;
+    private Point penultPoint;
     private double avgDist;
     private double avgArea;
 
@@ -41,7 +41,7 @@ public class Group {
     public Group(Scalar medianColor, Point lastCoord) {
         init();
         this.medianColor = medianColor;
-        this.lastCoord = lastCoord;
+        this.lastPoint = lastCoord;
     }
 
     public Group(long timestamp, MatOfPoint contour, HitDetectorInterface hitDetectorListener) {
@@ -89,25 +89,31 @@ public class Group {
 
     private void add(long timestamp, Point centroid) {
         // Обновляем среднее расстояние до обновления последней координаты.
-        if (lastCoord != null) {
-            double curDist = Utils.getDistance(lastCoord, centroid);
+        if (lastPoint != null) {
+            double curDist = Utils.getDistance(lastPoint, centroid);
             if (avgDist == 0) {
                 avgDist = curDist;
             } else {
-                avgDist = (avgDist + Utils.getDistance(lastCoord, centroid)) / 2;
+                avgDist = (avgDist + Utils.getDistance(lastPoint, centroid)) / 2;
             }
         }
 
-        // Предсказание следующей координаты.
-        if (lastCoord != null && penultCoord != null) {
-
-        }
-
-        penultCoord = lastCoord;
-        lastCoord = centroid;
+        penultPoint = lastPoint;
+        lastPoint = centroid;
         track.put(timestamp, centroid);
         hitDetector.addNewPoint(centroid);
         idle = idle > 0 ? idle - 1 : 0;
+
+        // Грубое предсказание следующей координаты (выполнять после обновления значений).
+        if (lastPoint != null && penultPoint != null && avgDist != 0) {
+            double lastDist = Utils.getDistance(penultPoint, lastPoint);
+            double diffX = lastPoint.x - penultPoint.x;
+            double diffY = lastPoint.y - penultPoint.y;
+            double newX = lastPoint.x + diffX * avgDist / lastDist;
+            double newY = lastPoint.y + diffY * avgDist / lastDist;
+
+            estimatePoint = new Point(newX, newY);
+        }
     }
 
     public double getAvgDist() {
@@ -120,8 +126,8 @@ public class Group {
 
 
 
-    public Point getLastCoord() {
-        return lastCoord;
+    public Point getLastPoint() {
+        return lastPoint;
     }
 
     public Point getEstimatePoint() {

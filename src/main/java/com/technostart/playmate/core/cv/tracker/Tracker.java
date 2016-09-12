@@ -7,6 +7,7 @@ import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactor
 import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+import sun.security.action.PutAllAction;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -126,7 +127,7 @@ public class Tracker {
                 // TODO: Вычисление веса по расстоянию.
                 double distWeight = 0;
                 Group curGroup = groups.get(groupIdx);
-                Point groupPoint = curGroup.getLastCoord();
+                Point groupPoint = curGroup.getLastPoint();
                 Point cntPoint = Utils.getCentroid(curContour);
                 double dist = Utils.getDistance(groupPoint, cntPoint);
                 double normalDist = dist / maxDist;
@@ -229,13 +230,23 @@ public class Tracker {
 
         // Рисуем группы контуров и треки разными цветами.
         for (Group group : groups.values()) {
-            if (group.getSize() <= 2) continue;
+//            if (group.getSize() <= 2) continue;
             // Контуры.
             List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
             // Треки.
+            Scalar trackColor = Palette.getRandomColor(10);
             List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
-            Utils.drawLine(trackPoints, dataImg, Palette.getRandomColor(10), 1);
+            Utils.drawLine(trackPoints, dataImg, trackColor, 1);
+            // Предсказанные точки.
+            Point estPoint = group.getEstimatePoint();
+            if (estPoint != null) {
+                int s = 3;
+                Point rectP1 = new Point(estPoint.x - s, estPoint.y - s);
+                Point rectP2 = new Point(estPoint.x + s, estPoint.y + s);
+                Imgproc.rectangle(dataImg, rectP1, rectP2, trackColor, 1);
+            }
+
         }
 
         Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0.5, inputFrame);
