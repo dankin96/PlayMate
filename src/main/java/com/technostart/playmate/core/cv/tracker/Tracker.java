@@ -31,6 +31,12 @@ public class Tracker {
     private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {};
     private RawTrackerInterface contourListener = (groupId, contours) -> {};
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Триггеры параметров кластеризации.
+    ///////////////////////////////////////////////////////////////////////////
+//    @Cfg
+//    boolean isMax
+
     //
     // Максимальное кол-во контуров которые можно добавить в группу за раз.
     private int maxContourNumber;
@@ -47,6 +53,7 @@ public class Tracker {
     // больше которого нельзя добавлять контуры в группу
     // (доля от максимального расстояния 0..1).
     private double distThreshold = 0.06;
+
     @Cfg
     // Максимальное кол-во раз в которое может отличаться текущее расстояние между
     // контуром и последней точкой трека. При большем значении
@@ -59,6 +66,13 @@ public class Tracker {
     // от средней по группе. При большем значении контур не добавляется в группу.
     // Принимает значения больше 1 включительно.
     private double maxAreaRate = 2.5;
+
+    @Cfg
+    // Максимальное отношение расстояния текущего контура
+    // до предсказанной точки к среднему по группе.
+    // При большем значении контур не добавляется в группу.
+    // Принимает значения больше 0. Меньше лучше.
+    private double maxEstimateDiffRate = 2;
 
     public Tracker(Size frameSize) {
         this(frameSize, BgSubtractorFactory.createSimpleBS());
@@ -138,6 +152,13 @@ public class Tracker {
                     double avgDistRate = curGroupAvgDist / dist;
                     if (avgDistRate < 1) avgDistRate = 1 / avgDistRate;
                     if (avgDistRate > maxAvgDistRate) continue;
+                }
+                // TODO: Вычисление веса по предсказанной координате.
+                Point estPoint = curGroup.getEstimatePoint();
+                if (estPoint != null) {
+                    double estDiffDist = Utils.getDistance(estPoint, cntPoint);
+                    double estDiffRate = estDiffDist / curGroupAvgDist;
+                    if (estDiffRate > maxEstimateDiffRate) continue;
                 }
                 // TODO: Вычисление веса по площади.
                 double areaRate = curGroup.getAvgArea() / Imgproc.contourArea(curContour);

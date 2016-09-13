@@ -30,7 +30,7 @@ public class Group {
     // Кол-во итераций без добавления новых элементов.
     private int idle;
     // Максимальное кол-во итераций простоя.
-    public static final int MAX_IDLE = 3;
+    public static final int MAX_IDLE = 2;
 
     private List<Scalar> colors;
     private LinkedHashMap<Long, List<MatOfPoint>> timeToContours;
