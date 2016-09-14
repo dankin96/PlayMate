@@ -96,6 +96,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
 
     private volatile boolean isFrameButtonEnable = true;
 
+    private MapOfHits map;
+
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
         int jpgQuality = 100;
@@ -113,6 +115,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         boolean isDrawingHitsEnable = false;
         @Cfg
         boolean isDrawingContoursEnable = false;
+        @Cfg
+        boolean isMapOfHitsEnable = true;
         @Cfg
         int trackLength = 5;
 
@@ -143,6 +147,15 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             if (isHitMapSessionEnable) {
                 hitMapSession.update(newFrame.clone());
             }
+            /*if (isMapOfHitsEnable) {
+                Mat originalFrame = newFrame.clone();
+                if (originalFrame != null && tableDetector.getIsDetected() != true) {
+                    originalFrame = tableDetector.getField(originalFrame);
+                    map.setField(tableDetector.getPointsOfTable(), originalFrame);
+                }
+                newFrame = map.getMap(new Point(200 + 300 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.UNDEFINED);
+//                helpImageView.setImage(GuiUtils.mat2Image(copy, jpgQuality));
+            }*/
             if (isDrawingHitsEnable && lastHit != null) {
                 Imgproc.circle(newFrame, lastHit.point, 5, Palette.RED);
             }
@@ -258,7 +271,7 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         });
 
 //        hitMap = new Mat(firstFrame.size(), firstFrame.type());
-
+        map = new MapOfHits();
         showFrame(capture.read());
 
         positionLabel.textProperty().setValue("na");
