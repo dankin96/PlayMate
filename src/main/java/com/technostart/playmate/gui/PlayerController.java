@@ -5,13 +5,10 @@ import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.cv.background_subtractor.ColorBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.core.cv.map_of_hits.MapOfHits;
-import com.technostart.playmate.core.cv.tracker.Hit;
-import com.technostart.playmate.core.cv.tracker.HitDetectorFilter;
-import com.technostart.playmate.core.cv.tracker.RawTrackerInterface;
-import com.technostart.playmate.core.cv.tracker.Tracker;
+import com.technostart.playmate.core.cv.tracker.*;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
@@ -36,7 +33,6 @@ import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
-import rx.Subscriber;
 import rx.schedulers.JavaFxScheduler;
 import rx.schedulers.Schedulers;
 
@@ -50,7 +46,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-public class PlayerController implements Initializable, RawTrackerInterface {
+public class PlayerController implements Initializable, RawTrackerInterface, HitDetectorInterface {
 
     private SettingsManager settingsManager;
     @FXML
@@ -81,10 +77,14 @@ public class PlayerController implements Initializable, RawTrackerInterface {
     private BackgroundExtractor bgSubstr;
     private Session hitMapSession;
 
-    private Hit lastHit;
+    private Mat firstFrame;
+
+    private List<Hit> innerHitList = new ArrayList<>();
+    private List<Hit> outerHitList = new ArrayList<>();
     private Mat lastFieldMask;
     private List<MatOfPoint> lastFieldContours;
     private Mat hitMap;
+    private Mat outerHitMap;
 
     private Map<Integer, List<List<MatOfPoint>>> contourGropus;
     private Mat contourGroupsMat;
@@ -95,8 +95,6 @@ public class PlayerController implements Initializable, RawTrackerInterface {
     private double polygonTestDistance = 5;
 
     private volatile boolean isFrameButtonEnable = true;
-
-    private MapOfHits map;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -110,11 +108,9 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
-        boolean isHitMapSessionEnable = false;
+        boolean isDrawingHitsEnable = true;
         @Cfg
-        boolean isDrawingHitsEnable = false;
-        @Cfg
-        boolean isDrawingContoursEnable = false;
+        boolean isDrawAllHitsEnable = true;
         @Cfg
         boolean isMapOfHitsEnable = true;
         @Cfg
@@ -130,11 +126,9 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-                if (lastFieldContours == null) {
-                    List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
-                    if (fieldContours != null) {
-                        lastFieldContours = new ArrayList(fieldContours);
-                    }
+                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                if (fieldContours != null) {
+                    lastFieldContours = new ArrayList(fieldContours);
                 }
                 Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
             }
@@ -144,10 +138,10 @@ public class PlayerController implements Initializable, RawTrackerInterface {
                 int fromIdx = diff >= 0 ? diff : 0;
                 newFrame = tracker.getFrame(lastTimestamp, newFrame, timestampList.subList(fromIdx, lastIdx));
             }
-            if (isHitMapSessionEnable) {
+            /*if (isHitMapSessionEnable) {
                 hitMapSession.update(newFrame.clone());
             }
-            /*if (isMapOfHitsEnable) {
+            if (isMapOfHitsEnable) {
                 Mat originalFrame = newFrame.clone();
                 if (originalFrame != null && tableDetector.getIsDetected() != true) {
                     originalFrame = tableDetector.getField(originalFrame);
@@ -155,18 +149,22 @@ public class PlayerController implements Initializable, RawTrackerInterface {
                 }
                 newFrame = map.getMap(new Point(200 + 300 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.UNDEFINED);
 //                helpImageView.setImage(GuiUtils.mat2Image(copy, jpgQuality));
-            }*/
+            }
             if (isDrawingHitsEnable && lastHit != null) {
                 Imgproc.circle(newFrame, lastHit.point, 5, Palette.RED);
-            }
-            if (isDrawingHitsEnable) {
-                if (hitMap == null) {
-                    hitMap = Mat.zeros(newFrame.size(), newFrame.type());
-                }
-                Core.addWeighted(newFrame, 0.5, hitMap, 0.5, 0, newFrame);
-            }
-            if (isDrawingContoursEnable) {
+            }*/
 
+            if (isDrawingHitsEnable) {
+                for (Hit hit : innerHitList) {
+                    Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
+                    Imgproc.circle(newFrame, hit.point, 4, color, -1);
+                }
+                if (isDrawAllHitsEnable) {
+                    for (Hit hit : outerHitList) {
+                        Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
+                        Imgproc.circle(newFrame, hit.point, 4, color, 1);
+                    }
+                }
             }
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
@@ -224,9 +222,8 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             }
         });
 //        bgSubstr = new SimpleBackgroundSubtractor();
-        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
         // TODO: добавить новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
+        updateSettingsFromObjects(Arrays.asList(frameHandler));
     }
 
     private void showFrame(Image imageToShow) {
@@ -247,31 +244,13 @@ public class PlayerController implements Initializable, RawTrackerInterface {
 
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
-        Mat firstFrame = cvReader.read();
-        tracker = new Tracker(firstFrame.size(), bgSubstr);
-        tableDetector = new TableDetector(firstFrame.size());
-
+        firstFrame = cvReader.read();
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader);
 
-        // Новая сессия.
-        hitMapSession = new Session(firstFrame.size());
-        hitMapSession.setHitDetectorListener((hitPoint, direction) -> {
-            // TODO: действие при новом попадании.
-            lastHit = new Hit(hitPoint, direction);
+        initDetectors();
 
-            int lineType = 1;
-            if (lastFieldContours != null && HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
-                lineType = -1;
-                Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-                Imgproc.circle(hitMap, hitPoint, 5, color, lineType);
-            }
-//            Imgproc.drawContours(newFrame, fieldContours, -1, Palette.GREEN, 2);
-        });
-
-//        hitMap = new Mat(firstFrame.size(), firstFrame.type());
-        map = new MapOfHits();
         showFrame(capture.read());
 
         positionLabel.textProperty().setValue("na");
@@ -281,6 +260,27 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector, new Utils()));
+    }
+
+    @Override
+    public void onHitDetect(Point hitPoint, Hit.Direction direction) {
+        if (lastFieldContours != null) {
+            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
+            if (HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
+                innerHitList.add(new Hit(hitPoint, direction));
+            } else {
+                outerHitList.add(new Hit(hitPoint, direction));
+            }
+        }
+    }
+
+    @FXML
+    private void initDetectors() {
+//        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
+        bgSubstr = new ColorBackgroundSubtractor();
+        tracker = new Tracker(firstFrame.size(), bgSubstr);
+        tracker.setHitDetectorListener(this);
+        tableDetector = new TableDetector(firstFrame.size());
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -364,10 +364,15 @@ public class PlayerController implements Initializable, RawTrackerInterface {
             tracker = settingsManager.fromSettings(tracker);
             int history = settingsManager.getInt("bgHistoryLength", 3);
             int threshold = settingsManager.getInt("bgThreshold", 7);
-            BackgroundExtractor newBgExtr = BgSubtractorFactory.createMOG2(history, threshold, false);
-            tracker.setBgSubstr(newBgExtr);
+//            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            double lowerB = settingsManager.getDouble("lowerColor", 5);
+            double upperB = settingsManager.getDouble("upperColor", 38);
+            double lowerSat = settingsManager.getDouble("lowerSat", 38);
+            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB, lowerSat);
+            tracker.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
             polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
+
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -386,8 +391,12 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         for (Object object : objects) {
             settingsManager.toSettings(object);
             settingsManager.putInt("bgHistoryLength", 3);
-            settingsManager.putInt("bgThreshold", 7);
+            settingsManager.putInt("bgThreshold", 20);
             settingsManager.putDouble("polygonTestDistance", 5);
+            // ColorBg
+            settingsManager.putDouble("lowerColor", 5);
+            settingsManager.putDouble("upperColor", 38);
+            settingsManager.putDouble("lowerSat", 38);
         }
         updateSettingsFields();
     }
@@ -435,6 +444,12 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         return string;
     }
 
+    @FXML
+    private void clearMap() {
+        innerHitList.clear();
+        outerHitList.clear();
+    }
+
     @Override
     public void onTrackContour(int groupId, List<MatOfPoint> newContours) {
         List<List<MatOfPoint>> contours;
@@ -446,4 +461,6 @@ public class PlayerController implements Initializable, RawTrackerInterface {
         }
         contourGropus.put(groupId, contours);
     }
+
+
 }

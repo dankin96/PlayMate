@@ -16,7 +16,7 @@ public class Utils {
     // Параметры по умолчанию
 
     // Чем больше значение тем меньше радиус.
-    public static final int DEFAULT_KERNEL_RATE = 270;
+    public static final int DEFAULT_KERNEL_RATE = 300;
 
     // Resize
     private static int resizeHeight = 480;

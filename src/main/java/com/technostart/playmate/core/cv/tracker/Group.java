@@ -20,17 +20,20 @@ public class Group {
 
 
     private Scalar medianColor;
-    private Point lastCoord;
-    private Point penultCoord;
+    private Point lastPoint;
+    private Point penultPoint;
     private double avgDist;
     private double avgArea;
+
+
+    private Hit.Direction direction;
 
     private Point estimatePoint;
 
     // Кол-во итераций без добавления новых элементов.
     private int idle;
     // Максимальное кол-во итераций простоя.
-    public static final int MAX_IDLE = 3;
+    public static final int MAX_IDLE = 2;
 
     private List<Scalar> colors;
     private LinkedHashMap<Long, List<MatOfPoint>> timeToContours;
@@ -41,7 +44,7 @@ public class Group {
     public Group(Scalar medianColor, Point lastCoord) {
         init();
         this.medianColor = medianColor;
-        this.lastCoord = lastCoord;
+        this.lastPoint = lastCoord;
     }
 
     public Group(long timestamp, MatOfPoint contour, HitDetectorInterface hitDetectorListener) {
@@ -89,25 +92,32 @@ public class Group {
 
     private void add(long timestamp, Point centroid) {
         // Обновляем среднее расстояние до обновления последней координаты.
-        if (lastCoord != null) {
-            double curDist = Utils.getDistance(lastCoord, centroid);
+        if (lastPoint != null) {
+            double curDist = Utils.getDistance(lastPoint, centroid);
             if (avgDist == 0) {
                 avgDist = curDist;
             } else {
-                avgDist = (avgDist + Utils.getDistance(lastCoord, centroid)) / 2;
+                avgDist = (avgDist + Utils.getDistance(lastPoint, centroid)) / 2;
             }
         }
 
-        // Предсказание следующей координаты.
-        if (lastCoord != null && penultCoord != null) {
-
-        }
-
-        penultCoord = lastCoord;
-        lastCoord = centroid;
+        penultPoint = lastPoint;
+        lastPoint = centroid;
         track.put(timestamp, centroid);
         hitDetector.addNewPoint(centroid);
         idle = idle > 0 ? idle - 1 : 0;
+
+        if (lastPoint != null && penultPoint != null && avgDist != 0) {
+            // Грубое предсказание следующей координаты (выполнять после обновления значений).
+            double lastDist = Utils.getDistance(penultPoint, lastPoint);
+            double diffX = lastPoint.x - penultPoint.x;
+            double diffY = lastPoint.y - penultPoint.y;
+            double newX = lastPoint.x + diffX * avgDist / lastDist;
+            double newY = lastPoint.y + diffY * avgDist / lastDist;
+            estimatePoint = new Point(newX, newY);
+            // Обновляем направление.
+            direction = lastPoint.x > penultPoint.x ? Hit.Direction.LEFT_TO_RIGHT : Hit.Direction.RIGHT_TO_LEFT;
+        }
     }
 
     public double getAvgDist() {
@@ -120,8 +130,8 @@ public class Group {
 
 
 
-    public Point getLastCoord() {
-        return lastCoord;
+    public Point getLastPoint() {
+        return lastPoint;
     }
 
     public Point getEstimatePoint() {
@@ -136,6 +146,9 @@ public class Group {
         return timeToContours.size();
     }
 
+    public Hit.Direction getDirection() {
+        return direction;
+    }
 /*    public MatOfPoint getTrackContour() {
         MatOfPoint contour = new MatOfPoint();
         contour.fromList(track);
