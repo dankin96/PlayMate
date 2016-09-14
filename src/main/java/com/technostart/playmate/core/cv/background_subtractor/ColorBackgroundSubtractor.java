@@ -12,15 +12,15 @@ public class ColorBackgroundSubtractor implements BackgroundExtractor {
     @Cfg
     double upperColor = 38;
 
-    Scalar lowerB = new Scalar(0, 10, 6);
+    Scalar lowerB = new Scalar(0, 50, 6);
     Scalar upperB = new Scalar(38, 255, 255);
 
     public ColorBackgroundSubtractor() {}
 
-    public ColorBackgroundSubtractor(double lowerColor, double upperColor) {
+    public ColorBackgroundSubtractor(double lowerColor, double upperColor, double loserSaturation) {
         this.lowerColor = lowerColor;
         this.upperColor = upperColor;
-        lowerB = new Scalar(lowerColor, 70, 6);
+        lowerB = new Scalar(lowerColor, loserSaturation, 6);
         upperB = new Scalar(upperColor, 255, 255);
     }
 

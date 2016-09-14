@@ -350,7 +350,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
 //            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
             double lowerB = settingsManager.getDouble("lowerColor", 5);
             double upperB = settingsManager.getDouble("upperColor", 38);
-            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);
+            double lowerSat = settingsManager.getDouble("lowerSat", 38);
+            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB, lowerSat);
             tracker.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
             polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
@@ -378,6 +379,7 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             // ColorBg
             settingsManager.putDouble("lowerColor", 5);
             settingsManager.putDouble("upperColor", 38);
+            settingsManager.putDouble("lowerSat", 38);
         }
         updateSettingsFields();
     }
