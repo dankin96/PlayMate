@@ -25,6 +25,9 @@ public class Group {
     private double avgDist;
     private double avgArea;
 
+
+    private Hit.Direction direction;
+
     private Point estimatePoint;
 
     // Кол-во итераций без добавления новых элементов.
@@ -104,15 +107,16 @@ public class Group {
         hitDetector.addNewPoint(centroid);
         idle = idle > 0 ? idle - 1 : 0;
 
-        // Грубое предсказание следующей координаты (выполнять после обновления значений).
         if (lastPoint != null && penultPoint != null && avgDist != 0) {
+            // Грубое предсказание следующей координаты (выполнять после обновления значений).
             double lastDist = Utils.getDistance(penultPoint, lastPoint);
             double diffX = lastPoint.x - penultPoint.x;
             double diffY = lastPoint.y - penultPoint.y;
             double newX = lastPoint.x + diffX * avgDist / lastDist;
             double newY = lastPoint.y + diffY * avgDist / lastDist;
-
             estimatePoint = new Point(newX, newY);
+            // Обновляем направление.
+            direction = lastPoint.x > penultPoint.x ? Hit.Direction.LEFT_TO_RIGHT : Hit.Direction.RIGHT_TO_LEFT;
         }
     }
 
@@ -142,6 +146,9 @@ public class Group {
         return timeToContours.size();
     }
 
+    public Hit.Direction getDirection() {
+        return direction;
+    }
 /*    public MatOfPoint getTrackContour() {
         MatOfPoint contour = new MatOfPoint();
         contour.fromList(track);

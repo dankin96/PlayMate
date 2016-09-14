@@ -4,6 +4,7 @@ import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.cv.background_subtractor.ColorBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.tracker.*;
@@ -258,7 +259,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
 
     @FXML
     private void initDetectors() {
-        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
+//        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
+        bgSubstr = new ColorBackgroundSubtractor();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tracker.setHitDetectorListener(this);
         tableDetector = new TableDetector(firstFrame.size());
@@ -345,10 +347,14 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             tracker = settingsManager.fromSettings(tracker);
             int history = settingsManager.getInt("bgHistoryLength", 3);
             int threshold = settingsManager.getInt("bgThreshold", 7);
-            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
+//            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            double lowerB = settingsManager.getDouble("lowerColor", 5);
+            double upperB = settingsManager.getDouble("upperColor", 38);
+            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);
             tracker.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
             polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
+
         } catch (IllegalAccessException e) {
             // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
@@ -369,6 +375,9 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             settingsManager.putInt("bgHistoryLength", 3);
             settingsManager.putInt("bgThreshold", 20);
             settingsManager.putDouble("polygonTestDistance", 5);
+            // ColorBg
+            settingsManager.putDouble("lowerColor", 5);
+            settingsManager.putDouble("upperColor", 38);
         }
         updateSettingsFields();
     }

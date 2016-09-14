@@ -7,7 +7,6 @@ import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactor
 import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
-import sun.security.action.PutAllAction;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
     // Параметры по умлочанию.
-    public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
+    public static final double DEFAULT_WEIGHT_THRESHOLD = 0.3;
 
     Size frameSize;
 
@@ -28,8 +27,10 @@ public class Tracker {
     private Map<Integer, Group> groups;
 
     // Listeners.
-    private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {};
-    private RawTrackerInterface contourListener = (groupId, contours) -> {};
+    private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {
+    };
+    private RawTrackerInterface contourListener = (groupId, contours) -> {
+    };
 
     ///////////////////////////////////////////////////////////////////////////
     // Триггеры параметров кластеризации.
@@ -52,7 +53,7 @@ public class Tracker {
     // Максимальное расстояния между последней точкой трека и текущим контуром
     // больше которого нельзя добавлять контуры в группу
     // (доля от максимального расстояния 0..1).
-    private double distThreshold = 0.06;
+    private double distThreshold = 0.08;
 
     @Cfg
     // Максимальное кол-во раз в которое может отличаться текущее расстояние между
@@ -73,6 +74,12 @@ public class Tracker {
     // При большем значении контур не добавляется в группу.
     // Принимает значения больше 0. Меньше лучше.
     private double maxEstimateDiffRate = 2;
+
+    @Cfg
+    private double minCntArea = 50;
+
+    @Cfg
+    private double maxCntArea = 500;
 
     public Tracker(Size frameSize) {
         this(frameSize, BgSubtractorFactory.createSimpleBS());
@@ -137,35 +144,47 @@ public class Tracker {
         for (int cntIdx = 0, cntSize = contours.size(); cntIdx < cntSize; cntIdx++) {
             MatOfPoint curContour = contours.get(cntIdx);
             Map<Integer, Double> groupIdxToWeight = new HashMap<>();
+
+            Point cntPoint = Utils.getCentroid(curContour);
+            double cntArea = Imgproc.contourArea(curContour);
+
+            // Проверка площади.
+            if (cntArea < minCntArea || cntArea > maxCntArea) continue;
+
             for (int groupIdx : groups.keySet()) {
-                // TODO: Вычисление веса по расстоянию.
-                double distWeight = 0;
                 Group curGroup = groups.get(groupIdx);
                 Point groupPoint = curGroup.getLastPoint();
-                Point cntPoint = Utils.getCentroid(curContour);
+                // Проверка направления.
+                Hit.Direction direction = cntPoint.x > groupPoint.x ? Hit.Direction.LEFT_TO_RIGHT : Hit.Direction.RIGHT_TO_LEFT;
+                Hit.Direction groupDirection = curGroup.getDirection();
+                if ((groupDirection != null) && (direction != curGroup.getDirection())) continue;
+                // Вычисление веса по расстоянию.
+                double distWeight;
                 double dist = Utils.getDistance(groupPoint, cntPoint);
                 double normalDist = dist / maxDist;
                 if (normalDist > distThreshold) continue;
-                // TODO: Вычисление веса по среднему расстоянию.
+                // Вычисление веса по среднему расстоянию.
                 double curGroupAvgDist = curGroup.getAvgDist();
                 if (curGroupAvgDist != 0) {
                     double avgDistRate = curGroupAvgDist / dist;
                     if (avgDistRate < 1) avgDistRate = 1 / avgDistRate;
                     if (avgDistRate > maxAvgDistRate) continue;
                 }
-                // TODO: Вычисление веса по предсказанной координате.
+                // Вычисление веса по предсказанной координате.
                 Point estPoint = curGroup.getEstimatePoint();
                 if (estPoint != null) {
                     double estDiffDist = Utils.getDistance(estPoint, cntPoint);
                     double estDiffRate = estDiffDist / curGroupAvgDist;
                     if (estDiffRate > maxEstimateDiffRate) continue;
                 }
-                // TODO: Вычисление веса по площади.
-                double areaRate = curGroup.getAvgArea() / Imgproc.contourArea(curContour);
+
+                // Вычисление веса по площади.
+                double areaRate = curGroup.getAvgArea() / cntArea;
                 if (areaRate < 1) areaRate = 1 / areaRate;
                 if (areaRate > maxAreaRate) continue;
-                // TODO: Нормализация и суммирование.
+                // Нормализация и суммирование.
                 distWeight = 1 - normalDist;
+                areaRate = 1 / areaRate;
                 double weight = distWeight;
                 // Сохранение веса.
                 groupIdxToWeight.put(groupIdx, weight);
@@ -217,6 +236,16 @@ public class Tracker {
             int groupIdx = entry.getKey();
             List<MatOfPoint> contoursList = entry.getValue();
             List<Double> weightList = groupIdxToWeightList.get(groupIdx);
+            // Ищем индекс контура с максимальным весом.
+/*            double maxWeight = 0;
+            int maxWeightIdx = 0;
+
+            for (int i = 0, weightListSize = weightList.size(); i < weightListSize; i++) {
+                double curWeight = weightList.get(i);
+                if (curWeight > maxWeight) {
+                    maxWeightIdx = i;
+                }
+            }*/
             Group updatedGroup = groups.get(groupIdx);
             updatedGroup.add(timestamp, contoursList, weightList);
             groups.put(groupIdx, updatedGroup);
@@ -237,11 +266,12 @@ public class Tracker {
         }
     }
 
+    /**
+     * Композиция исходного изображения с данными трекера.
+     */
     public Mat getFrame(long timestamp, Mat inputFrame, List<Long> timestamps) {
         process(timestamp, inputFrame);
-        /**
-         * Композиция исходного изображения с данными трекера.
-         */
+
         // Конвертируем исходное изображение в BGR для отрисовки цветных контуров.
         if (inputFrame.type() == CvType.CV_8UC1) {
             Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
@@ -256,9 +286,11 @@ public class Tracker {
             List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
             Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
             // Треки.
-            Scalar trackColor = Palette.getRandomColor(10);
+//            Scalar trackColor = Palette.getRandomColor(10);
+            int value = group.getAvgDist() < 255 ? (int) group.getAvgDist() : 255;
+            Scalar trackColor = new Scalar(0, value, 100 + value);
             List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
-            Utils.drawLine(trackPoints, dataImg, trackColor, 1);
+            Utils.drawLine(trackPoints, dataImg, trackColor, 3);
             // Предсказанные точки.
             Point estPoint = group.getEstimatePoint();
             if (estPoint != null) {
