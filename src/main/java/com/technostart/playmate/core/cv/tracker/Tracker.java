@@ -294,10 +294,10 @@ public class Tracker {
             // Предсказанные точки.
             Point estPoint = group.getEstimatePoint();
             if (estPoint != null) {
-                int s = 3;
+                int s = 7;
                 Point rectP1 = new Point(estPoint.x - s, estPoint.y - s);
                 Point rectP2 = new Point(estPoint.x + s, estPoint.y + s);
-                Imgproc.rectangle(dataImg, rectP1, rectP2, trackColor, 1);
+                Imgproc.rectangle(dataImg, rectP1, rectP2, trackColor, 2);
             }
 
         }

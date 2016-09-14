@@ -139,15 +139,20 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             if (isDrawingHitsEnable) {
                 for (Hit hit : innerHitList) {
                     Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
-                    Imgproc.circle(newFrame, hit.point, 4, color, -1);
+                    Imgproc.circle(newFrame, hit.point, 7, color, -1);
                 }
                 if (isDrawAllHitsEnable) {
                     for (Hit hit : outerHitList) {
                         Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
-                        Imgproc.circle(newFrame, hit.point, 4, color, 1);
+                        Imgproc.circle(newFrame, hit.point, 7, color, 1);
                     }
                 }
             }
+            Image img = GuiUtils.mat2Image(newFrame, jpgQuality);
+            if (img == null) {
+                new Image("com/technostart/playmate/gui/video.png", true);
+            }
+
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
     };
@@ -444,6 +449,4 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         }
         contourGropus.put(groupId, contours);
     }
-
-
 }
