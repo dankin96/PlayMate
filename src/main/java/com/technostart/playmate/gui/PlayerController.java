@@ -353,10 +353,13 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             int history = settingsManager.getInt("bgHistoryLength", 3);
             int threshold = settingsManager.getInt("bgThreshold", 7);
 //            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
-            double lowerB = settingsManager.getDouble("lowerColor", 5);
-            double upperB = settingsManager.getDouble("upperColor", 38);
-            double lowerSat = settingsManager.getDouble("lowerSat", 38);
-            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB, lowerSat);
+            // ColorBgExtr
+            String lowerBString = settingsManager.getString("lowerColor", "0, 0, 0");
+            String upperBString = settingsManager.getString("upperColor", "255, 255, 255");
+            Scalar lowerB = GuiUtils.str2scalar(lowerBString);
+            Scalar upperB = GuiUtils.str2scalar(upperBString);
+            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);
+
             tracker.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
             polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
@@ -382,9 +385,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             settingsManager.putInt("bgThreshold", 20);
             settingsManager.putDouble("polygonTestDistance", 5);
             // ColorBg
-            settingsManager.putDouble("lowerColor", 5);
-            settingsManager.putDouble("upperColor", 38);
-            settingsManager.putDouble("lowerSat", 38);
+            settingsManager.putString("lowerColor", "0, 0, 0");
+            settingsManager.putString("upperColor", "255, 255, 255");
         }
         updateSettingsFields();
     }

@@ -306,6 +306,10 @@ public class Tracker {
         return inputFrame;
     }
 
+//    public Mat getFrame(long timestamp, Mat inputFrame) {
+//
+//    }
+
     public void setBgSubstr(BackgroundExtractor newBgExtr) {
         bgSubtractor = newBgExtr;
     }
