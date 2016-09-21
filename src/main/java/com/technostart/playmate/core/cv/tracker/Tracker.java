@@ -48,6 +48,10 @@ public class Tracker {
     @Cfg
     boolean isDrawCompositionEnable = true;
 
+
+    @Cfg
+    boolean isMorphologyFilterEnable = false;
+
     //
     // Максимальное кол-во контуров которые можно добавить в группу за раз.
     private int maxContourNumber;
@@ -126,7 +130,9 @@ public class Tracker {
         // Выделение фона.
         bgSubtractor.apply(inputFrame, bgMask);
         // Шумодав.
-        bgMask = Utils.filterNoise(bgMask);
+        if (isMorphologyFilterEnable) {
+            bgMask = Utils.filterNoise(bgMask);
+        }
 
         // Выделение контуров.
         List<MatOfPoint> contours = new ArrayList<>();
