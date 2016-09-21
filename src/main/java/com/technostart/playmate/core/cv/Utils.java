@@ -111,18 +111,24 @@ public class Utils {
     ///////////////////////////////////////////////////////////////////////////
 
     public static Point getCentroid(MatOfPoint contour) {
-        Moments m = Imgproc.moments(contour);
+/*        Moments m = Imgproc.moments(contour);
         double cx = m.m10 / m.m00;
         double cy = m.m01 / m.m00;
-        return new Point(cx, cy);
+        return new Point(cx, cy);*/
+        return getMeanPoint(contour);
     }
 
-    public static Point getCentroid(List<Point> points) {
+/*    public static Point getCentroid(List<Point> points) {
         MatOfPoint contour = new MatOfPoint();
         contour.fromList(points);
         contour = convexHull(contour);
         return getCentroid(contour);
+    }*/
+
+    public static Point getMeanPoint(MatOfPoint contour) {
+        return new Point(Core.mean(contour).val);
     }
+
 
     public static Point getWeightedCentroid(List<Point> points, List<Double> weights) {
         int pSize = points.size();
@@ -143,13 +149,13 @@ public class Utils {
         return new Point(x, y);
     }
 
-    public static Point getContoursCentroid(List<MatOfPoint> contours) {
+/*    public static Point getContoursCentroid(List<MatOfPoint> contours) {
         List<Point> centers = new ArrayList<>();
         for (MatOfPoint cnt : contours) {
             centers.add(Utils.getCentroid(cnt));
         }
         return getCentroid(centers);
-    }
+    }*/
 
     public static Point getContoursCentroid(List<MatOfPoint> contours, List<Double> weights) {
         List<Point> centroids = new ArrayList<>();
@@ -160,7 +166,7 @@ public class Utils {
     }
 
     // Возвращает контур из центров тяжести входных контуров.
-    public static MatOfPoint getEqualContour(List<MatOfPoint> contours) {
+/*    public static MatOfPoint getEqualContour(List<MatOfPoint> contours) {
         List<Point> centers = new ArrayList<>();
         for (MatOfPoint cnt : contours) {
             centers.add(Utils.getCentroid(cnt));
@@ -168,7 +174,7 @@ public class Utils {
         MatOfPoint newContour = new MatOfPoint();
         newContour.fromList(centers);
         return newContour;
-    }
+    }*/
 
     public static double getAvgArea(List<MatOfPoint> contours) {
         double areaSum = 0;
@@ -181,30 +187,6 @@ public class Utils {
     //
     ///////////////////////////////////////////////////////////////////////////
 
-    public static MatOfPoint findNearestContour(MatOfPoint contour, List<MatOfPoint> contours) {
-        MatOfPoint firstContour = null;
-        for (MatOfPoint cnt : contours) {
-            if (contour != cnt) {
-                firstContour = cnt;
-                break;
-            }
-        }
-        if (firstContour == null) return null;
-        MatOfPoint nearestCnt = firstContour;
-        Point c1 = getCentroid(contour);
-        Point c2 = getCentroid(firstContour);
-        double minDistance = Utils.getDistance(c1, c2);
-        for (MatOfPoint cnt : contours) {
-            if (contour == cnt) continue;
-            Point centroid = getCentroid(cnt);
-            double dist = Utils.getDistance(c1, centroid);
-            if (dist < minDistance) {
-                minDistance = dist;
-                nearestCnt = cnt;
-            }
-        }
-        return nearestCnt;
-    }
 
     public static Mat getContourMask(MatOfPoint contour, Size size) {
         List<MatOfPoint> contours = new ArrayList<>();

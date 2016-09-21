@@ -33,10 +33,20 @@ public class Tracker {
     };
 
     ///////////////////////////////////////////////////////////////////////////
-    // Триггеры параметров кластеризации.
+    // Триггеры параметров.
     ///////////////////////////////////////////////////////////////////////////
-//    @Cfg
-//    boolean isMax
+
+    @Cfg
+    boolean isDrawContourEnable = true;
+
+    @Cfg
+    boolean isDrawTrackLineEnable = true;
+
+    @Cfg
+    boolean isDrawEstimatePointEnable = false;
+
+    @Cfg
+    boolean isDrawCompositionEnable = true;
 
     //
     // Максимальное кол-во контуров которые можно добавить в группу за раз.
@@ -66,7 +76,7 @@ public class Tracker {
     // Максимальное кол-во раз в которое может отличаться площадь текущего контура
     // от средней по группе. При большем значении контур не добавляется в группу.
     // Принимает значения больше 1 включительно.
-    private double maxAreaRate = 2.5;
+    private double maxAreaRate = 4;
 
     @Cfg
     // Максимальное отношение расстояния текущего контура
@@ -76,10 +86,10 @@ public class Tracker {
     private double maxEstimateDiffRate = 2;
 
     @Cfg
-    private double minCntArea = 50;
+    private double minCntArea = 1;
 
     @Cfg
-    private double maxCntArea = 500;
+    private double maxCntArea = 10000;
 
     public Tracker(Size frameSize) {
         this(frameSize, BgSubtractorFactory.createSimpleBS());
@@ -283,32 +293,35 @@ public class Tracker {
         for (Group group : groups.values()) {
 //            if (group.getSize() <= 2) continue;
             // Контуры.
-            List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
-            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
+            if (isDrawContourEnable) {
+                List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
+                Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
+            }
             // Треки.
-//            Scalar trackColor = Palette.getRandomColor(10);
-            int value = group.getAvgDist() < 255 ? (int) group.getAvgDist() : 255;
-            Scalar trackColor = new Scalar(0, value, 100 + value);
-            List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
-            Utils.drawLine(trackPoints, dataImg, trackColor, 3);
+            if (isDrawTrackLineEnable) {
+                List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
+                Utils.drawLine(trackPoints, dataImg, Palette.GREEN, 3);
+            }
             // Предсказанные точки.
-            Point estPoint = group.getEstimatePoint();
-            if (estPoint != null) {
-                int s = 7;
-                Point rectP1 = new Point(estPoint.x - s, estPoint.y - s);
-                Point rectP2 = new Point(estPoint.x + s, estPoint.y + s);
-                Imgproc.rectangle(dataImg, rectP1, rectP2, trackColor, 2);
+            if (isDrawEstimatePointEnable) {
+                Point estPoint = group.getEstimatePoint();
+                if (estPoint != null) {
+                    int s = 7;
+                    Point rectP1 = new Point(estPoint.x - s, estPoint.y - s);
+                    Point rectP2 = new Point(estPoint.x + s, estPoint.y + s);
+                    Imgproc.rectangle(dataImg, rectP1, rectP2, Palette.GREEN, 2);
+                }
             }
 
         }
 
-        Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0.5, inputFrame);
-        return inputFrame;
+        if (isDrawCompositionEnable) {
+            Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0.5, inputFrame);
+            return inputFrame;
+        } else {
+            return dataImg;
+        }
     }
-
-//    public Mat getFrame(long timestamp, Mat inputFrame) {
-//
-//    }
 
     public void setBgSubstr(BackgroundExtractor newBgExtr) {
         bgSubtractor = newBgExtr;

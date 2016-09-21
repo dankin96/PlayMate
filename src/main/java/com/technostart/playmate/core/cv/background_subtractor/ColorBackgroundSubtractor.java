@@ -5,8 +5,8 @@ import org.opencv.imgproc.Imgproc;
 
 public class ColorBackgroundSubtractor implements BackgroundExtractor {
 
-    private Scalar lowerB = new Scalar(0, 100, 200);
-    private Scalar upperB = new Scalar(10, 255, 255);
+    private Scalar lowerB = new Scalar(0, 150, 200);
+    private Scalar upperB = new Scalar(170, 255, 255);
 
     public ColorBackgroundSubtractor() {}
 
