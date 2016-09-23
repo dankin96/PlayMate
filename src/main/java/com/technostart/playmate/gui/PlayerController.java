@@ -8,6 +8,7 @@ import com.technostart.playmate.core.cv.background_subtractor.ColorBackgroundSub
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.tracker.*;
+import com.technostart.playmate.core.mechanics.SpeedTestSession;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
@@ -29,7 +30,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import org.opencv.core.*;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.schedulers.JavaFxScheduler;
@@ -85,6 +89,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     private List<MatOfPoint> lastFieldContours;
     private Mat hitMap;
     private Mat outerHitMap;
+    private Hit lastHit;
+    private double speed;
 
     private Map<Integer, List<List<MatOfPoint>>> contourGropus;
     private Mat contourGroupsMat;
@@ -113,10 +119,16 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         boolean isDrawAllHitsEnable = true;
         @Cfg
         int trackLength = 5;
+        @Cfg
+        boolean isMockTimeEnable = true;
 
         @Override
         public Image process(Mat inputFrame) {
-            lastTimestamp = System.currentTimeMillis();
+            if (isMockTimeEnable) {
+                lastTimestamp += 33.333;
+            } else {
+                lastTimestamp = System.currentTimeMillis();
+            }
             timestampList.add(lastTimestamp);
             Mat newFrame = inputFrame.clone();
             if (isGray) {
@@ -251,21 +263,28 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     }
 
     @Override
-    public void onHitDetect(Point hitPoint, Hit.Direction direction) {
-        if (lastFieldContours != null) {
-            Scalar color = direction == Hit.Direction.LEFT_TO_RIGHT ? Palette.RED : Palette.GREEN;
-            if (HitDetectorFilter.check(hitPoint, lastFieldContours, polygonTestDistance)) {
-                innerHitList.add(new Hit(hitPoint, direction));
-            } else {
-                outerHitList.add(new Hit(hitPoint, direction));
+    public void onHitDetect(Hit hit) {
+        if (lastFieldContours == null) return;
+        if (HitDetectorFilter.check(hit.point, lastFieldContours, polygonTestDistance)) {
+            innerHitList.add(hit);
+            // Считаем скорость.
+            if (lastHit != null) {
+                if (lastHit.direction == hit.direction) {
+                    speed = SpeedTestSession.calcSpeed(lastHit, hit);
+                    System.out.println(String.format("speed: %.2f", speed));
+                }
             }
+            lastHit = hit;
+        } else {
+            outerHitList.add(hit);
         }
+
     }
 
     @FXML
     private void initDetectors() {
-//        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
-        bgSubstr = new ColorBackgroundSubtractor();
+        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
+//        bgSubstr = new ColorBackgroundSubtractor();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tracker.setHitDetectorListener(this);
         tableDetector = new TableDetector(firstFrame.size());
@@ -352,13 +371,13 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             tracker = settingsManager.fromSettings(tracker);
             int history = settingsManager.getInt("bgHistoryLength", 3);
             int threshold = settingsManager.getInt("bgThreshold", 7);
-//            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
             // ColorBgExtr
-            String lowerBString = settingsManager.getString("lowerColor", "0, 0, 0");
+/*            String lowerBString = settingsManager.getString("lowerColor", "0, 0, 0");
             String upperBString = settingsManager.getString("upperColor", "255, 255, 255");
             Scalar lowerB = GuiUtils.str2scalar(lowerBString);
             Scalar upperB = GuiUtils.str2scalar(upperBString);
-            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);
+            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);*/
 
             tracker.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));

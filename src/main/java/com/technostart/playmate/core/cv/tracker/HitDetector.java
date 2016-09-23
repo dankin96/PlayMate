@@ -31,7 +31,7 @@ public class HitDetector {
         upperAngleThreshold = angle;
     }
 
-    public void addNewPoint(Point point) {
+    public void addNewPoint(Point point, long timestamp) {
         if (track.size() > bufferTrackSize) {
             track.remove(0);
         }
@@ -42,7 +42,7 @@ public class HitDetector {
                 break;
             case TABLE_HIT:
                 Point hitPoint = track.get(1);
-                hitDetectorListener.onHitDetect(hitPoint, getDirection());
+                hitDetectorListener.onHitDetect(new Hit(hitPoint, getDirection(), timestamp));
                 break;
             case PLAYER_HIT:
                 break;

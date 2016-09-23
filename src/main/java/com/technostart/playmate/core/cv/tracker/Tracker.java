@@ -25,9 +25,10 @@ public class Tracker {
     //
     AtomicInteger groupId = new AtomicInteger();
     private Map<Integer, Group> groups;
+    private Map<Integer, Group> removedGroups;
 
     // Listeners.
-    private HitDetectorInterface hitDetectorListener = (hitPoint, direction) -> {
+    private HitDetectorInterface hitDetectorListener = (hit) -> {
     };
     private RawTrackerInterface contourListener = (groupId, contours) -> {
     };
@@ -48,9 +49,28 @@ public class Tracker {
     @Cfg
     boolean isDrawCompositionEnable = true;
 
+    @Cfg
+    boolean isMorphologyFilterEnable = true;
+
 
     @Cfg
-    boolean isMorphologyFilterEnable = false;
+    boolean isCheckDirectionEnable = true;
+
+    @Cfg
+    boolean isCheckDistanceEnable = true;
+
+    @Cfg
+    boolean isCheckAvgDistanceEnable = true;
+
+    @Cfg
+    boolean isCheckEstimateDistanceEnable = true;
+
+    @Cfg
+    boolean isCheckAreaEnable = true;
+
+    @Cfg
+    boolean isCheckAreaRateEnable = true;
+
 
     //
     // Максимальное кол-во контуров которые можно добавить в группу за раз.
@@ -95,6 +115,10 @@ public class Tracker {
     @Cfg
     private double maxCntArea = 10000;
 
+    @Cfg
+    private int minGroupLength = 2;
+
+
     public Tracker(Size frameSize) {
         this(frameSize, BgSubtractorFactory.createSimpleBS());
     }
@@ -113,6 +137,7 @@ public class Tracker {
         this.bgSubtractor = bgSubtractor;
 
         groups = new HashMap<>();
+        removedGroups = new HashMap<>();
     }
 
     public void setHitDetectorListener(HitDetectorInterface hitDetectorListener) {
@@ -151,6 +176,7 @@ public class Tracker {
 
         // Удаляем группы.
         for (int id : groupIdToRemove) {
+            removedGroups.put(id, groups.get(id));
             groups.remove(id);
         }
 
@@ -171,36 +197,44 @@ public class Tracker {
                 Group curGroup = groups.get(groupIdx);
                 Point groupPoint = curGroup.getLastPoint();
                 // Проверка направления.
-                Hit.Direction direction = cntPoint.x > groupPoint.x ? Hit.Direction.LEFT_TO_RIGHT : Hit.Direction.RIGHT_TO_LEFT;
-                Hit.Direction groupDirection = curGroup.getDirection();
-                if ((groupDirection != null) && (direction != curGroup.getDirection())) continue;
+                if (isCheckDirectionEnable) {
+                    Hit.Direction direction = cntPoint.x > groupPoint.x ? Hit.Direction.LEFT_TO_RIGHT : Hit.Direction.RIGHT_TO_LEFT;
+                    Hit.Direction groupDirection = curGroup.getDirection();
+                    if ((groupDirection != null) && (direction != curGroup.getDirection())) continue;
+                }
                 // Вычисление веса по расстоянию.
                 double distWeight;
                 double dist = Utils.getDistance(groupPoint, cntPoint);
                 double normalDist = dist / maxDist;
-                if (normalDist > distThreshold) continue;
+                if (isCheckDistanceEnable) {
+                    if (normalDist > distThreshold) continue;
+                }
                 // Вычисление веса по среднему расстоянию.
-                double curGroupAvgDist = curGroup.getAvgDist();
-                if (curGroupAvgDist != 0) {
-                    double avgDistRate = curGroupAvgDist / dist;
-                    if (avgDistRate < 1) avgDistRate = 1 / avgDistRate;
-                    if (avgDistRate > maxAvgDistRate) continue;
+                if (isCheckAvgDistanceEnable) {
+                    double curGroupAvgDist = curGroup.getAvgDist();
+                    if (curGroupAvgDist != 0) {
+                        double avgDistRate = curGroupAvgDist / dist;
+                        if (avgDistRate < 1) avgDistRate = 1 / avgDistRate;
+                        if (avgDistRate > maxAvgDistRate) continue;
+                    }
+                    // Вычисление веса по предсказанной координате.
+                    if (isCheckEstimateDistanceEnable) {
+                        Point estPoint = curGroup.getEstimatePoint();
+                        if (estPoint != null) {
+                            double estDiffDist = Utils.getDistance(estPoint, cntPoint);
+                            double estDiffRate = estDiffDist / curGroupAvgDist;
+                            if (estDiffRate > maxEstimateDiffRate) continue;
+                        }
+                    }
                 }
-                // Вычисление веса по предсказанной координате.
-                Point estPoint = curGroup.getEstimatePoint();
-                if (estPoint != null) {
-                    double estDiffDist = Utils.getDistance(estPoint, cntPoint);
-                    double estDiffRate = estDiffDist / curGroupAvgDist;
-                    if (estDiffRate > maxEstimateDiffRate) continue;
-                }
-
                 // Вычисление веса по площади.
-                double areaRate = curGroup.getAvgArea() / cntArea;
-                if (areaRate < 1) areaRate = 1 / areaRate;
-                if (areaRate > maxAreaRate) continue;
+                if (isCheckAreaRateEnable) {
+                    double areaRate = curGroup.getAvgArea() / cntArea;
+                    if (areaRate < 1) areaRate = 1 / areaRate;
+                    if (areaRate > maxAreaRate) continue;
+                }
                 // Нормализация и суммирование.
                 distWeight = 1 - normalDist;
-                areaRate = 1 / areaRate;
                 double weight = distWeight;
                 // Сохранение веса.
                 groupIdxToWeight.put(groupIdx, weight);
@@ -296,8 +330,8 @@ public class Tracker {
         Mat dataImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
 
         // Рисуем группы контуров и треки разными цветами.
-        for (Group group : groups.values()) {
-//            if (group.getSize() <= 2) continue;
+        for (Group group : getAllGroups()) {
+            if (group.getSize() <= minGroupLength) continue;
             // Контуры.
             if (isDrawContourEnable) {
                 List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
@@ -308,8 +342,12 @@ public class Tracker {
                 List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
                 Utils.drawLine(trackPoints, dataImg, Palette.GREEN, 3);
             }
-            // Предсказанные точки.
-            if (isDrawEstimatePointEnable) {
+        }
+
+        // Предсказанные точки.
+        if (isDrawEstimatePointEnable) {
+            for (Group group : groups.values()) {
+                if (group.getSize() <= minGroupLength) continue;
                 Point estPoint = group.getEstimatePoint();
                 if (estPoint != null) {
                     int s = 7;
@@ -318,7 +356,6 @@ public class Tracker {
                     Imgproc.rectangle(dataImg, rectP1, rectP2, Palette.GREEN, 2);
                 }
             }
-
         }
 
         if (isDrawCompositionEnable) {
@@ -327,6 +364,13 @@ public class Tracker {
         } else {
             return dataImg;
         }
+    }
+
+    public List<Group> getAllGroups() {
+        List<Group> groupList = new ArrayList<>();
+        groupList.addAll(groups.values());
+        groupList.addAll(removedGroups.values());
+        return groupList;
     }
 
     public void setBgSubstr(BackgroundExtractor newBgExtr) {

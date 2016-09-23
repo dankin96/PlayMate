@@ -33,7 +33,7 @@ public class Group {
     // Кол-во итераций без добавления новых элементов.
     private int idle;
     // Максимальное кол-во итераций простоя.
-    public static final int MAX_IDLE = 2;
+    public static int MAX_IDLE = 2;
 
     private List<Scalar> colors;
     private LinkedHashMap<Long, List<MatOfPoint>> timeToContours;
@@ -104,7 +104,7 @@ public class Group {
         penultPoint = lastPoint;
         lastPoint = centroid;
         track.put(timestamp, centroid);
-        hitDetector.addNewPoint(centroid);
+        hitDetector.addNewPoint(centroid, timestamp);
         idle = idle > 0 ? idle - 1 : 0;
 
         if (lastPoint != null && penultPoint != null && avgDist != 0) {
@@ -177,6 +177,14 @@ public class Group {
         return contours;
     }
 
+    public List<MatOfPoint> getAllContours() {
+        List<MatOfPoint> contours = new ArrayList<>();
+        for (List<MatOfPoint> curCntList : timeToContours.values()) {
+            contours.addAll(curCntList);
+        }
+        return contours;
+    }
+
     public List<Point> getTrackPointsByTimestamp(List<Long> timestamps) {
         List<Point> points = new ArrayList<>();
         for (long timestamp : timestamps) {
@@ -185,6 +193,10 @@ public class Group {
             }
         }
         return points;
+    }
+
+    public List<Point> getAllTrackPoints() {
+        return new ArrayList<>(track.values());
     }
 
     public void idle() {

@@ -22,7 +22,7 @@ public class Session implements HitDetectorInterface {
     protected Mat lastFieldMask;
 
     public Session(Size size) {
-        hitDetectorListener = (hitPoint, direction) -> {};
+        hitDetectorListener = (hit) -> {};
         BackgroundExtractor bgExtractor = BgSubtractorFactory.createMOG2(3, 20, false);
         tracker = new Tracker(size, bgExtractor);
         tracker.setHitDetectorListener(this);
@@ -44,11 +44,11 @@ public class Session implements HitDetectorInterface {
     }
 
     @Override
-    public void onHitDetect(Point hitPoint, Hit.Direction direction) {
+    public void onHitDetect(Hit hit) {
 //        if (lastFieldMask == null) return;
 //        if (HitDetectorFilter.check(hitPoint, lastFieldMask)) {
             // ...
-            hitDetectorListener.onHitDetect(hitPoint, direction);
+            hitDetectorListener.onHitDetect(hit);
 //        }
     }
 }

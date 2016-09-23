@@ -10,6 +10,11 @@ public class Hit {
         this.direction = direction;
     }
 
+    public Hit(Point point, Direction direction, long timestamp) {
+        this(point, direction);
+        this.timestamp = timestamp;
+    }
+
     public Point point;
     public Direction direction;
     public long timestamp;
