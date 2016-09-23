@@ -33,6 +33,10 @@
                             </items>
                         </Menu>
                         <Menu text="Actions">
+                            <items>
+                                <MenuItem onAction="#recordTablePoints" text="Record Table Points"/>
+                                <MenuItem onAction="#clearTablePoints" text="Clear Table Points"/>
+                            </items>
                         </Menu>
                     </menus>
                 </MenuBar>

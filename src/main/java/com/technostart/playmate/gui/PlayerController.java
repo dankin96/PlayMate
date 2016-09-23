@@ -30,10 +30,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
+import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import rx.Observable;
 import rx.schedulers.JavaFxScheduler;
@@ -82,15 +79,18 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     private Session hitMapSession;
 
     private Mat firstFrame;
+    private Mat lastFrame;
 
     private List<Hit> innerHitList = new ArrayList<>();
     private List<Hit> outerHitList = new ArrayList<>();
     private Mat lastFieldMask;
-    private List<MatOfPoint> lastFieldContours;
+    private List<MatOfPoint> lastFieldContours = new ArrayList<>();
     private Mat hitMap;
     private Mat outerHitMap;
     private Hit lastHit;
     private double speed;
+
+    private List<Point> tablePointList = new ArrayList<>();
 
     private Map<Integer, List<List<MatOfPoint>>> contourGropus;
     private Mat contourGroupsMat;
@@ -118,6 +118,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         @Cfg
         boolean isDrawAllHitsEnable = true;
         @Cfg
+        boolean isDrawTableContourEnable = true;
+        @Cfg
         int trackLength = 5;
         @Cfg
         boolean isMockTimeEnable = true;
@@ -140,7 +142,11 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
                 if (fieldContours != null) {
                     lastFieldContours = new ArrayList(fieldContours);
                 }
-                Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
+            }
+            if (isDrawTableContourEnable) {
+                if (lastFieldContours != null) {
+                    Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
+                }
             }
             if (isTrackerEnable) {
                 int lastIdx = timestampList.size();
@@ -164,7 +170,7 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             if (img == null) {
                 new Image("com/technostart/playmate/gui/video.png", true);
             }
-
+            lastFrame = newFrame.clone();
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
     };
@@ -278,7 +284,6 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         } else {
             outerHitList.add(hit);
         }
-
     }
 
     @FXML
@@ -457,6 +462,31 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     private void clearMap() {
         innerHitList.clear();
         outerHitList.clear();
+    }
+
+    @FXML
+    private void recordTablePoints() {
+        processedFrameView.setOnMouseClicked(event -> {
+            double x = (event.getX() / processedFrameView.getFitWidth()) * lastFrame.width();
+            double y = (event.getY() / processedFrameView.getFitHeight()) * lastFrame.height();
+
+            tablePointList.add(new Point(x, y));
+            System.out.println(String.format("x: %.2f y: %.2f", x, y));
+            if (tablePointList.size() == 8) {
+                lastFieldContours.clear();
+                MatOfPoint leftContour = new MatOfPoint();
+                leftContour.fromList(tablePointList.subList(0, 4));
+                MatOfPoint rightContour = new MatOfPoint();
+                rightContour.fromList(tablePointList.subList(4, 8));
+                lastFieldContours.add(leftContour);
+                lastFieldContours.add(rightContour);
+            }
+        });
+    }
+
+    @FXML
+    private void clearTablePoints() {
+        tablePointList.clear();
     }
 
     @Override
