@@ -37,11 +37,11 @@ public class MapOfHits {
         ballPoints.put(getNewHomoCoords(ballCoords), set);
         Mat heatMap = new Mat(new Size(curWidth, curHeight), CvType.CV_8UC3);
         Imgproc.resize(tableImg, heatMap, new Size(curWidth, curHeight));
-        heatMap = printBall(heatMap, ballPoints, curWidth, currentDirection);
 //        Imgproc.applyColorMap(heatMap, heatMap, Imgproc.COLORMAP_RAINBOW);
 //        Core.addWeighted(heatMap, 0.5, tableImg, 1.0, 0, heatMap);
         Imgproc.line(heatMap, new Point(0, curHeight / 2), new Point(curWidth, curHeight / 2), Palette.WHITE, 4);
         Imgproc.line(heatMap, new Point(curWidth / 2, 0), new Point(curWidth / 2, curHeight), Palette.NET, 2);
+        heatMap = printBall(heatMap, ballPoints, curWidth, currentDirection);
         return heatMap;
     }
 
@@ -125,7 +125,17 @@ public class MapOfHits {
     private Mat printBall(Mat heatMap, Map<Point, Direction> center, int width, Direction currentDirection) {
         if (currentDirection == Direction.UNDEFINED) {
             for (Map.Entry<Point, Direction> entry : center.entrySet()) {
-                Imgproc.circle(heatMap, entry.getKey(), width / 90, Palette.WHITE, -1);
+//                Imgproc.circle(heatMap, entry.getKey(), width / 90, Palette.WHITE, -1);
+                center.forEach((key, value) -> {
+                    if (value == Direction.LEFT_TO_RIGHT) {
+                        Imgproc.circle(heatMap, key, width / 90, Palette.RED, -1);
+                    }
+                });
+                center.forEach((key, value) -> {
+                    if (value == Direction.RIGHT_TO_LEFT) {
+                        Imgproc.circle(heatMap, key, width / 90, Palette.GREEN, -1);
+                    }
+                });
             }
         } else if (currentDirection == Direction.LEFT_TO_RIGHT) {
             center.forEach((key, value) -> {

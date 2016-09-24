@@ -68,6 +68,7 @@ public class PlayerController implements Initializable {
     private TableDetector tableDetector;
     private BackgroundExtractor bgSubstr;
     private MapOfHits map;
+    private int counter = 0;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -108,8 +109,13 @@ public class PlayerController implements Initializable {
                     originalFrame = tableDetector.getField(originalFrame);
                     map.setField(tableDetector.getPointsOfTable(), originalFrame);
                 }
-                newFrame = map.getMap(new Point(200 + 300 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.UNDEFINED);
+                if (Math.random() > 0.5) {
+                    newFrame = map.getMap(new Point(200 + 150 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.LEFT_TO_RIGHT);
+                }
+                else
+                    newFrame = map.getMap(new Point(500 + 150 * Math.random(), 250 + 40 * Math.random()), MapOfHits.Direction.RIGHT_TO_LEFT);
 //                helpImageView.setImage(GuiUtils.mat2Image(copy, jpgQuality));
+                counter++;
             }
             if (isJsonCreateEnable) {
                 processedFrameView.setOnMouseClicked(e -> {
