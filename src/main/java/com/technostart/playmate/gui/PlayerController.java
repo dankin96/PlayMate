@@ -9,6 +9,7 @@ import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.tracker.*;
 import com.technostart.playmate.core.mechanics.SpeedTestSession;
+import com.technostart.playmate.core.model.field.Table;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
@@ -32,6 +33,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.utils.Converters;
 import rx.Observable;
 import rx.schedulers.JavaFxScheduler;
 import rx.schedulers.Schedulers;
@@ -89,6 +91,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     private Mat outerHitMap;
     private Hit lastHit;
     private double speed;
+    private List<Point> homoPoint = new ArrayList<>();
+    private Mat perspectiveTransform;
 
     private List<Point> tablePointList = new ArrayList<>();
 
@@ -276,8 +280,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             // Считаем скорость.
             if (lastHit != null) {
                 if (lastHit.direction == hit.direction) {
-                    speed = SpeedTestSession.calcSpeed(lastHit, hit);
-                    System.out.println(String.format("speed: %.2f", speed));
+                    speed = calcSpeed(lastHit, hit);
+                    System.out.println(String.format("speed: %.2f м/c", speed));
                 }
             }
             lastHit = hit;
@@ -480,6 +484,13 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
                 rightContour.fromList(tablePointList.subList(4, 8));
                 lastFieldContours.add(leftContour);
                 lastFieldContours.add(rightContour);
+                homoPoint.add(tablePointList.get(0));
+                homoPoint.add(tablePointList.get(1));
+                homoPoint.add(tablePointList.get(6));
+                homoPoint.add(tablePointList.get(7));
+
+                perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(homoPoint),
+                        Converters.vector_Point2f_to_Mat(Table.getBorderPoint()));
             }
         });
     }
@@ -499,5 +510,23 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             contours = new ArrayList<>();
         }
         contourGropus.put(groupId, contours);
+    }
+
+    private double calcSpeed(Hit hit1, Hit hit2) {
+        List<Point> points = new ArrayList<>();
+        points.add(hit1.point);
+        points.add(hit2.point);
+        List<Point> homoPoints = getHomoPoints(points);
+        double distance = Utils.getDistance(homoPoints.get(0), homoPoints.get(1));
+        double timeDiff = hit2.timestamp - hit1.timestamp;
+        return Math.abs(1000 * distance / timeDiff);
+    }
+
+    public List<Point> getHomoPoints(List<Point> inputPoints) {
+        Mat transformedPoints = new Mat();
+        List<Point> newCoords = new ArrayList<>();
+        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(inputPoints), transformedPoints, perspectiveTransform);
+        Converters.Mat_to_vector_Point2f(transformedPoints, newCoords);
+        return newCoords;
     }
 }
