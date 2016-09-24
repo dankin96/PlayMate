@@ -340,7 +340,7 @@ public class Tracker {
             // Треки.
             if (isDrawTrackLineEnable) {
                 List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
-                Utils.drawLine(trackPoints, dataImg, Palette.GREEN, 3);
+                Utils.drawLine(trackPoints, dataImg, Palette.GREEN, 2);
             }
         }
 

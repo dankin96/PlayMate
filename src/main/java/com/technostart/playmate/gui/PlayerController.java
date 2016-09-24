@@ -4,11 +4,9 @@ import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
-import com.technostart.playmate.core.cv.background_subtractor.ColorBackgroundSubtractor;
 import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
 import com.technostart.playmate.core.cv.tracker.*;
-import com.technostart.playmate.core.mechanics.SpeedTestSession;
 import com.technostart.playmate.core.model.field.Table;
 import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
@@ -120,9 +118,13 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         @Cfg
         boolean isDrawingHitsEnable = true;
         @Cfg
+        int hitRadius = 5;
+        @Cfg
         boolean isDrawAllHitsEnable = true;
         @Cfg
         boolean isDrawTableContourEnable = true;
+        @Cfg
+        boolean isPrintSpeedEnable = true;
         @Cfg
         int trackLength = 5;
         @Cfg
@@ -161,14 +163,17 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             if (isDrawingHitsEnable) {
                 for (Hit hit : innerHitList) {
                     Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
-                    Imgproc.circle(newFrame, hit.point, 7, color, -1);
+                    Imgproc.circle(newFrame, hit.point, hitRadius, color, -1);
                 }
                 if (isDrawAllHitsEnable) {
                     for (Hit hit : outerHitList) {
                         Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
-                        Imgproc.circle(newFrame, hit.point, 7, color, 1);
+                        Imgproc.circle(newFrame, hit.point, hitRadius, color, 1);
                     }
                 }
+            }
+            if (isPrintSpeedEnable) {
+                Imgproc.putText(newFrame, String.format("Speed: %.2f m/s", speed), new Point(10, 20), Core.FONT_HERSHEY_PLAIN, 1, Palette.WHITE);
             }
             Image img = GuiUtils.mat2Image(newFrame, jpgQuality);
             if (img == null) {
@@ -280,7 +285,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             // Считаем скорость.
             if (lastHit != null) {
                 if (lastHit.direction == hit.direction) {
-                    speed = calcSpeed(lastHit, hit);
+                    double newSpeed = calcSpeed(lastHit, hit);
+                    speed = newSpeed > 0 ? newSpeed : speed;
                     System.out.println(String.format("speed: %.2f м/c", speed));
                 }
             }
