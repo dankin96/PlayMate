@@ -173,7 +173,7 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
                 }
             }
             if (isPrintSpeedEnable) {
-                Imgproc.putText(newFrame, String.format("Speed: %.2f m/s", speed), new Point(10, 20), Core.FONT_HERSHEY_PLAIN, 1, Palette.WHITE);
+                Imgproc.putText(newFrame, String.format("Speed: %.2f m/s", speed), new Point(10, 20), Core.FONT_HERSHEY_PLAIN, 1.5, Palette.WHITE);
             }
             Image img = GuiUtils.mat2Image(newFrame, jpgQuality);
             if (img == null) {
@@ -298,7 +298,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
 
     @FXML
     private void initDetectors() {
-        bgSubstr = BgSubtractorFactory.createMOG2(3, 7, false);
+        int threshold = settingsManager.getInt("bgThreshold", 300);
+        bgSubstr = BgSubtractorFactory.createMOG2(3, threshold, true);
 //        bgSubstr = new ColorBackgroundSubtractor();
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tracker.setHitDetectorListener(this);
@@ -384,9 +385,9 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             bgSubstr = settingsManager.fromSettings(bgSubstr);
             frameHandler = settingsManager.fromSettings(frameHandler);
             tracker = settingsManager.fromSettings(tracker);
-            int history = settingsManager.getInt("bgHistoryLength", 3);
-            int threshold = settingsManager.getInt("bgThreshold", 7);
-            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, false);
+            int history = settingsManager.getInt("bgHistoryLength", 5);
+            int threshold = settingsManager.getInt("bgThreshold", 300);
+            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, true);
             // ColorBgExtr
 /*            String lowerBString = settingsManager.getString("lowerColor", "0, 0, 0");
             String upperBString = settingsManager.getString("upperColor", "255, 255, 255");
@@ -415,8 +416,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
             settingsManager.toSettings(object);
-            settingsManager.putInt("bgHistoryLength", 3);
-            settingsManager.putInt("bgThreshold", 20);
+            settingsManager.putInt("bgHistoryLength", 5);
+            settingsManager.putInt("bgThreshold", 300);
             settingsManager.putDouble("polygonTestDistance", 5);
             // ColorBg
             settingsManager.putString("lowerColor", "0, 0, 0");
@@ -534,5 +535,11 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(inputPoints), transformedPoints, perspectiveTransform);
         Converters.Mat_to_vector_Point2f(transformedPoints, newCoords);
         return newCoords;
+    }
+
+    @FXML
+    private void clearSpeed(ActionEvent actionEvent) {
+        speed = 0;
+        lastHit = null;
     }
 }

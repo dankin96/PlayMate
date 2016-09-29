@@ -26,6 +26,7 @@
                                 <MenuItem accelerator="Shortcut+R" onAction="#initDetectors" text="Reload Detectors"/>
                                 <MenuItem onAction="#clearBuffer" text="Clear Buffer"/>
                                 <MenuItem onAction="#clearMap" text="Clear HitMap"/>
+                                <MenuItem onAction="#clearSpeed" text="Clear Speed"/>
                                 <SeparatorMenuItem/>
                                 <MenuItem accelerator="Shortcut+R" onAction="#reloadFrame" text="Reload Frame"/>
                                 <MenuItem onAction="#applySettings" text="Apply Settings"/>
