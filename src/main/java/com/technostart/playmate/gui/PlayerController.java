@@ -32,6 +32,7 @@ import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.utils.Converters;
+import org.opencv.video.Video;
 import rx.Observable;
 import rx.schedulers.JavaFxScheduler;
 import rx.schedulers.Schedulers;
@@ -76,7 +77,7 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
     private Tracker tracker;
     private FieldDetector tableDetector;
     private BackgroundExtractor bgSubstr;
-    private Session hitMapSession;
+    private OpticalFlow opticalFlow = new OpticalFlow();
 
     private Mat firstFrame;
     private Mat lastFrame;
@@ -120,15 +121,17 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         @Cfg
         int hitRadius = 5;
         @Cfg
-        boolean isDrawAllHitsEnable = true;
+        boolean isDrawAllHitsEnable = false;
         @Cfg
-        boolean isDrawTableContourEnable = true;
+        boolean isDrawTableContourEnable = false;
         @Cfg
-        boolean isPrintSpeedEnable = true;
+        boolean isPrintSpeedEnable = false;
         @Cfg
         int trackLength = 5;
         @Cfg
-        boolean isMockTimeEnable = true;
+        boolean isMockTimeEnable = false;
+        @Cfg
+        boolean isOpticalFlowEnable = true;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -153,6 +156,9 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
                 if (lastFieldContours != null) {
                     Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
                 }
+            }
+            if (isOpticalFlowEnable) {
+                newFrame = opticalFlow.getFrame(newFrame);
             }
             if (isTrackerEnable) {
                 int lastIdx = timestampList.size();
@@ -304,6 +310,8 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
         tracker = new Tracker(firstFrame.size(), bgSubstr);
         tracker.setHitDetectorListener(this);
         tableDetector = new TableDetector(firstFrame.size());
+        opticalFlow = new OpticalFlow();
+        opticalFlow.setBgSubstr(bgSubstr);
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -396,11 +404,11 @@ public class PlayerController implements Initializable, RawTrackerInterface, Hit
             bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);*/
 
             tracker.setBgSubstr(bgSubstr);
+            opticalFlow.setBgSubstr(bgSubstr);
             Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
             polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
 
         } catch (IllegalAccessException e) {
-            // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
             e.printStackTrace();
         }
