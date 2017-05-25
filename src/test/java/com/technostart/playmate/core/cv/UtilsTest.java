@@ -15,6 +15,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
 public class UtilsTest {
+
+
     @Before
     public void setUp() throws Exception {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -110,6 +112,18 @@ public class UtilsTest {
         assertEquals(45, Utils.getAngle(p1, p2, p2, p0), 0);
         assertEquals(90, Utils.getAngle(p0, p1, p2, p0), 0);
         assertEquals(180, Utils.getAngle(p0, p1, p3, p0), 0);
+    }
+
+
+    @Test
+    public void getMeanPoint() throws Exception {
+        Point p0 = new Point(0, 0);
+        Point p1 = new Point(1, 1);
+        Point p2 = new Point(2, 2);
+        Point p3 = new Point(3, 3);
+        Point cp = new Point(1.5, 1.5);
+        MatOfPoint cnt = new MatOfPoint(p0, p1, p2, p3);
+        assertEquals(cp, Utils.getMeanPoint(cnt));
     }
 
     /*@Test

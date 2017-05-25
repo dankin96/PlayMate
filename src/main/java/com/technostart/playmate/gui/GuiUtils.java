@@ -14,8 +14,19 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import org.opencv.core.Scalar;
+import org.opencv.imgcodecs.Imgcodecs;
+
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 
 public class GuiUtils {
+    public static Scalar str2scalar(String str) {
+        double[] vals;
+        vals = Arrays.stream(str.split(",")).map(String::trim).mapToDouble(Integer::parseInt).toArray();
+        return new Scalar(vals);
+    }
+
     public static Image mat2Image(Mat frame, int jpgQuality) {
         int[] params = new int[2];
         params[0] = Imgcodecs.IMWRITE_JPEG_QUALITY;

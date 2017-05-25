@@ -1,11 +1,15 @@
 package com.technostart.playmate.gui;
 
+
+import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
-import com.technostart.playmate.core.cv.background_subtractor.SimpleBackgroundSubtractor;
+import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.cv.field_detector.FieldDetector;
 import com.technostart.playmate.core.cv.field_detector.TableDetector;
-import com.technostart.playmate.core.cv.map_of_hits.MapOfHits;
-import com.technostart.playmate.core.cv.tracker.Tracker;
+import com.technostart.playmate.core.cv.tracker.*;
+import com.technostart.playmate.core.model.field.Table;
+import com.technostart.playmate.core.sessions.Session;
 import com.technostart.playmate.core.settings.Cfg;
 import com.technostart.playmate.core.settings.SettingsManager;
 import com.technostart.playmate.frame_reader.BufferedFrameReader;
@@ -28,8 +32,11 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.utils.Converters;
+import org.opencv.video.Video;
 import rx.Observable;
-import rx.Subscription;
+import rx.schedulers.JavaFxScheduler;
+import rx.schedulers.Schedulers;
 
 import java.io.*;
 import java.net.URL;
@@ -38,7 +45,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class PlayerController implements Initializable {
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.function.Supplier;
+
+public class PlayerController implements Initializable, RawTrackerInterface, HitDetectorInterface {
 
     private SettingsManager settingsManager;
     @FXML
@@ -67,8 +78,33 @@ public class PlayerController implements Initializable {
     private Tracker tracker;
     private TableDetector tableDetector;
     private BackgroundExtractor bgSubstr;
-    private MapOfHits map;
-    private int counter = 0;
+    private OpticalFlow opticalFlow = new OpticalFlow();
+
+    private Mat firstFrame;
+    private Mat lastFrame;
+
+    private List<Hit> innerHitList = new ArrayList<>();
+    private List<Hit> outerHitList = new ArrayList<>();
+    private Mat lastFieldMask;
+    private List<MatOfPoint> lastFieldContours = new ArrayList<>();
+    private Mat hitMap;
+    private Mat outerHitMap;
+    private Hit lastHit;
+    private double speed;
+    private List<Point> homoPoint = new ArrayList<>();
+    private Mat perspectiveTransform;
+
+    private List<Point> tablePointList = new ArrayList<>();
+
+    private Map<Integer, List<List<MatOfPoint>>> contourGropus;
+    private Mat contourGroupsMat;
+
+    private List<Long> timestampList = new ArrayList<>();
+    private long lastTimestamp;
+
+    private double polygonTestDistance = 5;
+
+    private volatile boolean isFrameButtonEnable = true;
 
     private FrameHandler<Image, Mat> frameHandler = new FrameHandler<Image, Mat>() {
         @Cfg
@@ -82,103 +118,115 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
-        boolean isWarpPerspectiveEnable = false;
+        boolean isDrawingHitsEnable = true;
         @Cfg
-        boolean isJsonCreateEnable = false;
+        int hitRadius = 5;
         @Cfg
-        boolean isMapOfHitsEnable = false;
+        boolean isDrawAllHitsEnable = false;
+        @Cfg
+        boolean isDrawTableContourEnable = false;
+        @Cfg
+        boolean isPrintSpeedEnable = false;
+        @Cfg
+        int trackLength = 5;
+        @Cfg
+        boolean isMockTimeEnable = false;
+        @Cfg
+        boolean isOpticalFlowEnable = true;
+
 
         @Override
         public Image process(Mat inputFrame) {
+            if (isMockTimeEnable) {
+                lastTimestamp += 33.333;
+            } else {
+                lastTimestamp = System.currentTimeMillis();
+            }
+            timestampList.add(lastTimestamp);
             Mat newFrame = inputFrame.clone();
             if (isGray) {
                 Imgproc.cvtColor(newFrame, newFrame, Imgproc.COLOR_BGR2GRAY);
             }
             Imgproc.resize(newFrame, newFrame, new Size(), resizeRate, resizeRate, Imgproc.INTER_LINEAR);
             if (isFieldDetectorEnable) {
-                Mat originalFrame = newFrame.clone();
-                newFrame = tableDetector.getField(newFrame);
-                Core.addWeighted(newFrame, 0.5, originalFrame, 0.5, 0, newFrame);
+                List<MatOfPoint> fieldContours = tableDetector.getContours(newFrame.clone());
+                if (fieldContours != null) {
+                    lastFieldContours = new ArrayList(fieldContours);
+                }
+            }
+            if (isDrawTableContourEnable) {
+                if (lastFieldContours != null) {
+                    Imgproc.drawContours(newFrame, lastFieldContours, -1, Palette.GREEN, 2);
+                }
+            }
+            if (isOpticalFlowEnable) {
+                newFrame = opticalFlow.getFrame(newFrame);
             }
             if (isTrackerEnable) {
-                tracker.getFrame(newFrame);
+                int lastIdx = timestampList.size();
+                int diff = lastIdx - trackLength;
+                int fromIdx = diff >= 0 ? diff : 0;
+                newFrame = tracker.getFrame(lastTimestamp, newFrame, timestampList.subList(fromIdx, lastIdx));
             }
-            if (isMapOfHitsEnable) {
-                Mat originalFrame = newFrame.clone();
-                if (originalFrame != null && tableDetector.getIsDetected() != true) {
-                    originalFrame = tableDetector.getField(originalFrame);
-                    map.setField(tableDetector.getPointsOfTable(), originalFrame);
+            if (isDrawingHitsEnable) {
+                for (Hit hit : innerHitList) {
+                    Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
+                    Imgproc.circle(newFrame, hit.point, hitRadius, color, -1);
                 }
-                if (Math.random() > 0.5) {
-                    newFrame = map.getMap(new Point(200 + 150 * Math.random(), 250 + 50 * Math.random()), MapOfHits.Direction.LEFT_TO_RIGHT);
-                }
-                else
-                    newFrame = map.getMap(new Point(500 + 150 * Math.random(), 250 + 40 * Math.random()), MapOfHits.Direction.RIGHT_TO_LEFT);
-                counter++;
-            }
-            if (isJsonCreateEnable) {
-                processedFrameView.setOnMouseClicked(e -> {
-                    //считывает по 8 координат с ImageView и записывает их в Json с ресурсах
-                    if (pointsForTesting.size() <= 8)
-                        pointsForTesting.add(new Point(e.getX() / processedFrameView.getFitWidth(), e.getY() / processedFrameView.getFitHeight()));
-                    if (pointsForTesting.size() == 8) {
-                        GuiUtils.createJsonTestFile(pointsForTesting, videoFileName);
-                        pointsForTesting.clear();
+                if (isDrawAllHitsEnable) {
+                    for (Hit hit : outerHitList) {
+                        Scalar color = (hit.direction == Hit.Direction.LEFT_TO_RIGHT) ? Palette.RED : Palette.GREEN;
+                        Imgproc.circle(newFrame, hit.point, hitRadius, color, 1);
                     }
-                });
+                }
             }
-            if (isWarpPerspectiveEnable) {
-                List<Point> srcPoints = new ArrayList<Point>();
-                //координаты правой половины стола 1 дубля захордкоженные
-                Point srcP1 = new Point(403.50083892617465, 241.15520134228194);
-                Point srcP2 = new Point(590.7818181818185, 244.85454545454544);
-                Point srcP3 = new Point(398.76898763595807, 305.8238356419075);
-                Point srcP4 = new Point(693.163064833006, 311.442043222004);
-                srcPoints.add(srcP1);
-                srcPoints.add(srcP2);
-                srcPoints.add(srcP3);
-                srcPoints.add(srcP4);
-                List<Point> dstPoints = new ArrayList<Point>();
-                Point dstP1 = new Point(0, 0);
-                Point dstP2 = new Point(newFrame.width() - 1, 0);
-                Point dstP3 = new Point(0, newFrame.height() - 1);
-                Point dstP4 = new Point(newFrame.width() - 1, newFrame.height() - 1);
-                dstPoints.add(dstP1);
-                dstPoints.add(dstP2);
-                dstPoints.add(dstP3);
-                dstPoints.add(dstP4);
-
-                newFrame = Utils.createHomography(newFrame, srcPoints, dstPoints);
+            if (isPrintSpeedEnable) {
+                Imgproc.putText(newFrame, String.format("Speed: %.2f m/s", speed), new Point(10, 20), Core.FONT_HERSHEY_PLAIN, 1.5, Palette.WHITE);
             }
+            Image img = GuiUtils.mat2Image(newFrame, jpgQuality);
+            if (img == null) {
+                new Image("com/technostart/playmate/gui/video.png", true);
+            }
+            lastFrame = newFrame.clone();
             return GuiUtils.mat2Image(newFrame, jpgQuality);
         }
     };
 
-
-    @FunctionalInterface
-    interface Command<T> {
-        T execute();
-    }
-
-    private Observable<Image> createFrameObservable(Command<Image> command) {
+    private Observable<Image> createFrameObservable(Supplier<Image> imageSupplier) {
         return Observable.create(subscriber -> {
             if (capture != null) {
-                subscriber.onNext(command.execute());
-                frameSlider.setValue(capture.getCurrentFrameNumber());
-                capture.getCurrentFrameNumber();
+                subscriber.onNext(imageSupplier.get());
             }
             subscriber.onCompleted();
         });
     }
 
-    private Subscription createFrameSubscription(Command<Image> command) {
-        return createFrameObservable(command)
-                .subscribe(this::showFrame);
+    private void createFrameSubscription(Supplier<Image> imageSupplier) {
+        if (!isFrameButtonEnable) return;
+        disableFrameButtons();
+        Executor executor = Executors.newSingleThreadExecutor();
+        createFrameObservable(imageSupplier)
+                .subscribeOn(Schedulers.from(executor))
+                .observeOn(JavaFxScheduler.getInstance())
+                .subscribe(
+                        image -> {
+                            showFrame(image);
+                            frameSlider.setValue(capture.getCurrentFrameNumber());
+                        },
+                        throwable -> {
+                            System.out.println("Error while processing frame!");
+                            throwable.printStackTrace();
+                            processedFrameView.requestFocus();
+                            enableFrameButtons();
+                        },
+                        () -> {
+                            processedFrameView.requestFocus();
+                            enableFrameButtons();
+                        });
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
         // Менеджер настроек.
         settingsManager = new SettingsManager();
         videoFileName = "";
@@ -195,14 +243,15 @@ public class PlayerController implements Initializable {
                 frameNumberToShow = (int) pos;
             }
         });
-        bgSubstr = new SimpleBackgroundSubtractor();
+//        bgSubstr = new SimpleBackgroundSubtractor();
         // TODO: добавить новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
+        updateSettingsFromObjects(Arrays.asList(frameHandler));
     }
 
     private void showFrame(Image imageToShow) {
         positionLabel.textProperty().setValue(String.valueOf(capture.getCurrentFrameNumber()));
         processedFrameView.setImage(imageToShow);
+        processedFrameView.requestFocus();
     }
 
     @FXML
@@ -211,18 +260,18 @@ public class PlayerController implements Initializable {
         fileChooser.setTitle("Open Resource File");
         File videoFile = fileChooser.showOpenDialog(null);
         videoFileName = videoFile.getAbsolutePath();
-        // Очистка буфера.
+        // Очистка буфера и карты попаданий.
         if (capture != null) capture.close();
+        hitMap = null;
+
         // Инициализация ридера.
         CvFrameReader cvReader = new CvFrameReader(videoFileName);
-        Mat firstFrame = cvReader.read();
-        tracker = new Tracker(firstFrame.size(), bgSubstr);
-        tableDetector = new TableDetector(firstFrame.size());
-        map = new MapOfHits();
-
+        firstFrame = cvReader.read();
         Mat2ImgReader mat2ImgReader = new Mat2ImgReader(cvReader, frameHandler);
 //        capture = mat2ImgReader;
         capture = new BufferedFrameReader<>(mat2ImgReader);
+
+        initDetectors();
 
         showFrame(capture.read());
 
@@ -232,7 +281,38 @@ public class PlayerController implements Initializable {
 
         // Обновляем поля с настройками.
         // TODO: дописать новые объекты если будут.
-        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector));
+        updateSettingsFromObjects(Arrays.asList(capture, tracker, tableDetector, new Utils()));
+    }
+
+    @Override
+    public void onHitDetect(Hit hit) {
+        if (lastFieldContours == null) return;
+        if (HitDetectorFilter.check(hit.point, lastFieldContours, polygonTestDistance)) {
+            innerHitList.add(hit);
+            // Считаем скорость.
+            if (lastHit != null) {
+                if (lastHit.direction == hit.direction) {
+                    double newSpeed = calcSpeed(lastHit, hit);
+                    speed = newSpeed > 0 ? newSpeed : speed;
+                    System.out.println(String.format("speed: %.2f м/c", speed));
+                }
+            }
+            lastHit = hit;
+        } else {
+            outerHitList.add(hit);
+        }
+    }
+
+    @FXML
+    private void initDetectors() {
+        int threshold = settingsManager.getInt("bgThreshold", 300);
+        bgSubstr = BgSubtractorFactory.createMOG2(3, threshold, true);
+//        bgSubstr = new ColorBackgroundSubtractor();
+        tracker = new Tracker(firstFrame.size(), bgSubstr);
+        tracker.setHitDetectorListener(this);
+        tableDetector = new TableDetector(firstFrame.size());
+        opticalFlow = new OpticalFlow();
+        opticalFlow.setBgSubstr(bgSubstr);
     }
 
     // Переключает кадры с клавиатуры на < и >
@@ -247,8 +327,7 @@ public class PlayerController implements Initializable {
         }
 
         if (event.getCode() == KeyCode.ENTER) {
-            nextFrameBtn.requestFocus();
-
+            processedFrameView.requestFocus();
         }
     }
 
@@ -288,6 +367,20 @@ public class PlayerController implements Initializable {
         createFrameSubscription(() -> capture.get(capture.getCurrentFrameNumber()));
     }
 
+    private void disableFrameButtons() {
+        nextFrameBtn.setDisable(true);
+        previousFrameBtn.setDisable(true);
+        frameSlider.setDisable(true);
+        isFrameButtonEnable = false;
+    }
+
+    private void enableFrameButtons() {
+        nextFrameBtn.setDisable(false);
+        previousFrameBtn.setDisable(false);
+        frameSlider.setDisable(false);
+        isFrameButtonEnable = true;
+    }
+
     /**
      * Применяет настройки.
      */
@@ -296,14 +389,34 @@ public class PlayerController implements Initializable {
         try {
             // TODO: дописать новые объекты если будут.
             tableDetector = settingsManager.fromSettings(tableDetector);
+//            tableDetector.updateStructuredElement();
             capture = settingsManager.fromSettings(capture);
-            frameHandler = settingsManager.fromSettings(frameHandler);
             bgSubstr = settingsManager.fromSettings(bgSubstr);
+            frameHandler = settingsManager.fromSettings(frameHandler);
+            tracker = settingsManager.fromSettings(tracker);
+            int history = settingsManager.getInt("bgHistoryLength", 5);
+            int threshold = settingsManager.getInt("bgThreshold", 300);
+            bgSubstr = BgSubtractorFactory.createMOG2(history, threshold, true);
+            // ColorBgExtr
+/*            String lowerBString = settingsManager.getString("lowerColor", "0, 0, 0");
+            String upperBString = settingsManager.getString("upperColor", "255, 255, 255");
+            Scalar lowerB = GuiUtils.str2scalar(lowerBString);
+            Scalar upperB = GuiUtils.str2scalar(upperBString);
+            bgSubstr = new ColorBackgroundSubtractor(lowerB, upperB);*/
+
+            tracker.setBgSubstr(bgSubstr);
+            opticalFlow.setBgSubstr(bgSubstr);
+            Utils.setKernelRate(settingsManager.getInt("kernelRate", Utils.DEFAULT_KERNEL_RATE));
+            polygonTestDistance = settingsManager.getDouble("polygonTestDistance", 5);
+
         } catch (IllegalAccessException e) {
-            // TODO: вывести ошибку.
             System.out.println("Ошибка парсера настроек");
             e.printStackTrace();
         }
+    }
+
+    private void reloadTracker() {
+        // TODO
     }
 
     /**
@@ -312,6 +425,12 @@ public class PlayerController implements Initializable {
     private void updateSettingsFromObjects(List<Object> objects) {
         for (Object object : objects) {
             settingsManager.toSettings(object);
+            settingsManager.putInt("bgHistoryLength", 5);
+            settingsManager.putInt("bgThreshold", 300);
+            settingsManager.putDouble("polygonTestDistance", 5);
+            // ColorBg
+            settingsManager.putString("lowerColor", "0, 0, 0");
+            settingsManager.putString("upperColor", "255, 255, 255");
         }
         updateSettingsFields();
     }
@@ -339,9 +458,6 @@ public class PlayerController implements Initializable {
         fieldCreator.bind(settingsBox, settingsManager);
     }
 
-    private void saveImage(Image image) {
-
-    }
 
     private void saveTextFile(File file, String content) {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
@@ -360,5 +476,79 @@ public class PlayerController implements Initializable {
             e.printStackTrace();
         }
         return string;
+    }
+
+    @FXML
+    private void clearMap() {
+        innerHitList.clear();
+        outerHitList.clear();
+    }
+
+    @FXML
+    private void recordTablePoints() {
+        processedFrameView.setOnMouseClicked(event -> {
+            double x = (event.getX() / processedFrameView.getFitWidth()) * lastFrame.width();
+            double y = (event.getY() / processedFrameView.getFitHeight()) * lastFrame.height();
+
+            tablePointList.add(new Point(x, y));
+            System.out.println(String.format("x: %.2f y: %.2f", x, y));
+            if (tablePointList.size() == 8) {
+                lastFieldContours.clear();
+                MatOfPoint leftContour = new MatOfPoint();
+                leftContour.fromList(tablePointList.subList(0, 4));
+                MatOfPoint rightContour = new MatOfPoint();
+                rightContour.fromList(tablePointList.subList(4, 8));
+                lastFieldContours.add(leftContour);
+                lastFieldContours.add(rightContour);
+                homoPoint.add(tablePointList.get(0));
+                homoPoint.add(tablePointList.get(1));
+                homoPoint.add(tablePointList.get(6));
+                homoPoint.add(tablePointList.get(7));
+
+                perspectiveTransform = Imgproc.getPerspectiveTransform(Converters.vector_Point2f_to_Mat(homoPoint),
+                        Converters.vector_Point2f_to_Mat(Table.getBorderPoint()));
+            }
+        });
+    }
+
+    @FXML
+    private void clearTablePoints() {
+        tablePointList.clear();
+    }
+
+    @Override
+    public void onTrackContour(int groupId, List<MatOfPoint> newContours) {
+        List<List<MatOfPoint>> contours;
+        if (contourGropus.containsKey(groupId)) {
+            contours = contourGropus.get(groupId);
+            contours.add(newContours);
+        } else {
+            contours = new ArrayList<>();
+        }
+        contourGropus.put(groupId, contours);
+    }
+
+    private double calcSpeed(Hit hit1, Hit hit2) {
+        List<Point> points = new ArrayList<>();
+        points.add(hit1.point);
+        points.add(hit2.point);
+        List<Point> homoPoints = getHomoPoints(points);
+        double distance = Utils.getDistance(homoPoints.get(0), homoPoints.get(1));
+        double timeDiff = hit2.timestamp - hit1.timestamp;
+        return Math.abs(1000 * distance / timeDiff);
+    }
+
+    public List<Point> getHomoPoints(List<Point> inputPoints) {
+        Mat transformedPoints = new Mat();
+        List<Point> newCoords = new ArrayList<>();
+        Core.perspectiveTransform(Converters.vector_Point2f_to_Mat(inputPoints), transformedPoints, perspectiveTransform);
+        Converters.Mat_to_vector_Point2f(transformedPoints, newCoords);
+        return newCoords;
+    }
+
+    @FXML
+    private void clearSpeed(ActionEvent actionEvent) {
+        speed = 0;
+        lastHit = null;
     }
 }

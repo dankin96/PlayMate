@@ -19,13 +19,14 @@ public class SimpleBackgroundSubtractor implements BackgroundExtractor {
     @Override
     public void apply(Mat image, Mat fgMask) {
         if (prevFrame == null) {
-            prevFrame = image;
-//            return;
+            prevFrame = image.clone();
+            fgMask = Mat.zeros(image.size(), CvType.CV_8UC1);
+            return;
         }
 
         Core.absdiff(prevFrame, image, fgMask);
         prevFrame = image.clone();
-        Imgproc.threshold(fgMask, fgMask, threshold, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(fgMask, fgMask, 10, 255, Imgproc.THRESH_BINARY);
         if (fgMask.type() == CvType.CV_8UC3) {
             Imgproc.cvtColor(fgMask, fgMask, Imgproc.COLOR_BGR2GRAY);
         }

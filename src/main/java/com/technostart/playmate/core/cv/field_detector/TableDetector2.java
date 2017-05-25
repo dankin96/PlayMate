@@ -3,11 +3,12 @@ package com.technostart.playmate.core.cv.field_detector;
 import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.settings.Cfg;
-
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 @SuppressWarnings("Duplicates")
 public class TableDetector2 extends FieldDetector {
@@ -48,9 +49,7 @@ public class TableDetector2 extends FieldDetector {
     public TableDetector2(Size frameSize) {
         super(frameSize);
         processingFrame = new Mat();
-        double size = frameSize.width * structElementSizeRate;
-        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(size, size));
-        approxContours = new ArrayList<MatOfPoint>();
+        updateStructuredElement();
         frameArea = frameSize.width * frameSize.height;
     }
 
@@ -66,6 +65,7 @@ public class TableDetector2 extends FieldDetector {
         return cntImg;
     }
 
+    @Override
     public List<MatOfPoint> getContours(Mat inputFrame) {
         List<MatOfPoint> contours = new ArrayList<>();
         processingFrame = frameFilter(inputFrame, threshold);
@@ -114,13 +114,12 @@ public class TableDetector2 extends FieldDetector {
     }
 
     private Mat frameFilter(Mat inputFrame, int threshold) {
-        Mat tempFrame = inputFrame;
         Mat processingFrame = new Mat();
-        Imgproc.cvtColor(tempFrame, tempFrame, Imgproc.COLOR_BGR2GRAY);
-        //bilateral фильтр лучше для краев
-        Imgproc.bilateralFilter(tempFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
+        Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.bilateralFilter(inputFrame, processingFrame, diameter, sigmaColor, sigmaSpace);
         Imgproc.Canny(processingFrame, processingFrame, threshold, threshold * 3, 3, false);
-        Imgproc.GaussianBlur(processingFrame, processingFrame, new Size(structElementSizeRate, structElementSizeRate), 3);
+        double size = structElementSizeRate * frameSize.height;
+        Imgproc.GaussianBlur(processingFrame, processingFrame, new Size(5, 5), 3);
         Imgproc.morphologyEx(processingFrame, processingFrame, Imgproc.MORPH_OPEN, structuredElement, new Point(-1, -1), 1);
         return processingFrame;
     }
@@ -154,50 +153,15 @@ public class TableDetector2 extends FieldDetector {
         }
         return contours;
     }
-
-    private List<MatOfPoint> findTwoMatchingShapes(List<MatOfPoint> contours) {
-        double matchingRatio = Double.MAX_VALUE;
-        contours = filterContoursByAngle(contours, minAngle, maxAngle);
-        //поиск похожих половин стола, с помощью отношения площади и функции opencv
-        int indexOfFirstTableContour = -1;
-        int indexOfSecondTableContour = -1;
-        int counter = 0;
-        for (int i = 0; i < contours.size() - 1 && counter == 0; i++) {
-            for (int j = i + 1; j < contours.size(); j++) {
-                double curMatchingRatio = Imgproc.matchShapes(contours.get(i), contours.get(j), 1, 0.0);
-                if (curMatchingRatio < matchingRatio) {
-                    double areaRatio = Math.abs(Imgproc.contourArea(contours.get(i)) / Imgproc.contourArea(contours.get(j)));
-                    if (areaRatio > minRatio && areaRatio < maxRatio) {
-                        matchingRatio = curMatchingRatio;
-                        indexOfFirstTableContour = i;
-                        indexOfSecondTableContour = j;
-                        counter++;
-                        break;
-                    }
-                }
-            }
-        }
-        List<MatOfPoint> matchedContours = new LinkedList<>();
-        if (indexOfFirstTableContour != -1 && indexOfSecondTableContour != -1) {
-            matchedContours.add(contours.get(indexOfFirstTableContour));
-            matchedContours.add(contours.get(indexOfSecondTableContour));
-            return matchedContours;
-        } else
-            return null;
-    }
-
-    public List<MatOfPoint> getPointsOfTable() {
-        return approxContours;
-    }
-
-    public Boolean getIsDetected() {
-        return isDetected;
-    }
-
-
     private Mat print(Mat cntImg, List<MatOfPoint> contours, int thickness, Boolean isRandomColor) {
         Scalar color = isRandomColor ? Palette.getNextColor() : Palette.WHITE;
         Imgproc.drawContours(cntImg, contours, -1, color, thickness);
         return cntImg;
+    }
+
+    public void updateStructuredElement() {
+        double size = frameSize.width * structElementSizeRate;
+        Size structElementSize = new Size(size, size);
+        structuredElement = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, structElementSize);
     }
 }

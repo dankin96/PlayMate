@@ -4,22 +4,17 @@ import com.technostart.playmate.core.cv.Palette;
 import com.technostart.playmate.core.cv.Utils;
 import com.technostart.playmate.core.cv.background_subtractor.BackgroundExtractor;
 import com.technostart.playmate.core.cv.background_subtractor.BgSubtractorFactory;
+import com.technostart.playmate.core.settings.Cfg;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("WeakerAccess")
 public class Tracker {
     // Параметры по умлочанию.
-    public static final double DEFAULT_WEIGHT_THRESHOLD = 0.9;
-
-    // Должна зависеть от размеров кадра.
-    private double distThreshold;
+    public static final double DEFAULT_WEIGHT_THRESHOLD = 0.3;
 
     Size frameSize;
 
@@ -30,8 +25,99 @@ public class Tracker {
     //
     AtomicInteger groupId = new AtomicInteger();
     private Map<Integer, Group> groups;
-    private double weightThreshold;
+    private Map<Integer, Group> removedGroups;
+
+    // Listeners.
+    private HitDetectorInterface hitDetectorListener = (hit) -> {
+    };
+    private RawTrackerInterface contourListener = (groupId, contours) -> {
+    };
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Триггеры параметров.
+    ///////////////////////////////////////////////////////////////////////////
+
+    @Cfg
+    boolean isDrawContourEnable = true;
+
+    @Cfg
+    boolean isDrawTrackLineEnable = true;
+
+    @Cfg
+    boolean isDrawEstimatePointEnable = false;
+
+    @Cfg
+    boolean isDrawCompositionEnable = true;
+
+    @Cfg
+    boolean isMorphologyFilterEnable = true;
+
+
+    @Cfg
+    boolean isCheckDirectionEnable = true;
+
+    @Cfg
+    boolean isCheckDistanceEnable = true;
+
+    @Cfg
+    boolean isCheckAvgDistanceEnable = true;
+
+    @Cfg
+    boolean isCheckEstimateDistanceEnable = true;
+
+    @Cfg
+    boolean isCheckAreaEnable = true;
+
+    @Cfg
+    boolean isCheckAreaRateEnable = true;
+
+
+    //
+    // Максимальное кол-во контуров которые можно добавить в группу за раз.
+    private int maxContourNumber;
     private double maxDist;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Пороги весов.
+    ///////////////////////////////////////////////////////////////////////////
+
+    @Cfg
+    private double weightThreshold;
+    @Cfg
+    // Максимальное расстояния между последней точкой трека и текущим контуром
+    // больше которого нельзя добавлять контуры в группу
+    // (доля от максимального расстояния 0..1).
+    private double distThreshold = 0.08;
+
+    @Cfg
+    // Максимальное кол-во раз в которое может отличаться текущее расстояние между
+    // контуром и последней точкой трека. При большем значении
+    // контур не добавляется в группу.
+    // Принимает значения больше 1 включительно.
+    private double maxAvgDistRate = 3;
+
+    @Cfg
+    // Максимальное кол-во раз в которое может отличаться площадь текущего контура
+    // от средней по группе. При большем значении контур не добавляется в группу.
+    // Принимает значения больше 1 включительно.
+    private double maxAreaRate = 4;
+
+    @Cfg
+    // Максимальное отношение расстояния текущего контура
+    // до предсказанной точки к среднему по группе.
+    // При большем значении контур не добавляется в группу.
+    // Принимает значения больше 0. Меньше лучше.
+    private double maxEstimateDiffRate = 2;
+
+    @Cfg
+    private double minCntArea = 1;
+
+    @Cfg
+    private double maxCntArea = 10000;
+
+    @Cfg
+    private int minGroupLength = 2;
+
 
     public Tracker(Size frameSize) {
         this(frameSize, BgSubtractorFactory.createSimpleBS());
@@ -44,7 +130,6 @@ public class Tracker {
         Point leftUp = new Point(0, 0);
         Point rightBottom = new Point(frameSize.width, frameSize.height);
         maxDist = Utils.getDistance(leftUp, rightBottom);
-        distThreshold = maxDist / 4;
         weightThreshold = DEFAULT_WEIGHT_THRESHOLD;
 
         // Выделение фона.
@@ -52,16 +137,27 @@ public class Tracker {
         this.bgSubtractor = bgSubtractor;
 
         groups = new HashMap<>();
+        removedGroups = new HashMap<>();
     }
 
-    public Mat getFrame(Mat inputFrame) {
+    public void setHitDetectorListener(HitDetectorInterface hitDetectorListener) {
+        this.hitDetectorListener = hitDetectorListener;
+    }
+
+    public void setContourListener(RawTrackerInterface contourListener) {
+        this.contourListener = contourListener;
+    }
+
+
+    public void process(long timestamp, Mat inputFrame) {
         Utils.setResizeHeight((int) inputFrame.size().height);
         Utils.setResizeWidth((int) inputFrame.size().width);
-        Mat frame = inputFrame;
         // Выделение фона.
-        bgSubtractor.apply(frame, bgMask);
+        bgSubtractor.apply(inputFrame, bgMask);
         // Шумодав.
-        bgMask = Utils.filterNoise(bgMask);
+        if (isMorphologyFilterEnable) {
+            bgMask = Utils.filterNoise(bgMask);
+        }
 
         // Выделение контуров.
         List<MatOfPoint> contours = new ArrayList<>();
@@ -80,9 +176,9 @@ public class Tracker {
 
         // Удаляем группы.
         for (int id : groupIdToRemove) {
+            removedGroups.put(id, groups.get(id));
             groups.remove(id);
         }
-
 
         // Структура для хранения весов Map<contourIdx, Map<groupIdx, weight>>
         Map<Integer, Map<Integer, Double>> contoursWeight = new HashMap<>();
@@ -90,18 +186,56 @@ public class Tracker {
         for (int cntIdx = 0, cntSize = contours.size(); cntIdx < cntSize; cntIdx++) {
             MatOfPoint curContour = contours.get(cntIdx);
             Map<Integer, Double> groupIdxToWeight = new HashMap<>();
+
+            Point cntPoint = Utils.getCentroid(curContour);
+            double cntArea = Imgproc.contourArea(curContour);
+
+            // Проверка площади.
+            if (cntArea < minCntArea || cntArea > maxCntArea) continue;
+
             for (int groupIdx : groups.keySet()) {
-                // TODO: Вычисление веса по расстоянию.
-                double distWeight = 0;
                 Group curGroup = groups.get(groupIdx);
-                Point groupPoint = curGroup.getLastCoord();
-                Point cntPoint = Utils.getCentroid(curContour);
+                Point groupPoint = curGroup.getLastPoint();
+                // Проверка направления.
+                if (isCheckDirectionEnable) {
+                    Hit.Direction direction = cntPoint.x > groupPoint.x ? Hit.Direction.LEFT_TO_RIGHT : Hit.Direction.RIGHT_TO_LEFT;
+                    Hit.Direction groupDirection = curGroup.getDirection();
+                    if ((groupDirection != null) && (direction != curGroup.getDirection())) continue;
+                }
+                // Вычисление веса по расстоянию.
+                double distWeight;
                 double dist = Utils.getDistance(groupPoint, cntPoint);
-                // TODO: Вычисление веса по форме/площади.
-                double shapeWeight = 0;
-                // TODO: Нормализация и суммирование.
-                distWeight = 1 - dist / maxDist;
-                double weight = distWeight + shapeWeight;
+                double normalDist = dist / maxDist;
+                if (isCheckDistanceEnable) {
+                    if (normalDist > distThreshold) continue;
+                }
+                // Вычисление веса по среднему расстоянию.
+                if (isCheckAvgDistanceEnable) {
+                    double curGroupAvgDist = curGroup.getAvgDist();
+                    if (curGroupAvgDist != 0) {
+                        double avgDistRate = curGroupAvgDist / dist;
+                        if (avgDistRate < 1) avgDistRate = 1 / avgDistRate;
+                        if (avgDistRate > maxAvgDistRate) continue;
+                    }
+                    // Вычисление веса по предсказанной координате.
+                    if (isCheckEstimateDistanceEnable) {
+                        Point estPoint = curGroup.getEstimatePoint();
+                        if (estPoint != null) {
+                            double estDiffDist = Utils.getDistance(estPoint, cntPoint);
+                            double estDiffRate = estDiffDist / curGroupAvgDist;
+                            if (estDiffRate > maxEstimateDiffRate) continue;
+                        }
+                    }
+                }
+                // Вычисление веса по площади.
+                if (isCheckAreaRateEnable) {
+                    double areaRate = curGroup.getAvgArea() / cntArea;
+                    if (areaRate < 1) areaRate = 1 / areaRate;
+                    if (areaRate > maxAreaRate) continue;
+                }
+                // Нормализация и суммирование.
+                distWeight = 1 - normalDist;
+                double weight = distWeight;
                 // Сохранение веса.
                 groupIdxToWeight.put(groupIdx, weight);
             }
@@ -152,74 +286,95 @@ public class Tracker {
             int groupIdx = entry.getKey();
             List<MatOfPoint> contoursList = entry.getValue();
             List<Double> weightList = groupIdxToWeightList.get(groupIdx);
+            // Ищем индекс контура с максимальным весом.
+/*            double maxWeight = 0;
+            int maxWeightIdx = 0;
+
+            for (int i = 0, weightListSize = weightList.size(); i < weightListSize; i++) {
+                double curWeight = weightList.get(i);
+                if (curWeight > maxWeight) {
+                    maxWeightIdx = i;
+                }
+            }*/
             Group updatedGroup = groups.get(groupIdx);
-            updatedGroup.add(contoursList, weightList);
+            updatedGroup.add(timestamp, contoursList, weightList);
             groups.put(groupIdx, updatedGroup);
+            // Сообщаем о новых данных.
+            contourListener.onTrackContour(groupIdx, contoursList);
         }
 
         // Создание новых групп из оставшихся контуров.
         // FIXME: Тут надо рассматривать каждый контур как группу и сразу объединить их
         // FIXME: можно создать группы из каждого контура и потом посчитать веса для них же.
         for (Integer cntIdx : restContours) {
-            Group newGroup = new Group(contours.get(cntIdx));
-            groups.put(groupId.incrementAndGet(), newGroup);
+            MatOfPoint contour = contours.get(cntIdx);
+            Group newGroup = new Group(timestamp, contour, hitDetectorListener);
+            int newGroupId = groupId.incrementAndGet();
+            groups.put(newGroupId, newGroup);
+            // Сообщаем о новых данных.
+            contourListener.onTrackContour(newGroupId, Arrays.asList(contour));
         }
+    }
 
-        /**
-         * Композиция исходного изображения с данными трекера.
-         */
+    /**
+     * Композиция исходного изображения с данными трекера.
+     */
+    public Mat getFrame(long timestamp, Mat inputFrame, List<Long> timestamps) {
+        process(timestamp, inputFrame);
+
         // Конвертируем исходное изображение в BGR для отрисовки цветных контуров.
         if (inputFrame.type() == CvType.CV_8UC1) {
             Imgproc.cvtColor(inputFrame, inputFrame, Imgproc.COLOR_GRAY2BGR);
         }
         // Матрица для отрисовки контуров, треков и т.д.
-        Mat dataImg = Mat.zeros(frame.size(), CvType.CV_8UC3);
+        Mat dataImg = Mat.zeros(inputFrame.size(), CvType.CV_8UC3);
 
         // Рисуем группы контуров и треки разными цветами.
-        for (Group group : groups.values()) {
-            // Группы.
-            List<MatOfPoint> contoursToDraw = group.getContourList();
-            Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
+        for (Group group : getAllGroups()) {
+            if (group.getSize() <= minGroupLength) continue;
+            // Контуры.
+            if (isDrawContourEnable) {
+                List<MatOfPoint> contoursToDraw = group.getContoursByTimestamp(timestamps);
+                Imgproc.drawContours(dataImg, contoursToDraw, -1, Palette.getRandomColor(10), 1);
+            }
             // Треки.
-            Utils.drawLine(group.getTrack(), dataImg, Palette.getRandomColor(10), 1);
-        }
-
-        Core.addWeighted(inputFrame, 0.3, dataImg, 0.7, 0.5, inputFrame);
-        return inputFrame;
-    }
-
-    private int getNearestGroupIdx(MatOfPoint contour, List<Group> groups, List<Integer> groupsIdx) {
-        Point contourCoord = Utils.getCentroid(contour);
-        double minDist = distThreshold;
-        int idx = -1;
-
-        for (int i : groupsIdx) {
-            Group group = groups.get(i);
-            Point lastCoord = group.getLastCoord();
-            double curDist = Utils.getDistance(contourCoord, lastCoord);
-            if (curDist < minDist) {
-                minDist = curDist;
-                idx = i;
+            if (isDrawTrackLineEnable) {
+                List<Point> trackPoints = group.getTrackPointsByTimestamp(timestamps);
+                Utils.drawLine(trackPoints, dataImg, Palette.GREEN, 2);
             }
         }
-        return idx;
-    }
 
-    private int getNearestContourIdx(Group group, List<MatOfPoint> contours) {
-        Point groupCoord = group.getLastCoord();
-        double minDist = distThreshold;
-        int idx = -1;
-
-        for (int i = 0, size = contours.size(); i < size; i++) {
-            MatOfPoint contour = contours.get(i);
-            Point centroid = Utils.getCentroid(contour);
-            double curDist = Utils.getDistance(groupCoord, centroid);
-            if (curDist < minDist) {
-                minDist = curDist;
-                idx = i;
+        // Предсказанные точки.
+        if (isDrawEstimatePointEnable) {
+            for (Group group : groups.values()) {
+                if (group.getSize() <= minGroupLength) continue;
+                Point estPoint = group.getEstimatePoint();
+                if (estPoint != null) {
+                    int s = 7;
+                    Point rectP1 = new Point(estPoint.x - s, estPoint.y - s);
+                    Point rectP2 = new Point(estPoint.x + s, estPoint.y + s);
+                    Imgproc.rectangle(dataImg, rectP1, rectP2, Palette.GREEN, 2);
+                }
             }
         }
-        return idx;
+
+        if (isDrawCompositionEnable) {
+            Core.addWeighted(inputFrame, 0.5, dataImg, 0.5, 0.5, inputFrame);
+            return inputFrame;
+        } else {
+            return dataImg;
+        }
+    }
+
+    public List<Group> getAllGroups() {
+        List<Group> groupList = new ArrayList<>();
+        groupList.addAll(groups.values());
+        groupList.addAll(removedGroups.values());
+        return groupList;
+    }
+
+    public void setBgSubstr(BackgroundExtractor newBgExtr) {
+        bgSubtractor = newBgExtr;
     }
 
 

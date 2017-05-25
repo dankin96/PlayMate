@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Menu?>
-<?import javafx.scene.control.MenuBar?>
-<?import javafx.scene.control.MenuItem?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.SeparatorMenuItem?>
-<?import javafx.scene.control.Slider?>
-<?import javafx.scene.control.SplitPane?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane fx:id="pane" onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.65"
+<AnchorPane fx:id="pane" onKeyPressed="#changeFrame" xmlns="http://javafx.com/javafx/8.0.102-ea"
             xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.technostart.playmate.gui.PlayerController">
     <children>
         <VBox AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
@@ -34,10 +24,20 @@
                         </Menu>
                         <Menu text="Edit">
                             <items>
+                                <MenuItem accelerator="Shortcut+R" onAction="#initDetectors" text="Reload Detectors"/>
                                 <MenuItem onAction="#clearBuffer" text="Clear Buffer"/>
+                                <MenuItem onAction="#clearMap" text="Clear HitMap"/>
+                                <MenuItem onAction="#clearSpeed" text="Clear Speed"/>
                                 <SeparatorMenuItem/>
                                 <MenuItem accelerator="Shortcut+R" onAction="#reloadFrame" text="Reload Frame"/>
                                 <MenuItem onAction="#applySettings" text="Apply Settings"/>
+                                <SeparatorMenuItem/>
+                            </items>
+                        </Menu>
+                        <Menu text="Actions">
+                            <items>
+                                <MenuItem onAction="#recordTablePoints" text="Record Table Points"/>
+                                <MenuItem onAction="#clearTablePoints" text="Clear Table Points"/>
                             </items>
                         </Menu>
                     </menus>
@@ -50,7 +50,7 @@
                                       AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
                                       AnchorPane.topAnchor="0.0" SplitPane.resizableWithParent="true">
                                     <children>
-                                        <ImageView fx:id="processedFrameView" fitHeight="700.0" fitWidth="1080.0"
+                                        <ImageView fx:id="processedFrameView" fitHeight="600.0" fitWidth="1080.0"
                                                    pickOnBounds="true" preserveRatio="true">
                                             <VBox.margin>
                                                 <Insets left="10.0" top="10.0"/>
