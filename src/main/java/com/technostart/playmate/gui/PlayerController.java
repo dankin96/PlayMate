@@ -78,7 +78,7 @@ public class PlayerController implements Initializable {
         @Cfg
         double resizeRate = 0.6;
         @Cfg
-        boolean isTrackerEnable = false;
+        boolean isTrackerEnable = true;
         @Cfg
         boolean isFieldDetectorEnable = false;
         @Cfg
@@ -86,7 +86,7 @@ public class PlayerController implements Initializable {
         @Cfg
         boolean isJsonCreateEnable = false;
         @Cfg
-        boolean isMapOfHitsEnable = true;
+        boolean isMapOfHitsEnable = false;
 
         @Override
         public Image process(Mat inputFrame) {
@@ -114,7 +114,6 @@ public class PlayerController implements Initializable {
                 }
                 else
                     newFrame = map.getMap(new Point(500 + 150 * Math.random(), 250 + 40 * Math.random()), MapOfHits.Direction.RIGHT_TO_LEFT);
-//                helpImageView.setImage(GuiUtils.mat2Image(copy, jpgQuality));
                 counter++;
             }
             if (isJsonCreateEnable) {
@@ -174,8 +173,6 @@ public class PlayerController implements Initializable {
 
     private Subscription createFrameSubscription(Command<Image> command) {
         return createFrameObservable(command)
-//                .subscribeOn(Schedulers.computation())
-//                .observeOn(Schedulers.io())
                 .subscribe(this::showFrame);
     }
 
@@ -199,7 +196,6 @@ public class PlayerController implements Initializable {
             }
         });
         bgSubstr = new SimpleBackgroundSubtractor();
-//        bgSubstr = BgSubtractorFactory.createMOG2(5, 16, false);
         // TODO: добавить новые объекты если будут.
         updateSettingsFromObjects(Arrays.asList(frameHandler, bgSubstr));
     }
